@@ -5,7 +5,7 @@ Demo: (https://meta.juyounglee.net)
 ## TODO
 
 ### Web
-- [ ] Add some additional marker for each images(like QR or synchro): assume physical user extra contents on their devices
+- [ ] Add some additional marker add-on for each images(like QR or synchro): assume physical user extra contents on their devices
 - [ ] Add Cutout option for GaussianSplat=> make clear
 - [ ] text(relationship) based auto images placement(LLM powered)
 - [ ] Drag to move images/wall/gaussiansplat
@@ -14,7 +14,8 @@ Demo: (https://meta.juyounglee.net)
 - [ ] Add auto-refresh on wall page(toggle by parameter?)
 - [ ] AR walking(now we are using joystick)
 - [ ] Save user position/rotation tracking information
-- [ ] MongoDB to use abstract class to fetch wallelements
+- [ ] Automatic screen size fitting
+- [ ] MongoDB to use abstract class to fetch wall elements
 
 
 ### Notweb

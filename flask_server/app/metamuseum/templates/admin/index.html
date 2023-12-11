@@ -1,0 +1,21 @@
+
+
+{% extends 'admin/master.html' %}
+
+{% block body %}
+  
+
+  {% if current_user.is_anonymous %}
+    <p>This page is only allowed for admins</p>
+    <a class="btn btn-primary" href="{{ url_for('auth.signin', next='/kwanri') }}">Login First</a>
+  {% elif current_user.is_admin() %}
+    <p>Logged in as {{ current_user.name }} <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Logout</a></p>
+
+    <h1>관리자 페이지</h1>
+
+  {% else %}
+    <p>Not an admin</p>
+    <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Logout</a>
+  {% endif %}
+  
+{% endblock %}

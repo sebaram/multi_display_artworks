@@ -1,0 +1,23 @@
+# multi_display_artworks
+Demo: (https://meta.juyounglee.net)
+
+
+## TODO
+
+### Web
+- [ ] Add some additional marker for each images(like QR or synchro): assume physical user extra contents on their devices
+- [ ] Add Cutout option for GaussianSplat=> make clear
+- [ ] text(relationship) based auto images placement(LLM powered)
+- [ ] Drag to move images/wall/gaussiansplat
+  - https://github.com/jesstelford/aframe-click-drag-component
+- [ ] Video background contents on wall
+- [ ] Add auto-refresh on wall page(toggle by parameter?)
+- [ ] AR walking(now we are using joystick)
+- [ ] Save user position/rotation tracking information
+- [ ] MongoDB to use abstract class to fetch wallelements
+
+
+### Notweb
+- [ ] Tracking people in real world and update to server
+  - using correlation between user's movement in AR mode and tracked position by surveillance camera?
+

@@ -1,0 +1,116 @@
+{% extends "default/default_home.html" %}
+{% block extrahead %}
+<style>
+    ul, #myUL {
+    list-style-type: none;
+    }
+
+    #myUL {
+    margin: 0;
+    padding: 0;
+    }
+
+    .caret {
+    cursor: pointer;
+    user-select: none; /* Prevent text selection */
+    }
+
+    .caret::before {
+    content: "\25B6";
+    color: black;
+    display: inline-block;
+    margin-right: 6px;
+    transform: rotate(90deg); /* Rotated by default */
+    }
+
+    .caret-down::before {
+    transform: rotate(0deg); /* Reset to default when collapsed */
+    }
+
+    .nested {
+    display: block; /* Initially displayed */
+    margin-left: 20px;
+    }
+
+    .active {
+    display: none; /* Hidden when class 'active' is added */
+    }
+
+</style>
+
+{% endblock %}
+
+
+{% macro render_list(objects) %}
+
+{% endmacro %}
+
+
+{% block contents %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 mt-3">
+            <h3>Link for elements</h3>
+            <hr>
+            {% for one_room in all_rooms %}
+            <ul class="tree mb-3">
+                <li><span class="caret">Room: {{one_room.name}}</span> <a class="font-weight-bold" href="{{one_room.get_absolute_url()}}" target="_blank">[Go to Room(online:<span id="onlineUser">0</span>)]</a>
+                    <ul class="nested">
+                        {% for one_wall in one_room.walls %}
+                            <li><span class="caret">Wall: <a href="{{one_wall.get_absolute_url()|safe}}" target="_blank">{{one_wall.name}}</a></span>
+                            {% if one_wall.get_all_elements()|length > 0 %}
+                                
+                                <ul class="nested">
+                                    {% for one_ele in one_wall.get_all_elements() %}
+
+                                        <li> {{one_ele.wall_element_type}} <a href="{{one_ele.get_absolute_url()|safe}}" target="_blank">{{one_ele.name}}</a></li>
+
+                                    {% endfor %}
+
+                                </ul>
+                            {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            </ul>
+            {% endfor %}
+            
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var toggler = document.getElementsByClassName("caret");
+        for (var i = 0; i < toggler.length; i++) {
+            toggler[i].addEventListener("click", function() {
+                this.parentElement.querySelector(".nested").classList.toggle("active");
+                this.classList.toggle("caret-down");
+            });
+        }
+    });
+
+    // get online user and update every 5 seconds
+    setInterval(function(){
+        fetch("{{url_for('main.get_cameras')}}", {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            let online_user = data.length;
+            document.getElementById("onlineUser").innerHTML = online_user;
+        })
+        .catch((error) => console.error('Error:', error));
+    }, 5000);
+
+
+
+</script>
+
+{% endblock%}
+

@@ -1,0 +1,115 @@
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/mrturck/aframe-joystick/master/joystick.min.js"></script>
+    <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
+
+  </head>
+  <body>
+    <a-scene joystick xr-mode-ui="enabled: false">
+      <a-assets>
+          <a-asset-item id="avatarModel" src="{{url_for('static', filename='gltf/shiba/scene.gltf')}}"></a-asset-item>
+      </a-assets>
+      <a-camera id="camera"></a-camera>
+
+      {% for one_ele in aframe_list %}
+        {{ one_ele|safe }}
+      {% endfor %}
+
+    </a-scene>
+
+    <script>
+      const myUserId = Math.random().toString(36).substring(7); // Generate a random user ID
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const cameraEl = document.getElementById('camera');
+        
+
+        setInterval(() => {
+          const position = cameraEl.getAttribute('position');
+          const rotation = cameraEl.getAttribute('rotation');
+          const userId = myUserId;
+
+          fetch("{{url_for('main.receive_camera_data')}}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ position, rotation, userId }),
+          })
+          .then(response => response.json())
+          // .then(data => console.log(data))
+          .catch((error) => console.error('Error:', error));
+        }, 200); // Send data every 1000 milliseconds
+      });
+
+
+      // Function to update other users' cameras in the scene
+      function updateOtherUsersCameras(data) {
+        // get all registered camera entities' id as list
+        let cameraIdList = [];
+        document.querySelectorAll('a-entity').forEach((el) => {
+          if (el.id.startsWith('camera-')) {
+            cameraIdList.push(el.id);
+          }
+        });
+
+
+
+        Object.keys(data).forEach(_index => {
+          const userId = data[_index].userId;
+          if (userId === myUserId) return; // Skip my own camera
+
+
+          let cameraEl = document.getElementById(`camera-${userId}`);
+          if (!cameraEl) {
+            // Create a new entity for this user's camera if it doesn't exist
+            cameraEl = document.createElement('a-entity');
+            cameraEl.setAttribute('id', `camera-${userId}`);
+            cameraEl.setAttribute('rotation', '0 180 0');
+
+            let avatar = document.createElement('a-entity');
+            avatar.setAttribute('gltf-model', '#avatarModel');
+            avatar.setAttribute('rotation', '0 180 0');
+            avatar.setAttribute('position', '0 -1 0');
+            avatar.setAttribute('scale', '0.5 0.5 0.5');
+
+            let idText = document.createElement('a-text');
+            idText.setAttribute('value', userId);
+            idText.setAttribute('position', '0 0 0');
+            idText.setAttribute('scale', '1 1 1');
+            idText.setAttribute('rotation', '0 180 0');
+            idText.setAttribute('color', 'red');
+            idText.setAttribute('align', 'center');
+
+            cameraEl.appendChild(avatar);
+            cameraEl.appendChild(idText);
+
+            document.querySelector('a-scene').appendChild(cameraEl);
+          }
+          // Update position and rotation
+          cameraEl.setAttribute('position', data[_index].position);
+          cameraEl.setAttribute('rotation', data[_index].rotation);
+
+          // Remove the camera entity from the list
+          cameraIdList = cameraIdList.filter(id => id !== `camera-${userId}`);
+        });
+
+        // Remove the camera entities that are in the list
+        cameraIdList.forEach(id => {
+          const el = document.getElementById(id);
+          el.parentNode.removeChild(el);
+        });
+
+      }
+
+      setInterval(() => {
+        fetch("{{url_for('main.get_cameras')}}")
+          .then(response => response.json())
+          .then(data => updateOtherUsersCameras(data))
+          .catch((error) => console.error('Error:', error));
+      }, 200); // Fetch data every 1000 milliseconds
+
+    </script>
+  </body>
+</html>

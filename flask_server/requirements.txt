@@ -1,0 +1,16 @@
+Flask==2.2.5
+pymongo==4.1.1
+mongoengine==0.24.2
+flask-mongoengine==1.0.0
+Flask-Login
+flask-ckeditor
+flask-bcrypt
+Flask-WTF
+email-validator
+Flask-Cors
+xlrd
+pybtex
+WTForms==2.3.3
+werkzeug
+Flask-Admin
+Flask-Mail

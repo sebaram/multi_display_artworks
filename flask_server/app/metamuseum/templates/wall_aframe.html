@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  </head>
+  <body>
+    <a-scene xr-mode-ui="enabled: false">
+      <a-entity position="0 0 0" >
+        <a-camera fov="60" camera="" position="0 0 {{camera_d}}" rotation="" look-controls="" wasd-controls="acceleration:5"></a-camera>
+      </a-entity>
+
+      {% for one_ele in aframe_list %}
+        {{ one_ele|safe }}
+      {% endfor %}
+
+      
+
+    </a-scene>
+  </body>
+</html>

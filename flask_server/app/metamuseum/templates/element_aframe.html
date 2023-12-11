@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/mrturck/aframe-joystick/master/joystick.min.js"></script>
+    <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
+  </head>
+
+  <body>
+    <a-scene xr-mode-ui="enabled: false">
+      <a-camera id="camera"></a-camera>
+      {{ aframe|safe }}
+    </a-scene>
+  </body>
+</html>

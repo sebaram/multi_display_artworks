@@ -1,6 +1,16 @@
 # multi_display_artworks
 Demo: (https://meta.juyounglee.net)
 
+## Introduction
+This repository includes modulized 3D space elements structure and viewer. The purpose is to simulate physical space in virtual space and use web addresses to show the designed wall on an interactive display in the real world. Every element is reachable with each address. The web client is based on Aframe. Additional interaction modules will be included in the near future. Please refer to the TODO list to contribute.
+
+### Requirements
+- Serverside: python(Flask) ''flask_server/requirements.txt''
+- DB: MongoDB
+
+### Library used
+ - https://github.com/quadjr/aframe-gaussian-splatting
+
 
 ## TODO
 
@@ -18,7 +28,7 @@ Demo: (https://meta.juyounglee.net)
 - [ ] MongoDB to use abstract class to fetch wall elements
 
 
-### Notweb
+### Not-web
 - [ ] Tracking people in real world and update to server
   - using correlation between user's movement in AR mode and tracked position by surveillance camera?
 

@@ -22,3 +22,7 @@ Demo: (https://meta.juyounglee.net)
 - [ ] Tracking people in real world and update to server
   - using correlation between user's movement in AR mode and tracked position by surveillance camera?
 
+
+## Acknowledgment
+This work was supported by Institute of Information & communications Technology Planning & Evaluation (IITP) grant funded by the Korea government(MSIT) (No.2019-0-01270, WISE AR UI/UX Platform Development for Smartglasses)
+

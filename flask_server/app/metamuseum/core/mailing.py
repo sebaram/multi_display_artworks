@@ -1,24 +1,26 @@
-import smtplib
-
-# Import the email modules we'll need
-from email.message import EmailMessage
-from flask import flash, current_app
+from flask import current_app
+from flask_mail import Mail, Message
 from metamuseum.models import User
+import smtplib
+import logging
+
+logger = logging.getLogger(__name__)
+mail = Mail()
 
 def send_this_to_admin(title, txt):
-    msg = EmailMessage()
-    msg.set_content(txt)
+    try:
+        admins = User.objects(user_type__contains='admin')
+        mails = [one.email for one in admins]
+        if not mails:
+            logger.warning("No admins found to send email")
+            return
 
-    admins = User.query.filter(User.user_type.contains('admin'))
-    mails = [one.email for one in admins]
-
-    msg['Subject'] = f'[CT-AR]{title}'
-    msg['From'] = "noreply@uvrlab.org"
-    msg['To'] = ", ".join(mails)
-
-    # Send the message via our own SMTP server.
-    server = smtplib.SMTP_SSL(current_app.config['SMTP_SERVER'], 465)
-    server.login(current_app.config['SMTP_ID'], current_app.config['SMTP_PW'])    
-    server.send_message(msg)
-    server.quit()
-    
+        msg = Message(
+            subject=f'[CT-AR]{title}',
+            recipients=mails,
+            body=txt,
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@uvrlab.org')
+        )
+        mail.send(msg)
+    except Exception as e:
+        logger.error(f"Failed to send admin email: {e}")

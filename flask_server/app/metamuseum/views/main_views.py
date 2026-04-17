@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from metamuseum.core.pyAframe import Box, Sphere, Cylinder, Plane, Sky
 from metamuseum.core.ratelimit import rate_limiter
-from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat, GLTFmodel
+from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat, GLTFmodel, Webpage
 from metamuseum.elements.user import OnlineUser
 
 logger = logging.getLogger(__name__)
@@ -173,6 +173,9 @@ def wall_element():
         elif ele_type == "gltf":
             this_element = GLTFmodel.objects(_id=element_id).first()
             display_type = "aframe"
+        elif ele_type == "webpage":
+            this_element = Webpage.objects(_id=element_id).first()
+            display_type = "aframe"
         else:
             return "define element type", 400
 
@@ -218,6 +221,8 @@ def update_element(element_id, element_type):
             element = GaussianSplat.objects(_id=element_id).first()
         elif element_type == "gltf":
             element = GLTFmodel.objects(_id=element_id).first()
+        elif element_type == "webpage":
+            element = Webpage.objects(_id=element_id).first()
         else:
             return jsonify({"error": "Unknown element type"}), 400
 

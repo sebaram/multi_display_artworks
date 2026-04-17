@@ -44,6 +44,7 @@ class Wall(Document):
     images = ListField(ReferenceField("Image"))
     splats = ListField(ReferenceField("GaussianSplat"))
     gltfs = ListField(ReferenceField("GLTFmodel"))
+    webpages = ListField(ReferenceField("Webpage"))
     position = StringField(required=True)
     rotation = StringField(required=True)
     width = FloatField(required=True)
@@ -62,7 +63,7 @@ class Wall(Document):
         return url_for('main.wall', wall_id=str(self._id))
     
     def get_all_elements(self):
-        return self.images + self.splats + self.gltfs
+        return self.images + self.splats + self.gltfs + self.webpages
     
     def to_aframe(self, single=True):
         if single:
@@ -165,6 +166,30 @@ class GaussianSplat(WallElement):
         
         return '<a-entity if="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" rotation="{}" scale="{}">{}</a-entity>'.format(
             self.name, self._id, this_position, this_rotation, self.scale, aframes)
+
+
+class Webpage(WallElement):
+    webpage_url = StringField(required=True)
+    width = FloatField(required=True)
+    height = FloatField(required=True)
+    wall_element_type = StringField(default="webpage")
+
+    def __repr__(self):
+        return "<Webpage:{}>".format(self.name)
+    def __str__(self):
+        return "<Webpage:{}>".format(self.name)
+
+    def to_aframe(self, single=True, wall_depth=None):
+        if single:
+            this_position = "0 0 0.05"
+        else:
+            wall_depth = wall_depth if wall_depth is not None else 0.2
+            this_position = "{} {} {}".format(self.position_x, self.position_y, 0.05 + wall_depth)
+        aspect = self.width / self.height
+        html_content = '<div style=\"width:{}px;height:{}px;\"><iframe src=\"{}\" style=\"width:100%;height:100%;border:none;\"></iframe></div>'.format(
+            int(self.width * 100), int(self.height * 100), self.webpage_url)
+        return '<a-entity id=\"webpage_{}\" data-element-id=\"{}\" data-element-type=\"webpage\" position=\"{}\" html=\"html: #webpage-content-{}; aspect: {}\"></a-entity><div id=\"webpage-content-{}\" style=\"display:none;\">{}</div>'.format(
+            self.name, self._id, this_position, self.name, aspect, self.name, html_content)
 
 
 class GLTFmodel(WallElement):

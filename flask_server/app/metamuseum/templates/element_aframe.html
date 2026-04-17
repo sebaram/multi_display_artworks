@@ -17,6 +17,79 @@
       {{ aframe|safe }}
     </a-scene>
 
+    {% if element_type == 'gaussian_splat' %}
+    <div id="cutout-controls" style="position:fixed;bottom:20px;left:20px;background:rgba(0,0,0,0.85);color:white;padding:15px;border-radius:8px;font-size:13px;z-index:9999;min-width:280px;">
+      <div style="font-weight:bold;margin-bottom:10px;">✂️ Gaussian Splat Cutout</div>
+      <div style="margin-bottom:8px;">
+        <label>Cutout Scale (x y z):</label><br>
+        <input type="text" id="cutout-scale" placeholder="e.g. 0.5 0.5 0.5" 
+               value="{{ cutout_scale or '' }}" 
+               style="width:100%;padding:5px;border-radius:4px;border:none;">
+      </div>
+      <div style="margin-bottom:8px;">
+        <label>Cutout Position (x y z):</label><br>
+        <input type="text" id="cutout-position" placeholder="e.g. 0 0 0"
+               value="{{ cutout_position or '' }}"
+               style="width:100%;padding:5px;border-radius:4px;border:none;">
+      </div>
+      <div style="margin-bottom:8px;">
+        <label>Enable Cutout:</label>
+        <input type="checkbox" id="cutout-enabled"
+               {% if cutout_scale %}checked{% endif %}
+               style="padding:5px;">
+      </div>
+      <button onclick="saveCutout()" style="background:#4CAF50;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;width:100%;">
+        Save Changes
+      </button>
+      <div id="cutout-status" style="margin-top:8px;font-size:11px;text-align:center;"></div>
+    </div>
+
+    <script>
+      const elementId = "{{ element_id }}";
+      const elementType = "{{ element_type }}";
+
+      function saveCutout() {
+        const enabled = document.getElementById('cutout-enabled').checked;
+        const scale = document.getElementById('cutout-scale').value;
+        const position = document.getElementById('cutout-position').value;
+        const status = document.getElementById('cutout-status');
+
+        if (!enabled) {
+          status.textContent = 'Cutout disabled (scale/position cleared)';
+          status.style.color = '#aaa';
+        } else if (!scale || !position) {
+          status.textContent = 'Please enter both scale and position';
+          status.style.color = '#ff6b6b';
+          return;
+        }
+
+        fetch(`/element/${elementId}/${elementType}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cutout_scale: enabled ? scale : null,
+            cutout_position: enabled ? position : null
+          })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success') {
+            status.textContent = '✅ Saved! Reload to see changes.';
+            status.style.color = '#4CAF50';
+            setTimeout(() => location.reload(), 1500);
+          } else {
+            status.textContent = '❌ Error: ' + data.error;
+            status.style.color = '#ff6b6b';
+          }
+        })
+        .catch(err => {
+          status.textContent = '❌ Network error';
+          status.style.color = '#ff6b6b';
+        });
+      }
+    </script>
+    {% endif %}
+
     <script>
       const avatarType = "{{ avatar }}";
 

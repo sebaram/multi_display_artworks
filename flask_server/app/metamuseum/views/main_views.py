@@ -172,7 +172,19 @@ def wall_element():
             avatar = request.args.get('avatar', 'shiba')
             if avatar not in ('shiba', 'robot', 'none'):
                 avatar = 'shiba'
-            return render_template('element_aframe.html', aframe=this_element.to_aframe(), avatar=avatar)
+            
+            # Extra params for gaussian_splat cutout UI
+            extra = {}
+            if ele_type == "gaussian_splat":
+                extra['element_type'] = ele_type
+                extra['element_id'] = str(this_element._id)
+                extra['cutout_scale'] = this_element.cutout_scale
+                extra['cutout_position'] = this_element.cutout_position
+            
+            return render_template('element_aframe.html', 
+                                  aframe=this_element.to_aframe(), 
+                                  avatar=avatar, 
+                                  **extra)
         else:
             return render_template('element.html', img_link=this_element.image_url, img_description=this_element.description)
     except Exception as e:
@@ -182,7 +194,7 @@ def wall_element():
 
 @bp.route("/element/<element_id>/<element_type>", methods=['PATCH'])
 def update_element(element_id, element_type):
-    """Update element position (for drag-to-move)"""
+    """Update element position and optional parameters (for drag-to-move, cutout editing)"""
     try:
         data = request.json
         if not data:
@@ -204,6 +216,13 @@ def update_element(element_id, element_type):
             element.position_x = float(data['position_x'])
         if 'position_y' in data:
             element.position_y = float(data['position_y'])
+        
+        # Cutout params for gaussian_splat
+        if element_type == "gaussian_splat":
+            if 'cutout_scale' in data:
+                element.cutout_scale = data['cutout_scale']
+            if 'cutout_position' in data:
+                element.cutout_position = data['cutout_position']
 
         element.save()
         return jsonify({"status": "success", "element_id": str(element._id)})

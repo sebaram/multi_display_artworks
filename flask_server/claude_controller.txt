@@ -1,0 +1,72 @@
+# Controller Feature — Scale, Rotate & AR Passthrough
+
+## 1. Add scale & rotation fields to WallElement (all element types)
+
+### DB Changes — `elements/basic.py`
+```
+WallElement base class adds:
+  scale_x = FloatField(default=1.0)
+  scale_y = FloatField(default=1.0)
+  scale_z = FloatField(default=1.0)
+  rotation_x = FloatField(default=0.0)
+  rotation_y = FloatField(default=0.0)
+  rotation_z = FloatField(default=0.0)
+```
+
+### to_aframe() changes
+Each element type already has scale/rotation — just change to use DB fields:
+- **Image**: add `scale` and `rotation` attributes using scale_x,y,z and rotation_x,y,z
+- **Webpage**: add `scale` and `rotation` attributes  
+- **GaussianSplat**: already has scale/rotation strings — instead use DB float fields
+- **GLTFmodel**: already has scale/rotation strings — instead use DB float fields
+
+## 2. Admin Control Panel UI
+
+New floating panel with sliders:
+```
+┌─ ✏️ Element Transform ────────────────┐
+│ Position X: [====●=====] 0.00        │
+│ Position Y: [====●=====] 0.00        │
+│ Scale X:    [====●=====] 1.00        │
+│ Scale Y:    [====●=====] 1.00        │
+│ Scale Z:    [====●=====] 1.00        │
+│ Rotation X: [====●=====] 0°          │
+│ Rotation Y: [====●=====] 0°          │
+│ Rotation Z: [====●=====] 0°          │
+│ [Reset]                      [Apply] │
+└──────────────────────────────────────┘
+```
+
+Drag still works for quick XY move. Control panel for precise scale/rotate.
+On "Apply" → PATCH with all 9 values at once.
+
+## 3. PATCH endpoint update
+
+Support new fields:
+```
+scale_x, scale_y, scale_z
+rotation_x, rotation_y, rotation_z
+```
+
+All 6 values + 2 position values saved in one PATCH call.
+
+## 4. AR Passthrough (Admin only)
+
+Detection: `navigator.xr.isSessionSupported('immersive-ar')`
+
+If supported, show "🥽 AR Passthrough" button in admin panel.
+On click → request AR session with passthrough enabled.
+Background shows real camera feed, virtual elements overlaid.
+
+A-Frame: `a-scene` with `renderer="colorManagement: true; passthrough: true"` + WebXR AR session.
+
+---
+
+**Files to change:**
+- `flask_server/app/metamuseum/elements/basic.py` — add 6 fields to WallElement, update all to_aframe()
+- `flask_server/app/metamuseum/views/main_views.py` — update PATCH to handle new fields
+- `flask_server/app/metamuseum/static/js/drag-component.js` — save scale/rotation on drag-end
+- `flask_server/app/metamuseum/templates/room_aframe.html` — add transform control panel, AR button
+- `flask_server/app/metamuseum/templates/element_aframe.html` — add transform panel
+
+**Priority:** Control panel (scale/rotate) first → then AR passthrough button.

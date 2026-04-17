@@ -239,6 +239,22 @@ def update_element(element_id, element_type):
         if 'position_y' in data:
             element.position_y = float(data['position_y'])
         
+        # Scale fields (all element types inherit from WallElement)
+        if 'scale_x' in data:
+            element.scale_x = float(data['scale_x'])
+        if 'scale_y' in data:
+            element.scale_y = float(data['scale_y'])
+        if 'scale_z' in data:
+            element.scale_z = float(data['scale_z'])
+        
+        # Rotation fields (all element types inherit from WallElement)
+        if 'rotation_x' in data:
+            element.rotation_x = float(data['rotation_x'])
+        if 'rotation_y' in data:
+            element.rotation_y = float(data['rotation_y'])
+        if 'rotation_z' in data:
+            element.rotation_z = float(data['rotation_z'])
+        
         # Cutout params for gaussian_splat
         if element_type == "gaussian_splat":
             if 'cutout_scale' in data:

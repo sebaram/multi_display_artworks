@@ -73,9 +73,7 @@ class Wall(Document):
             this_position = self.position
             this_rotation = self.rotation
 
-        # Wall background: video if set, otherwise colored box
         if self.video_url:
-            # Video on front face of wall
             aframes = '<a-video src="{}" width="{}" height="{}" position="0 0 {}"></a-video>'.format(
                 self.video_url, self.width, self.height, self.depth / 2 + 0.01)
         else:
@@ -102,6 +100,13 @@ class WallElement(Document):
     position = StringField(required=True)
     position_x = FloatField(required=True)
     position_y = FloatField(required=True)
+    # Transform controls (scale & rotate)
+    scale_x = FloatField(default=1.0)
+    scale_y = FloatField(default=1.0)
+    scale_z = FloatField(default=1.0)
+    rotation_x = FloatField(default=0.0)
+    rotation_y = FloatField(default=0.0)
+    rotation_z = FloatField(default=0.0)
 
     def __repr__(self):
         return "<WallElement:{}>".format(self.name)
@@ -110,6 +115,12 @@ class WallElement(Document):
 
     def get_absolute_url(self):
         return url_for('main.wall_element', wall_element_id=str(self._id), type=self.wall_element_type)
+
+    def _get_scale_str(self):
+        return "{} {} {}".format(self.scale_x, self.scale_y, self.scale_z)
+
+    def _get_rotation_str(self):
+        return "{} {} {}".format(self.rotation_x, self.rotation_y, self.rotation_z)
 
 
 class Image(WallElement):
@@ -129,14 +140,14 @@ class Image(WallElement):
         else:
             wall_depth = wall_depth if wall_depth is not None else 0.2
             this_position = "{} {} {}".format(self.position_x, self.position_y, 0.05 + wall_depth)
-        return '<a-image id="img_{}" data-element-id="{}" data-element-type="image" position="{}" src="{}" width="{}" height="{}" material geometry></a-image>'.format(
-            self.name, self._id, this_position, self.image_url, self.width, self.height)
+        scale_str = self._get_scale_str()
+        rot_str = self._get_rotation_str()
+        return '<a-image id="img_{}" data-element-id="{}" data-element-type="image" position="{}" scale="{}" rotation="{}" src="{}" width="{}" height="{}" material geometry></a-image>'.format(
+            self.name, self._id, this_position, scale_str, rot_str, self.image_url, self.width, self.height)
 
 
 class GaussianSplat(WallElement):
     splat_url = StringField(required=True)
-    scale = StringField(required=True)
-    rotation = StringField(required=True)
     cutout_scale = StringField()
     cutout_position = StringField()
     wall_element_type = StringField(default="gaussian_splat")
@@ -149,11 +160,11 @@ class GaussianSplat(WallElement):
     def to_aframe(self, single=True, wall_depth=None):
         if single:
             this_position = "0 0 -1"
-            this_rotation = "0 0 0"
+            this_rotation = self._get_rotation_str()
         else:
             wall_depth = wall_depth if wall_depth is not None else 0.3
             this_position = "{} {} {}".format(self.position_x, self.position_y, 0.05 + wall_depth)
-            this_rotation = self.rotation
+            this_rotation = self._get_rotation_str()
         
         aframes = ''
         if self.cutout_scale is not None:
@@ -164,8 +175,8 @@ class GaussianSplat(WallElement):
         else:
             aframes += '<a-entity gaussian_splatting="src: {};"></a-entity>'.format(self.splat_url)
         
-        return '<a-entity if="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" rotation="{}" scale="{}">{}</a-entity>'.format(
-            self.name, self._id, this_position, this_rotation, self.scale, aframes)
+        return '<a-entity if="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" scale="{}" rotation="{}">{}</a-entity>'.format(
+            self.name, self._id, this_position, self._get_scale_str(), this_rotation, aframes)
 
 
 class Webpage(WallElement):
@@ -185,18 +196,18 @@ class Webpage(WallElement):
         else:
             wall_depth = wall_depth if wall_depth is not None else 0.2
             this_position = "{} {} {}".format(self.position_x, self.position_y, 0.05 + wall_depth)
+        scale_str = self._get_scale_str()
+        rot_str = self._get_rotation_str()
         aspect = self.width / self.height
-        html_content = '<div style=\"width:{}px;height:{}px;\"><iframe src=\"{}\" style=\"width:100%;height:100%;border:none;\"></iframe></div>'.format(
+        html_content = '<div style="width:{}px;height:{}px;"><iframe src="{}" style="width:100%;height:100%;border:none;"></iframe></div>'.format(
             int(self.width * 100), int(self.height * 100), self.webpage_url)
-        return '<a-entity id=\"webpage_{}\" data-element-id=\"{}\" data-element-type=\"webpage\" position=\"{}\" html=\"html: #webpage-content-{}; aspect: {}\"></a-entity><div id=\"webpage-content-{}\" style=\"display:none;\">{}</div>'.format(
-            self.name, self._id, this_position, self.name, aspect, self.name, html_content)
+        return '<a-entity id="webpage_{}" data-element-id="{}" data-element-type="webpage" position="{}" scale="{}" rotation="{}" html="html: #webpage-content-{}; aspect: {}"></a-entity><div id="webpage-content-{}" style="display:none;">{}</div>'.format(
+            self.name, self._id, this_position, scale_str, rot_str, self.name, aspect, self.name, html_content)
 
 
 class GLTFmodel(WallElement):
     gltf_url = StringField(required=True)
-    scale = StringField(required=True)
     default_rotation = StringField(required=True)
-    rotation = StringField(required=True)
     wall_element_type = StringField(default="gltf")
     position_z = FloatField(required=True)
 
@@ -208,18 +219,16 @@ class GLTFmodel(WallElement):
     def to_aframe(self, single=True, wall_depth=None):
         if single:
             this_position = "0 0 -1"
-            this_rotation = "0 0 0"
         else:
             wall_depth = wall_depth if wall_depth is not None else 0.3
             this_position = "{} {} {}".format(self.position_x, self.position_y, self.position_z + wall_depth)
-            this_rotation = self.rotation
         
         aframes = '<a-entity rotation="{}" gltf-model="url({})"></a-entity>'.format(self.default_rotation, self.gltf_url)
-        return '<a-entity id="gltf-{}" data-element-id="{}" data-element-type="gltf" position="{}" rotation="{}" scale="{}">{}</a-entity>'.format(
-            self.name, self._id, this_position, this_rotation, self.scale, aframes)
+        return '<a-entity id="gltf-{}" data-element-id="{}" data-element-type="gltf" position="{}" scale="{}" rotation="{}">{}</a-entity>'.format(
+            self.name, self._id, this_position, self._get_scale_str(), self._get_rotation_str(), aframes)
 
 
 if __name__ == "__main__":
-    new_splat = GaussianSplat(name="test_splat", description="luma-seal", splat_url="https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/luma-seal.splat", scale="1 1 1", rotation="0 0 0", position="-1 0.3 3", position_x=0, position_y=0)
+    new_splat = GaussianSplat(name="test_splat", description="luma-seal", splat_url="https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/luma-seal.splat", scale_x=1, scale_y=1, scale_z=1, rotation_x=0, rotation_y=0, rotation_z=0, position="-1 0.3 3", position_x=0, position_y=0)
     new_splat.save()
     print("done")

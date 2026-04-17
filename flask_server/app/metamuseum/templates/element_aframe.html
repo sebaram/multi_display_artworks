@@ -7,6 +7,11 @@
 
   <body>
     <a-scene xr-mode-ui="enabled: false">
+      {% if avatar == 'shiba' %}
+      <a-assets>
+          <a-asset-item id="avatarModel" src="{{url_for('static', filename='gltf/shiba/scene.gltf')}}"></a-asset-item>
+      </a-assets>
+      {% endif %}
       <a-camera id="camera"></a-camera>
       {{ aframe|safe }}
     </a-scene>

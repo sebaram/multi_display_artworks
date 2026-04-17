@@ -31,5 +31,11 @@ MAIL_PASSWORD = 'something only you know'
 MAIL_DEFAULT_SENDER = 'ejuyoung@gmail.com'
 
 
+AVATAR_OPTIONS = {
+    'shiba': {'name': 'Shiba Dog', 'model': None},
+    'robot': {'name': 'Robot', 'model': None},
+    'none': {'name': 'No Avatar', 'model': None},
+}
+
 print("BASE_DIR: ",BASE_DIR)
 

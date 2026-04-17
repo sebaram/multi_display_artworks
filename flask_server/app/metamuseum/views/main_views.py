@@ -48,7 +48,10 @@ def room():
         if not this_room:
             return "Room not found", 404
         aframe_list = [this_room.to_aframe()]
-        return render_template('room_aframe.html', aframe_list=aframe_list, camera_d=3)
+        avatar = request.args.get('avatar', 'shiba')
+        if avatar not in ('shiba', 'robot', 'none'):
+            avatar = 'shiba'
+        return render_template('room_aframe.html', aframe_list=aframe_list, camera_d=3, avatar=avatar)
     except Exception as e:
         logger.error(f"Error loading room {room_id}: {e}")
         return "Database unavailable", 503
@@ -153,7 +156,10 @@ def wall_element():
             return "Element not found", 404
 
         if display_type == "aframe":
-            return render_template('element_aframe.html', aframe=this_element.to_aframe())
+            avatar = request.args.get('avatar', 'shiba')
+            if avatar not in ('shiba', 'robot', 'none'):
+                avatar = 'shiba'
+            return render_template('element_aframe.html', aframe=this_element.to_aframe(), avatar=avatar)
         else:
             return render_template('element.html', img_link=this_element.image_url, img_description=this_element.description)
     except Exception as e:

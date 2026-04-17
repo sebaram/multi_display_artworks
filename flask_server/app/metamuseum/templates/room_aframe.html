@@ -20,10 +20,94 @@
 
     <script>
       const myUserId = Math.random().toString(36).substring(7); // Generate a random user ID
+      const avatarType = "{{ avatar }}";
+
+      function createAvatarEntity(avatarType) {
+        if (avatarType === 'none') return null;
+
+        if (avatarType === 'robot') {
+          let wrapper = document.createElement('a-entity');
+          wrapper.setAttribute('position', '0 -1 0');
+          wrapper.setAttribute('rotation', '0 180 0');
+
+          // Body
+          let body = document.createElement('a-box');
+          body.setAttribute('color', '#4a9eff');
+          body.setAttribute('width', '0.4');
+          body.setAttribute('height', '0.6');
+          body.setAttribute('depth', '0.2');
+          body.setAttribute('position', '0 0 0');
+          wrapper.appendChild(body);
+
+          // Head
+          let head = document.createElement('a-sphere');
+          head.setAttribute('color', '#4a9eff');
+          head.setAttribute('radius', '0.15');
+          head.setAttribute('position', '0 0.45 0');
+          wrapper.appendChild(head);
+
+          // Eyes
+          let leftEye = document.createElement('a-sphere');
+          leftEye.setAttribute('color', '#ffffff');
+          leftEye.setAttribute('radius', '0.04');
+          leftEye.setAttribute('position', '-0.06 0.48 -0.12');
+          wrapper.appendChild(leftEye);
+
+          let rightEye = document.createElement('a-sphere');
+          rightEye.setAttribute('color', '#ffffff');
+          rightEye.setAttribute('radius', '0.04');
+          rightEye.setAttribute('position', '0.06 0.48 -0.12');
+          wrapper.appendChild(rightEye);
+
+          // Arms
+          let leftArm = document.createElement('a-box');
+          leftArm.setAttribute('color', '#3a8adf');
+          leftArm.setAttribute('width', '0.1');
+          leftArm.setAttribute('height', '0.4');
+          leftArm.setAttribute('depth', '0.1');
+          leftArm.setAttribute('position', '-0.3 -0.1 0');
+          wrapper.appendChild(leftArm);
+
+          let rightArm = document.createElement('a-box');
+          rightArm.setAttribute('color', '#3a8adf');
+          rightArm.setAttribute('width', '0.1');
+          rightArm.setAttribute('height', '0.4');
+          rightArm.setAttribute('depth', '0.1');
+          rightArm.setAttribute('position', '0.3 -0.1 0');
+          wrapper.appendChild(rightArm);
+
+          // Legs
+          let leftLeg = document.createElement('a-box');
+          leftLeg.setAttribute('color', '#3a8adf');
+          leftLeg.setAttribute('width', '0.12');
+          leftLeg.setAttribute('height', '0.4');
+          leftLeg.setAttribute('depth', '0.12');
+          leftLeg.setAttribute('position', '-0.12 -0.5 0');
+          wrapper.appendChild(leftLeg);
+
+          let rightLeg = document.createElement('a-box');
+          rightLeg.setAttribute('color', '#3a8adf');
+          rightLeg.setAttribute('width', '0.12');
+          rightLeg.setAttribute('height', '0.4');
+          rightLeg.setAttribute('depth', '0.12');
+          rightLeg.setAttribute('position', '0.12 -0.5 0');
+          wrapper.appendChild(rightLeg);
+
+          return wrapper;
+        }
+
+        // Default: shiba
+        let avatar = document.createElement('a-entity');
+        avatar.setAttribute('gltf-model', '#avatarModel');
+        avatar.setAttribute('rotation', '0 180 0');
+        avatar.setAttribute('position', '0 -1 0');
+        avatar.setAttribute('scale', '0.5 0.5 0.5');
+        return avatar;
+      }
 
       document.addEventListener('DOMContentLoaded', () => {
         const cameraEl = document.getElementById('camera');
-        
+
 
         setInterval(() => {
           const position = cameraEl.getAttribute('position');
@@ -35,7 +119,7 @@
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ position, rotation, userId }),
+            body: JSON.stringify({ position, rotation, userId, avatar: avatarType }),
           })
           .then(response => response.json())
           // .then(data => console.log(data))
@@ -60,6 +144,7 @@
           const userId = data[_index].userId;
           if (userId === myUserId) return; // Skip my own camera
 
+          const otherAvatarType = data[_index].avatar || 'shiba';
 
           let cameraEl = document.getElementById(`camera-${userId}`);
           if (!cameraEl) {
@@ -68,11 +153,10 @@
             cameraEl.setAttribute('id', `camera-${userId}`);
             cameraEl.setAttribute('rotation', '0 180 0');
 
-            let avatar = document.createElement('a-entity');
-            avatar.setAttribute('gltf-model', '#avatarModel');
-            avatar.setAttribute('rotation', '0 180 0');
-            avatar.setAttribute('position', '0 -1 0');
-            avatar.setAttribute('scale', '0.5 0.5 0.5');
+            let avatar = createAvatarEntity(otherAvatarType);
+            if (avatar) {
+              cameraEl.appendChild(avatar);
+            }
 
             let idText = document.createElement('a-text');
             idText.setAttribute('value', userId);
@@ -82,7 +166,6 @@
             idText.setAttribute('color', 'red');
             idText.setAttribute('align', 'center');
 
-            cameraEl.appendChild(avatar);
             cameraEl.appendChild(idText);
 
             document.querySelector('a-scene').appendChild(cameraEl);

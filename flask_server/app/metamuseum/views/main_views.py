@@ -141,7 +141,15 @@ def wall():
         camera_d = this_wall.width / 2
         refresh_interval = request.args.get('refresh')
         drag_enabled = current_user.is_authenticated and current_user.is_admin()
-        return render_template('wall_aframe.html', aframe_list=aframe_list, camera_d=camera_d, refresh_interval=refresh_interval, drag_enabled=drag_enabled)
+        # ETag based on wall's last update time — only refresh if wall content changed
+        wall_etag = str(this_wall.updated_time.timestamp()) if this_wall.updated_time else ''
+        response = render_template('wall_aframe.html', aframe_list=aframe_list, camera_d=camera_d, 
+                             refresh_interval=refresh_interval, drag_enabled=drag_enabled,
+                             wall_id=wall_id, wall_etag=wall_etag)
+        resp = current_app.make_response(response)
+        resp.headers['ETag'] = wall_etag
+        resp.headers['Last-Modified'] = this_wall.updated_time.strftime('%a, %d %b %Y %H:%M:%S GMT') if this_wall.updated_time else ''
+        return resp
     except Exception as e:
         logger.error(f"Error loading wall {wall_id}: {e}")
         return "Database unavailable", 503

@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8">
     {% if refresh_interval %}
-    <meta http-equiv="refresh" content="{{ refresh_interval }}">
+    <meta http-equiv="cache-control" content="no-cache">
     {% endif %}
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
@@ -20,9 +20,53 @@
     </a-scene>
 
     {% if refresh_interval %}
-    <div style="position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:4px;font-size:12px;z-index:9999;">
-      🔄 Auto-refresh: {{ refresh_interval }}s
+    <div id="refresh-indicator" style="position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:4px;font-size:12px;z-index:9999;">
+      🔄 Next refresh in <span id="refresh-countdown">{{ refresh_interval }}</span>s
     </div>
+
+    <script>
+      const refreshIntervalSecs = {{ refresh_interval }};
+      const wallEtag = "{{ wall_etag }}";  // content hash from server
+      let countdown = refreshIntervalSecs;
+
+      // Countdown timer UI
+      const countdownEl = document.getElementById('refresh-countdown');
+      setInterval(() => {
+        countdown--;
+        if (countdownEl) countdownEl.textContent = Math.max(0, countdown);
+      }, 1000);
+
+      function checkAndRefresh() {
+        fetch("{{url_for('main.wall', wall_id=wall_id)}}", {
+          method: 'HEAD',
+          headers: { 'Accept': 'text/plain' }
+        })
+        .then(response => {
+          const serverEtag = response.headers.get('ETag') || response.headers.get('Last-Modified') || '';
+          // Compare content hash — only reload if different
+          if (serverEtag !== wallEtag && serverEtag !== '') {
+            fadeRefresh();
+          } else {
+            console.log('Content unchanged, skipping refresh');
+          }
+        })
+        .catch(() => {}); // silently skip on error
+      }
+
+      function fadeRefresh() {
+        document.body.style.transition = 'opacity 0.2s ease';
+        document.body.style.opacity = '0';
+        setTimeout(() => {
+          location.reload();
+        }, 200);
+      }
+
+      // Check before refreshing (skip first cycle)
+      setTimeout(() => {
+        countdown = refreshIntervalSecs;
+        setInterval(checkAndRefresh, refreshIntervalSecs * 1000);
+      }, refreshIntervalSecs * 1000);
+    </script>
     {% endif %}
 
     {% if drag_enabled %}

@@ -8,7 +8,7 @@ from urllib.parse import urlparse, urljoin, quote
 
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
-from metamuseum import login_manager, db, mail
+from metamuseum import login_manager, mail
 from metamuseum.models import User
 from metamuseum.forms import LoginForm, RegistrationForm
 

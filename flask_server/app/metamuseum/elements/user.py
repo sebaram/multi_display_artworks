@@ -11,44 +11,18 @@ from bson.objectid import ObjectId
 
 
 from datetime import datetime
-import os
+from mongoengine import Document, ObjectIdField, StringField, DictField, DateTimeField
+from bson import ObjectId
+from flask.helpers import url_for
+
 
 if __name__ == "__main__":
-    from flask import Flask
-    from flask_mongoengine import MongoEngine
+    pass  # standalone mode not needed
 
-    import os
-    import sys
-    import inspect
-    
-    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    print("currentdir: ", currentdir)
-    parentdir = os.path.dirname(currentdir)
-    print("parentdir: ", parentdir)
-    parentdir = os.path.dirname(parentdir)
-    print("parentdir: ", parentdir)
-    sys.path.insert(0, parentdir) 
-    import config
-
-    
-    app = Flask(__name__)
-    app.config['MONGODB_SETTINGS'] = config.MONGODB_SETTINGS
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db = MongoEngine()
-    db.init_app(app)
-else:
-    from metamuseum import db
-    from random import randint 
-
-
-class OnlineUser(db.Document):
-    # this will be used to store the user's session id and camera position temporarily
-    # so that the user can continue the session from the last point
-
-    _id = db.ObjectIdField(required=True, default=ObjectId, primary_key=True)
-    session_id = db.StringField(required=True, unique=True)
-    camera_position = db.DictField()
-    camera_rotation = db.DictField()
-
-    update_time = db.DateTimeField(default=datetime.utcnow)
+class OnlineUser(Document):
+    _id = ObjectIdField(required=True, default=ObjectId, primary_key=True)
+    session_id = StringField(required=True, unique=True)
+    camera_position = DictField()
+    camera_rotation = DictField()
+    update_time = DateTimeField(default=datetime.utcnow)
     

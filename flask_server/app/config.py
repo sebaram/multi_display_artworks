@@ -8,9 +8,9 @@ import os
 
 
 
-
-MONGODB_SETTINGS = {"host":'ask_juyoung_for_this'}
-MONGODB_CONNECT = False
+MONGODB_HOST = os.environ.get('MONGODB_HOST', 'localhost')
+MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
+MONGODB_DB = os.environ.get('MONGODB_DB', 'metamuseum')
 
 DEFAULT_TITLE = "MetaMuseum"
 

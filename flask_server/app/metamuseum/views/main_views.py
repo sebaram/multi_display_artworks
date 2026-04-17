@@ -9,7 +9,6 @@ from os.path import isfile, join
 import math
 from datetime import datetime, timedelta
 
-from metamuseum import db
 from metamuseum.core.pyAframe import Box, Sphere, Cylinder, Plane, Sky
 from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat,GLTFmodel
 from metamuseum.elements.user import OnlineUser

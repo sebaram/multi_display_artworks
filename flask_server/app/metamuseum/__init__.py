@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from flask import Flask
-
-from flask_mongoengine import MongoEngine
 from flask_login import LoginManager
-from flask_bcrypt  import Bcrypt
+from flask_bcrypt import Bcrypt
 from flask_admin import Admin
 from flask_admin.form import Select2Widget
 from flask_mail import Mail, Message
@@ -12,7 +10,6 @@ from flask_cors import CORS
 
 import config
 
-db = MongoEngine()
 login_manager = LoginManager()
 bcrypt = Bcrypt()
 mail = Mail()
@@ -65,7 +62,6 @@ def create_app():
     
 
     # ORM
-    db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
     bcrypt.init_app(app)

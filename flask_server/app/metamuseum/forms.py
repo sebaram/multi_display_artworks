@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from wtforms.fields.simple import TextField
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, SelectField, SelectMultipleField, MultipleFileField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
-from wtforms.fields.html5 import DateField, TimeField
+from wtforms.fields import DateField, TimeField
 from datetime import date
 from flask_ckeditor import CKEditorField
 

@@ -137,7 +137,8 @@ def wall():
 
         aframe_list = [this_wall.to_aframe()]
         camera_d = this_wall.width / 2
-        return render_template('wall_aframe.html', aframe_list=aframe_list, camera_d=camera_d)
+        refresh_interval = request.args.get('refresh')
+        return render_template('wall_aframe.html', aframe_list=aframe_list, camera_d=camera_d, refresh_interval=refresh_interval)
     except Exception as e:
         logger.error(f"Error loading wall {wall_id}: {e}")
         return "Database unavailable", 503

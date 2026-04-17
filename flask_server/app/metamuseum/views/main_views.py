@@ -177,3 +177,35 @@ def wall_element():
     except Exception as e:
         logger.error(f"Error loading element {element_id}: {e}")
         return "Database unavailable", 503
+
+
+@bp.route("/element/<element_id>/<element_type>", methods=['PATCH'])
+def update_element(element_id, element_type):
+    """Update element position (for drag-to-move)"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "JSON body required"}), 400
+
+        if element_type == "image":
+            element = Image.objects(_id=element_id).first()
+        elif element_type == "gaussian_splat":
+            element = GaussianSplat.objects(_id=element_id).first()
+        elif element_type == "gltf":
+            element = GLTFmodel.objects(_id=element_id).first()
+        else:
+            return jsonify({"error": "Unknown element type"}), 400
+
+        if not element:
+            return jsonify({"error": "Element not found"}), 404
+
+        if 'position_x' in data:
+            element.position_x = float(data['position_x'])
+        if 'position_y' in data:
+            element.position_y = float(data['position_y'])
+
+        element.save()
+        return jsonify({"status": "success", "element_id": str(element._id)})
+    except Exception as e:
+        logger.error(f"Error updating element {element_id}: {e}")
+        return jsonify({"error": str(e)}), 500

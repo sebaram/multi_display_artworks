@@ -1,0 +1,45 @@
+"""Add drag-to-move functionality for wall elements.
+
+## Implementation
+
+### 1. Add PATCH endpoint to update element position
+In main_views.py, add:
+```python
+@bp.route('/element/<element_id>/<element_type>', methods=['PATCH'])
+def update_element(element_id, element_type):
+    data = request.json
+    # Update position_x, position_y
+    # Return success
+```
+
+### 2. Create drag component
+In static/js/, create drag-component.js with A-Frame drag functionality:
+- On click/drag, allow moving the element in XY plane
+- On drag end, send PATCH to update DB
+- Add visual feedback (cursor change, highlight on hover)
+
+### 3. Update to_aframe() methods
+Add `draggable="true"` attribute to each element's A-Frame entity.
+
+### 4. Update templates
+Add drag-component.js script and enable drag on elements.
+
+Work in /home/uvr/.openclaw/workspace-coding_agent/projects/multi_display_artworks
+
+Files to create/modify:
+1. flask_server/app/metamuseum/views/main_views.py - add PATCH endpoint
+2. flask_server/app/metamuseum/static/js/drag-component.js - new A-Frame drag component
+3. flask_server/app/metamuseum/templates/room_aframe.html - add drag support
+4. flask_server/app/metamuseum/templates/element_aframe.html - add drag support
+5. flask_server/app/metamuseum/elements/basic.py - add draggable attribute in to_aframe()
+
+The drag component should:
+- Raycaster to detect clicks/drags on entities
+- On mousedown: start drag, highlight element
+- On mousemove: update position in XY plane (relative to wall plane)
+- On mouseup: send PATCH request with new position_x, position_y, save to DB
+- Support touch events for mobile/VR
+
+Test with element page: /element?wall_element_id=...&type=image&avatar=robot
+
+Commit message: "feat: drag-to-move for wall elements with position persistence"

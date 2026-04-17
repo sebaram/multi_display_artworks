@@ -3,10 +3,11 @@
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.rawgit.com/mrturck/aframe-joystick/master/joystick.min.js"></script>
     <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
+    <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
 
   </head>
   <body>
-    <a-scene joystick xr-mode-ui="enabled: false">
+    <a-scene joystick xr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
       <a-assets>
           <a-asset-item id="avatarModel" src="{{url_for('static', filename='gltf/shiba/scene.gltf')}}"></a-asset-item>
       </a-assets>
@@ -24,6 +25,18 @@
       let handTrackingEnabled = false;
       let xrSession = null;
 
+      // Enable drag on all draggable elements
+      function enableDrag() {
+        document.querySelectorAll('[data-element-id]').forEach(el => {
+          const elementId = el.getAttribute('data-element-id');
+          const elementType = el.getAttribute('data-element-type');
+          if (elementId && elementType) {
+            el.setAttribute('drag-element', `elementId: ${elementId}, elementType: ${elementType}`);
+            el.setAttribute('class', 'clickable');
+          }
+        });
+      }
+
       // Check WebXR hand tracking support
       async function checkHandTrackingSupport() {
         if (!navigator.xr) return false;
@@ -35,12 +48,8 @@
         }
       }
 
-      // Request hand tracking session
       async function enableHandTracking() {
-        if (!navigator.xr) {
-          console.log('WebXR not supported');
-          return false;
-        }
+        if (!navigator.xr) return false;
         try {
           xrSession = await navigator.xr.requestSession('immersive-vr', {
             optionalFeatures: ['hand-tracking', 'local-floor']
@@ -51,7 +60,6 @@
             document.getElementById('hand-tracking-btn').style.background = '#666';
           });
 
-          // Set up hand tracking sources
           const handSources = await xrSession.requestHandSources();
           setupHandTracking(handSources);
           handTrackingEnabled = true;
@@ -63,10 +71,9 @@
         }
       }
 
-      // Track hands and send data
       function setupHandTracking(handSources) {
         let lastSendTime = 0;
-        const sendInterval = 100; // ms between sends
+        const sendInterval = 100;
 
         function trackHands() {
           if (!handTrackingEnabled || !xrSession) return;
@@ -86,7 +93,6 @@
               const hand = source.hand;
               const isLeft = source.handedness === 'left';
               
-              // Get key joint positions
               const getJoint = (name) => {
                 const joint = hand.get(name);
                 return joint ? {
@@ -107,7 +113,6 @@
             }
           });
 
-          // Send with camera data
           sendCameraData(leftHandData, rightHandData);
           requestAnimationFrame(trackHands);
         }
@@ -191,14 +196,12 @@
         return avatar;
       }
 
-      // Create hand visualization for other users
       function createHandVisualization(handData, isLeft) {
         if (!handData) return null;
         
         let hand = document.createElement('a-entity');
         hand.setAttribute('class', `hand-${isLeft ? 'left' : 'right'}`);
         
-        // Palm
         let palm = document.createElement('a-box');
         palm.setAttribute('color', '#00ff88');
         palm.setAttribute('width', '0.08');
@@ -209,7 +212,6 @@
         }
         hand.appendChild(palm);
 
-        // Simple fingers (3 cylinders per hand)
         ['thumbTip', 'indexTip', 'middleTip'].forEach((joint, i) => {
           if (handData[joint] && handData[joint].position) {
             let finger = document.createElement('a-sphere');
@@ -243,7 +245,6 @@
         }).catch(err => console.error('Camera data error:', err));
       }
 
-      // Normal camera tracking (non-hand-tracking mode)
       setInterval(() => {
         if (!handTrackingEnabled) {
           const cameraEl = document.getElementById('camera');
@@ -293,7 +294,6 @@
           cameraEl.setAttribute('position', data[_index].position);
           cameraEl.setAttribute('rotation', data[_index].rotation);
 
-          // Render other users' hands if they have hand tracking enabled
           if (data[_index].handTrackingEnabled && data[_index].handTrackingEnabled.enabled) {
             const leftHandData = data[_index].leftHand;
             const rightHandData = data[_index].rightHand;
@@ -315,7 +315,6 @@
                   cameraEl.appendChild(handEl);
                 }
               } else {
-                // Update hand position
                 if (handData.wrist && handData.wrist.position) {
                   handEl.setAttribute('position', `${handData.wrist.position[0]} ${handData.wrist.position[1]} ${handData.wrist.position[2]}`);
                 }
@@ -344,8 +343,10 @@
           .catch(err => console.error('Get cameras error:', err));
       }, 200);
 
-      // Add hand tracking toggle button (visible only if WebXR supported)
       document.addEventListener('DOMContentLoaded', async () => {
+        // Enable drag after scene loads
+        setTimeout(enableDrag, 1000);
+
         const supported = await checkHandTrackingSupport();
         if (supported) {
           const btn = document.createElement('button');
@@ -355,6 +356,11 @@
           btn.onclick = enableHandTracking;
           document.body.appendChild(btn);
         }
+      });
+
+      // Also enable drag after scene loaded
+      document.querySelector('a-scene').addEventListener('loaded', () => {
+        setTimeout(enableDrag, 500);
       });
 
     </script>

@@ -1,0 +1,148 @@
+Add WebXR hand tracking support for Quest 3 and Apple Vision Pro users.
+
+## Overview
+Enable arm and hand movement tracking for users with hand-tracking-capable devices (Meta Quest 3, Apple Vision Pro, etc.). When enabled, users should see their own hands in VR and other users should see hand/arm representations.
+
+## Current State
+- Camera position/rotation is tracked and broadcast via `/camera-data`
+- Avatar types (shiba/robot/none) are supported per user
+- No hand/controller tracking currently exists
+
+## Implementation
+
+### 1. Extend /camera-data endpoint to accept hand tracking data
+
+In `main_views.py`, modify the `receive_camera_data` endpoint to accept additional hand tracking data:
+
+```python
+@bp.route('/camera-data', methods=['POST'])
+def receive_camera_data():
+    data = request.json
+    # Existing: userId, position, rotation
+    # New optional: handTracking { left: {...}, right: {...} }
+```
+
+Hand data structure (per hand):
+```json
+{
+  "wrist": {"position": [x,y,z], "rotation": [x,y,z]},
+  "thumbTip": {"position": [x,y,z]},
+  "indexTip": {"position": [x,y,z]},
+  "middleTip": {"position": [x,y,z]},
+  // ... more joints as needed
+}
+```
+
+Only send the most important joints to reduce bandwidth:
+- wrist, thumbTip, indexTip, middleTip (4 joints per hand = 8 total)
+
+### 2. Extend OnlineUser model
+
+In `user.py`, add hand tracking fields:
+```python
+left_hand = DictField()  # JSON blob of joint positions
+right_hand = DictField()
+hand_tracking_enabled = BooleanField(default=False)
+```
+
+### 3. Update get-cameras endpoint
+
+Include hand data in the response so other users can see hand positions:
+```python
+{"position": ..., "rotation": ..., "userId": ..., "left_hand": ..., "right_hand": ..., "avatar": ...}
+```
+
+### 4. Update room_aframe.html for hand tracking
+
+Add WebXR hand tracking setup. Use a custom component since A-Frame doesn't have built-in hand tracking. The approach:
+
+```javascript
+// Register a hand-tracking component using WebXR
+AFRAME.registerComponent('hand-tracker', {
+  init: function() {
+    // Check for WebXR hand tracking support
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+        if (supported) {
+          // Request hand tracking
+        }
+      });
+    }
+  },
+  
+  tick: function() {
+    // Every frame, update hand positions
+    // Send to server every 100ms (not every frame - too much data)
+  }
+});
+```
+
+For Quest 3 / Vision Pro, use the WebXR Hand Tracking API:
+- `navigator.xr.requestSession()` with `handTracking: true` feature
+- `session.requestHandTrackSource()` for hand input sources
+- `hand.getJointPose()` to get joint positions
+
+### 5. Visual representation of hands
+
+Create simple hand representations:
+- For 'robot' avatar: blue glowing hands (boxes/capsules for palm + fingers)
+- For 'shiba' avatar: simplified paw shapes
+- For 'none': just floating hand shapes
+
+Only show hands when hand tracking is actively detected (not just for mouse/trackpad users).
+
+### 6. Detect device type and enable appropriately
+
+```javascript
+// Check if user has hand tracking capable device
+async function checkHandTrackingCapability() {
+  if (!navigator.xr) return false;
+  const supported = await navigator.xr.isSessionSupported('immersive-vr');
+  // Also check for hand input sources capability
+  return supported;
+}
+
+// Enable hand tracking only if device supports it
+// Don't show hand UI for desktop/mobile users
+```
+
+### 7. Create hand visualization entities
+
+In the HTML, conditionally include hand entities:
+```html
+<a-entity id="left-hand" hand-tracking="hand: left" visible="false">
+  <!-- Simple hand shape: palm box + finger cylinders -->
+  <a-box color="#4a9eff" width="0.08" height="0.1" depth="0.02" position="0 0 0"></a-box>
+  <a-cylinder color="#4a9eff" radius="0.01" height="0.06" rotation="0 0 90" position="0.05 0 0"></a-cylinder>
+  <!-- ... more finger segments -->
+</a-entity>
+<a-entity id="right-hand" hand-tracking="hand: right" visible="false">
+  <!-- mirror of left hand -->
+</a-entity>
+```
+
+### 8. Update UI/UX
+
+- Add a toggle in the A-Frame scene to enable/disable hand tracking (icon button)
+- Only send hand data when user explicitly enables it (privacy)
+- Show "Hand tracking active" indicator when enabled
+
+## Files to modify
+
+1. `app/metamuseum/elements/user.py` — add hand tracking fields to OnlineUser
+2. `app/metamuseum/views/main_views.py` — extend camera-data and get-cameras endpoints
+3. `app/metamuseum/templates/room_aframe.html` — add hand tracking components and visualization
+4. `app/metamuseum/templates/element_aframe.html` — optionally add hand support
+
+## Notes
+
+- WebXR hand tracking is still relatively new - test on Quest 3 if possible
+- On Vision Pro, use ARKit/AROS hand tracking via WebXR
+- Bandwidth consideration: hand data at 10Hz is enough (camera is already at 5Hz)
+- Privacy: hands are optional, user must explicitly enable
+- Fallback: if hand tracking fails, gracefully degrade to camera-only tracking
+
+## Work in
+`/home/uvr/.openclaw/workspace-coding_agent/projects/multi_display_artworks`
+
+Commit message: "feat: WebXR hand tracking support for Quest 3 and Vision Pro"

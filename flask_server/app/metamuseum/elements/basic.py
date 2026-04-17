@@ -72,11 +72,13 @@ class Wall(Document):
             this_position = self.position
             this_rotation = self.rotation
 
-        aframes = f"""<a-box color="{self.color}" position="0 0 0" rotation="0 0 0" width="{self.width}" height="{self.height}" depth="{self.depth}" material geometry></a-box>"""
+        aframes = '<a-box color="{}" position="0 0 0" rotation="0 0 0" width="{}" height="{}" depth="{}" material geometry></a-box>'.format(
+            self.color, self.width, self.height, self.depth)
         for one_ele in self.get_all_elements():
             aframes += one_ele.to_aframe(single=False, wall_depth=self.depth)
 
-        aframe_str = f"""<a-entity id="wall_{self.name}" position="{this_position}" rotation="{this_rotation}">{aframes}</a-entity>"""
+        aframe_str = '<a-entity id="wall_{}" position="{}" rotation="{}">{}</a-entity>'.format(
+            self.name, this_position, this_rotation, aframes)
         return aframe_str
 
 
@@ -118,8 +120,9 @@ class Image(WallElement):
             this_position = "0 0 0.05"
         else:
             wall_depth = wall_depth if wall_depth is not None else 0.2
-            this_position = f"""{self.position_x} {self.position_y} {0.05+wall_depth}"""
-        return f"""<a-image id="img_{self.name}" position="{this_position}" src="{self.image_url}" width="{self.width}" height="{self.height}" material geometry></a-image>"""
+            this_position = "{} {} {}".format(self.position_x, self.position_y, 0.05 + wall_depth)
+        return '<a-image id="img_{}" data-element-id="{}" data-element-type="image" position="{}" src="{}" width="{}" height="{}" material geometry></a-image>'.format(
+            self.name, self._id, this_position, self.image_url, self.width, self.height)
 
 
 class GaussianSplat(WallElement):
@@ -141,17 +144,20 @@ class GaussianSplat(WallElement):
             this_rotation = "0 0 0"
         else:
             wall_depth = wall_depth if wall_depth is not None else 0.3
-            this_position = f"""{self.position_x} {self.position_y} {0.05+wall_depth}"""
+            this_position = "{} {} {}".format(self.position_x, self.position_y, 0.05 + wall_depth)
             this_rotation = self.rotation
         
-        aframes = ""
+        aframes = ''
         if self.cutout_scale is not None:
-            aframes += f"""<a-box id="cutout-box-{self.name}" visible="false" scale="{self.cutout_scale}" position="{self.cutout_position}"></a-box>"""
-            aframes += f"""<a-entity gaussian_splatting="src: {self.splat_url}; cutoutEntity: #cutout-box-{self.name};"></a-entity>"""
+            aframes += '<a-box id="cutout-box-{}" visible="false" scale="{}" position="{}"></a-box>'.format(
+                self.name, self.cutout_scale, self.cutout_position)
+            aframes += '<a-entity gaussian_splatting="src: {}; cutoutEntity: #cutout-box-{};"></a-entity>'.format(
+                self.splat_url, self.name)
         else:
-            aframes += f"""<a-entity gaussian_splatting="src: {self.splat_url};"></a-entity>"""
+            aframes += '<a-entity gaussian_splatting="src: {};"></a-entity>'.format(self.splat_url)
         
-        return f"""<a-entity if="splat-{self.name}" position="{this_position}" rotation="{this_rotation}" scale="{self.scale}">{aframes}</a-entity>"""
+        return '<a-entity if="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" rotation="{}" scale="{}">{}</a-entity>'.format(
+            self.name, self._id, this_position, this_rotation, self.scale, aframes)
 
 
 class GLTFmodel(WallElement):
@@ -173,11 +179,12 @@ class GLTFmodel(WallElement):
             this_rotation = "0 0 0"
         else:
             wall_depth = wall_depth if wall_depth is not None else 0.3
-            this_position = f"""{self.position_x} {self.position_y} {self.position_z+wall_depth}"""
+            this_position = "{} {} {}".format(self.position_x, self.position_y, self.position_z + wall_depth)
             this_rotation = self.rotation
         
-        aframes = f"""<a-entity rotation="{self.default_rotation}" gltf-model="url({self.gltf_url})"></a-entity>"""
-        return f"""<a-entity id="gltf-{self.name}" position="{this_position}" rotation="{this_rotation}" scale="{self.scale}">{aframes}</a-entity>"""
+        aframes = '<a-entity rotation="{}" gltf-model="url({})"></a-entity>'.format(self.default_rotation, self.gltf_url)
+        return '<a-entity id="gltf-{}" data-element-id="{}" data-element-type="gltf" position="{}" rotation="{}" scale="{}">{}</a-entity>'.format(
+            self.name, self._id, this_position, this_rotation, self.scale, aframes)
 
 
 if __name__ == "__main__":

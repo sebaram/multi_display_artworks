@@ -5,6 +5,7 @@
     <meta http-equiv="refresh" content="{{ refresh_interval }}">
     {% endif %}
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
   </head>
   <body>
     <a-scene xr-mode-ui="enabled: false">
@@ -22,6 +23,29 @@
     <div style="position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:4px;font-size:12px;z-index:9999;">
       🔄 Auto-refresh: {{ refresh_interval }}s
     </div>
+    {% endif %}
+
+    {% if drag_enabled %}
+    <div id="admin-indicator" style="position:fixed;top:10px;right:10px;background:rgba(76,175,80,0.9);color:white;padding:6px 12px;border-radius:4px;font-size:12px;z-index:9999;">
+      ✋ Drag Mode (Admin)
+    </div>
+    {% endif %}
+
+    {% if drag_enabled %}
+    <script>
+      document.querySelector('a-scene').addEventListener('loaded', () => {
+        setTimeout(() => {
+          document.querySelectorAll('[data-element-id]').forEach(el => {
+            const elementId = el.getAttribute('data-element-id');
+            const elementType = el.getAttribute('data-element-type');
+            if (elementId && elementType) {
+              el.setAttribute('drag-element', `elementId: ${elementId}, elementType: ${elementType}`);
+              el.setAttribute('class', 'clickable');
+            }
+          });
+        }, 500);
+      });
+    </script>
     {% endif %}
   </body>
 </html>

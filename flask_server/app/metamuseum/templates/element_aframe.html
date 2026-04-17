@@ -90,6 +90,10 @@
     </script>
     {% endif %}
 
+    {% if drag_enabled %}
+    <div id="admin-indicator" style="position:fixed;top:10px;right:10px;background:rgba(76,175,80,0.9);color:white;padding:6px 12px;border-radius:4px;font-size:12px;z-index:9999;">
+      ✋ Drag Mode (Admin)
+    </div>
     <script>
       const avatarType = "{{ avatar }}";
 
@@ -108,5 +112,6 @@
         }, 1000);
       });
     </script>
+    {% endif %}
   </body>
 </html>

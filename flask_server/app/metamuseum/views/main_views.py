@@ -51,7 +51,8 @@ def room():
         avatar = request.args.get('avatar', 'shiba')
         if avatar not in ('shiba', 'robot', 'none'):
             avatar = 'shiba'
-        return render_template('room_aframe.html', aframe_list=aframe_list, camera_d=3, avatar=avatar)
+        drag_enabled = request.args.get('admin') == '1'
+        return render_template('room_aframe.html', aframe_list=aframe_list, camera_d=3, avatar=avatar, drag_enabled=drag_enabled)
     except Exception as e:
         logger.error(f"Error loading room {room_id}: {e}")
         return "Database unavailable", 503
@@ -138,7 +139,8 @@ def wall():
         aframe_list = [this_wall.to_aframe()]
         camera_d = this_wall.width / 2
         refresh_interval = request.args.get('refresh')
-        return render_template('wall_aframe.html', aframe_list=aframe_list, camera_d=camera_d, refresh_interval=refresh_interval)
+        drag_enabled = request.args.get('admin') == '1'
+        return render_template('wall_aframe.html', aframe_list=aframe_list, camera_d=camera_d, refresh_interval=refresh_interval, drag_enabled=drag_enabled)
     except Exception as e:
         logger.error(f"Error loading wall {wall_id}: {e}")
         return "Database unavailable", 503
@@ -175,6 +177,7 @@ def wall_element():
             
             # Extra params for gaussian_splat cutout UI
             extra = {}
+            extra['drag_enabled'] = request.args.get('admin') == '1'
             if ele_type == "gaussian_splat":
                 extra['element_type'] = ele_type
                 extra['element_id'] = str(this_element._id)

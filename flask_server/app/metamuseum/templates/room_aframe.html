@@ -25,8 +25,9 @@
       let handTrackingEnabled = false;
       let xrSession = null;
 
-      // Enable drag on all draggable elements
+      // Enable drag on all draggable elements (admin only)
       function enableDrag() {
+        if (!{{ 'true' if drag_enabled else 'false' }}) return;
         document.querySelectorAll('[data-element-id]').forEach(el => {
           const elementId = el.getAttribute('data-element-id');
           const elementType = el.getAttribute('data-element-type');
@@ -35,6 +36,14 @@
             el.setAttribute('class', 'clickable');
           }
         });
+        // Show admin indicator
+        if (!document.getElementById('admin-indicator')) {
+          const indicator = document.createElement('div');
+          indicator.id = 'admin-indicator';
+          indicator.textContent = '✋ Drag Mode (Admin)';
+          indicator.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(76,175,80,0.9);color:white;padding:6px 12px;border-radius:4px;font-size:12px;z-index:9999;';
+          document.body.appendChild(indicator);
+        }
       }
 
       // Check WebXR hand tracking support

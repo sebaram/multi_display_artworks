@@ -24,5 +24,8 @@ class OnlineUser(Document):
     session_id = StringField(required=True, unique=True)
     camera_position = DictField()
     camera_rotation = DictField()
+    left_hand = DictField()   # wrist, thumbTip, indexTip, middleTip positions
+    right_hand = DictField()  # same structure
+    hand_tracking_enabled = DictField(default=dict)  # {enabled: bool, device: str}
     update_time = DateTimeField(default=datetime.utcnow)
     

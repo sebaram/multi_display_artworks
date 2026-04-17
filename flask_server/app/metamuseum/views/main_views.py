@@ -79,6 +79,15 @@ def receive_camera_data():
 
         this_user.camera_position = data['position']
         this_user.camera_rotation = data['rotation']
+        
+        # Optional hand tracking data
+        if data.get('leftHand'):
+            this_user.left_hand = data['leftHand']
+        if data.get('rightHand'):
+            this_user.right_hand = data['rightHand']
+        if data.get('handTrackingEnabled'):
+            this_user.hand_tracking_enabled = data['handTrackingEnabled']
+        
         this_user.update_time = datetime.utcnow()
         this_user.save()
 
@@ -102,7 +111,10 @@ def get_cameras():
             {
                 "position": u.camera_position,
                 "rotation": u.camera_rotation,
-                "userId": u.session_id
+                "userId": u.session_id,
+                "leftHand": u.left_hand,
+                "rightHand": u.right_hand,
+                "handTrackingEnabled": u.hand_tracking_enabled,
             }
             for u in online_users
         ]

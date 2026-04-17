@@ -19,8 +19,100 @@
     </a-scene>
 
     <script>
-      const myUserId = Math.random().toString(36).substring(7); // Generate a random user ID
+      const myUserId = Math.random().toString(36).substring(7);
       const avatarType = "{{ avatar }}";
+      let handTrackingEnabled = false;
+      let xrSession = null;
+
+      // Check WebXR hand tracking support
+      async function checkHandTrackingSupport() {
+        if (!navigator.xr) return false;
+        try {
+          const supported = await navigator.xr.isSessionSupported('immersive-vr');
+          return supported;
+        } catch(e) {
+          return false;
+        }
+      }
+
+      // Request hand tracking session
+      async function enableHandTracking() {
+        if (!navigator.xr) {
+          console.log('WebXR not supported');
+          return false;
+        }
+        try {
+          xrSession = await navigator.xr.requestSession('immersive-vr', {
+            optionalFeatures: ['hand-tracking', 'local-floor']
+          });
+          
+          xrSession.addEventListener('end', () => {
+            handTrackingEnabled = false;
+            document.getElementById('hand-tracking-btn').style.background = '#666';
+          });
+
+          // Set up hand tracking sources
+          const handSources = await xrSession.requestHandSources();
+          setupHandTracking(handSources);
+          handTrackingEnabled = true;
+          document.getElementById('hand-tracking-btn').style.background = '#4CAF50';
+          return true;
+        } catch(e) {
+          console.error('Hand tracking error:', e);
+          return false;
+        }
+      }
+
+      // Track hands and send data
+      function setupHandTracking(handSources) {
+        let lastSendTime = 0;
+        const sendInterval = 100; // ms between sends
+
+        function trackHands() {
+          if (!handTrackingEnabled || !xrSession) return;
+          
+          const now = Date.now();
+          if (now - lastSendTime < sendInterval) {
+            requestAnimationFrame(trackHands);
+            return;
+          }
+          lastSendTime = now;
+
+          let leftHandData = null;
+          let rightHandData = null;
+
+          handSources.forEach(source => {
+            if (source.hand && source.handedness !== 'none') {
+              const hand = source.hand;
+              const isLeft = source.handedness === 'left';
+              
+              // Get key joint positions
+              const getJoint = (name) => {
+                const joint = hand.get(name);
+                return joint ? {
+                  position: [joint.position.x, joint.position.y, joint.position.z],
+                  rotation: [joint.rotation.x, joint.rotation.y, joint.rotation.z]
+                } : null;
+              };
+
+              const handData = {
+                wrist: getJoint('wrist'),
+                thumbTip: getJoint('thumb-tip'),
+                indexTip: getJoint('index-tip'),
+                middleTip: getJoint('middle-tip')
+              };
+
+              if (isLeft) leftHandData = handData;
+              else rightHandData = handData;
+            }
+          });
+
+          // Send with camera data
+          sendCameraData(leftHandData, rightHandData);
+          requestAnimationFrame(trackHands);
+        }
+        trackHands();
+      }
 
       function createAvatarEntity(avatarType) {
         if (avatarType === 'none') return null;
@@ -30,7 +122,6 @@
           wrapper.setAttribute('position', '0 -1 0');
           wrapper.setAttribute('rotation', '0 180 0');
 
-          // Body
           let body = document.createElement('a-box');
           body.setAttribute('color', '#4a9eff');
           body.setAttribute('width', '0.4');
@@ -39,14 +130,12 @@
           body.setAttribute('position', '0 0 0');
           wrapper.appendChild(body);
 
-          // Head
           let head = document.createElement('a-sphere');
           head.setAttribute('color', '#4a9eff');
           head.setAttribute('radius', '0.15');
           head.setAttribute('position', '0 0.45 0');
           wrapper.appendChild(head);
 
-          // Eyes
           let leftEye = document.createElement('a-sphere');
           leftEye.setAttribute('color', '#ffffff');
           leftEye.setAttribute('radius', '0.04');
@@ -59,7 +148,6 @@
           rightEye.setAttribute('position', '0.06 0.48 -0.12');
           wrapper.appendChild(rightEye);
 
-          // Arms
           let leftArm = document.createElement('a-box');
           leftArm.setAttribute('color', '#3a8adf');
           leftArm.setAttribute('width', '0.1');
@@ -76,7 +164,6 @@
           rightArm.setAttribute('position', '0.3 -0.1 0');
           wrapper.appendChild(rightArm);
 
-          // Legs
           let leftLeg = document.createElement('a-box');
           leftLeg.setAttribute('color', '#3a8adf');
           leftLeg.setAttribute('width', '0.12');
@@ -96,7 +183,6 @@
           return wrapper;
         }
 
-        // Default: shiba
         let avatar = document.createElement('a-entity');
         avatar.setAttribute('gltf-model', '#avatarModel');
         avatar.setAttribute('rotation', '0 180 0');
@@ -105,58 +191,93 @@
         return avatar;
       }
 
-      document.addEventListener('DOMContentLoaded', () => {
-        const cameraEl = document.getElementById('camera');
+      // Create hand visualization for other users
+      function createHandVisualization(handData, isLeft) {
+        if (!handData) return null;
+        
+        let hand = document.createElement('a-entity');
+        hand.setAttribute('class', `hand-${isLeft ? 'left' : 'right'}`);
+        
+        // Palm
+        let palm = document.createElement('a-box');
+        palm.setAttribute('color', '#00ff88');
+        palm.setAttribute('width', '0.08');
+        palm.setAttribute('height', '0.1');
+        palm.setAttribute('depth', '0.02');
+        if (handData.wrist && handData.wrist.position) {
+          palm.setAttribute('position', `${handData.wrist.position[0]} ${handData.wrist.position[1]} ${handData.wrist.position[2]}`);
+        }
+        hand.appendChild(palm);
 
-
-        setInterval(() => {
-          const position = cameraEl.getAttribute('position');
-          const rotation = cameraEl.getAttribute('rotation');
-          const userId = myUserId;
-
-          fetch("{{url_for('main.receive_camera_data')}}", {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ position, rotation, userId, avatar: avatarType }),
-          })
-          .then(response => response.json())
-          // .then(data => console.log(data))
-          .catch((error) => console.error('Error:', error));
-        }, 200); // Send data every 1000 milliseconds
-      });
-
-
-      // Function to update other users' cameras in the scene
-      function updateOtherUsersCameras(data) {
-        // get all registered camera entities' id as list
-        let cameraIdList = [];
-        document.querySelectorAll('a-entity').forEach((el) => {
-          if (el.id.startsWith('camera-')) {
-            cameraIdList.push(el.id);
+        // Simple fingers (3 cylinders per hand)
+        ['thumbTip', 'indexTip', 'middleTip'].forEach((joint, i) => {
+          if (handData[joint] && handData[joint].position) {
+            let finger = document.createElement('a-sphere');
+            finger.setAttribute('color', '#00ff88');
+            finger.setAttribute('radius', '0.02');
+            finger.setAttribute('position', `${handData[joint].position[0]} ${handData[joint].position[1]} ${handData[joint].position[2]}`);
+            hand.appendChild(finger);
           }
         });
 
+        return hand;
+      }
 
+      function sendCameraData(leftHand = null, rightHand = null) {
+        const cameraEl = document.getElementById('camera');
+        const position = cameraEl.getAttribute('position');
+        const rotation = cameraEl.getAttribute('rotation');
+
+        fetch("{{url_for('main.receive_camera_data')}}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            position, 
+            rotation, 
+            userId: myUserId, 
+            avatar: avatarType,
+            leftHand,
+            rightHand,
+            handTrackingEnabled: { enabled: handTrackingEnabled, device: 'webxr' }
+          }),
+        }).catch(err => console.error('Camera data error:', err));
+      }
+
+      // Normal camera tracking (non-hand-tracking mode)
+      setInterval(() => {
+        if (!handTrackingEnabled) {
+          const cameraEl = document.getElementById('camera');
+          const position = cameraEl.getAttribute('position');
+          const rotation = cameraEl.getAttribute('rotation');
+          sendCameraData();
+        }
+      }, 200);
+
+      function updateOtherUsersCameras(data) {
+        let cameraIdList = [];
+        let handIdList = [];
+        
+        document.querySelectorAll('a-entity[id^="camera-"]').forEach(el => {
+          cameraIdList.push(el.id);
+        });
+        document.querySelectorAll('a-entity[class^="hand-"]').forEach(el => {
+          handIdList.push(el.id);
+        });
 
         Object.keys(data).forEach(_index => {
           const userId = data[_index].userId;
-          if (userId === myUserId) return; // Skip my own camera
+          if (userId === myUserId) return;
 
           const otherAvatarType = data[_index].avatar || 'shiba';
 
           let cameraEl = document.getElementById(`camera-${userId}`);
           if (!cameraEl) {
-            // Create a new entity for this user's camera if it doesn't exist
             cameraEl = document.createElement('a-entity');
             cameraEl.setAttribute('id', `camera-${userId}`);
             cameraEl.setAttribute('rotation', '0 180 0');
 
             let avatar = createAvatarEntity(otherAvatarType);
-            if (avatar) {
-              cameraEl.appendChild(avatar);
-            }
+            if (avatar) cameraEl.appendChild(avatar);
 
             let idText = document.createElement('a-text');
             idText.setAttribute('value', userId);
@@ -165,33 +286,76 @@
             idText.setAttribute('rotation', '0 180 0');
             idText.setAttribute('color', 'red');
             idText.setAttribute('align', 'center');
-
             cameraEl.appendChild(idText);
 
             document.querySelector('a-scene').appendChild(cameraEl);
           }
-          // Update position and rotation
           cameraEl.setAttribute('position', data[_index].position);
           cameraEl.setAttribute('rotation', data[_index].rotation);
 
-          // Remove the camera entity from the list
+          // Render other users' hands if they have hand tracking enabled
+          if (data[_index].handTrackingEnabled && data[_index].handTrackingEnabled.enabled) {
+            const leftHandData = data[_index].leftHand;
+            const rightHandData = data[_index].rightHand;
+
+            ['left', 'right'].forEach((side, i) => {
+              const handData = i === 0 ? leftHandData : rightHandData;
+              const handId = `hand-${side}-${userId}`;
+              
+              let handEl = document.getElementById(handId);
+              if (!handData) {
+                if (handEl) { handEl.parentNode.removeChild(handEl); }
+                return;
+              }
+
+              if (!handEl) {
+                handEl = createHandVisualization(handData, side === 'left');
+                if (handEl) {
+                  handEl.setAttribute('id', handId);
+                  cameraEl.appendChild(handEl);
+                }
+              } else {
+                // Update hand position
+                if (handData.wrist && handData.wrist.position) {
+                  handEl.setAttribute('position', `${handData.wrist.position[0]} ${handData.wrist.position[1]} ${handData.wrist.position[2]}`);
+                }
+              }
+              handIdList = handIdList.filter(id => id !== handId);
+            });
+          }
+
           cameraIdList = cameraIdList.filter(id => id !== `camera-${userId}`);
         });
 
-        // Remove the camera entities that are in the list
         cameraIdList.forEach(id => {
           const el = document.getElementById(id);
-          el.parentNode.removeChild(el);
+          if (el) el.parentNode.removeChild(el);
         });
-
+        handIdList.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.parentNode.removeChild(el);
+        });
       }
 
       setInterval(() => {
         fetch("{{url_for('main.get_cameras')}}")
           .then(response => response.json())
           .then(data => updateOtherUsersCameras(data))
-          .catch((error) => console.error('Error:', error));
-      }, 200); // Fetch data every 1000 milliseconds
+          .catch(err => console.error('Get cameras error:', err));
+      }, 200);
+
+      // Add hand tracking toggle button (visible only if WebXR supported)
+      document.addEventListener('DOMContentLoaded', async () => {
+        const supported = await checkHandTrackingSupport();
+        if (supported) {
+          const btn = document.createElement('button');
+          btn.id = 'hand-tracking-btn';
+          btn.textContent = '🤚 Hand Tracking';
+          btn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 20px;background:#666;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;z-index:9999;';
+          btn.onclick = enableHandTracking;
+          document.body.appendChild(btn);
+        }
+      });
 
     </script>
   </body>

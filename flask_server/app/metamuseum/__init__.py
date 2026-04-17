@@ -79,7 +79,7 @@ def create_app():
     app.register_blueprint(auth.bp)
        
     # for admin page
-    admin = Admin(app, name='MetaMuseum-admin', template_mode='bootstrap3', url='/kwanri')
+    admin = Admin(app, name='MetaMuseum-admin', url='/kwanri')
     from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat, GLTFmodel
     admin.add_view(MyModelView(Room))
     admin.add_view(MyModelView(Wall))

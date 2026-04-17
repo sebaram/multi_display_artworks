@@ -72,8 +72,15 @@ class Wall(Document):
             this_position = self.position
             this_rotation = self.rotation
 
-        aframes = '<a-box color="{}" position="0 0 0" rotation="0 0 0" width="{}" height="{}" depth="{}" material geometry></a-box>'.format(
-            self.color, self.width, self.height, self.depth)
+        # Wall background: video if set, otherwise colored box
+        if self.video_url:
+            # Video on front face of wall
+            aframes = '<a-video src="{}" width="{}" height="{}" position="0 0 {}"></a-video>'.format(
+                self.video_url, self.width, self.height, self.depth / 2 + 0.01)
+        else:
+            aframes = '<a-box color="{}" position="0 0 0" rotation="0 0 0" width="{}" height="{}" depth="{}" material geometry></a-box>'.format(
+                self.color or '#333333', self.width, self.height, self.depth)
+
         for one_ele in self.get_all_elements():
             aframes += one_ele.to_aframe(single=False, wall_depth=self.depth)
 

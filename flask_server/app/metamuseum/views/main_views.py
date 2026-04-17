@@ -195,6 +195,11 @@ def wall_element():
                 extra['element_id'] = str(this_element._id)
                 extra['cutout_scale'] = this_element.cutout_scale
                 extra['cutout_position'] = this_element.cutout_position
+            elif ele_type == "webpage":
+                extra['element_type'] = ele_type
+                extra['element_id'] = str(this_element._id)
+                extra['webpage_url'] = this_element.webpage_url
+                extra['webpage_embed_url'] = f"{request.url_root}element?wall_element_id={this_element._id}&type=webpage"
             
             return render_template('element_aframe.html', 
                                   aframe=this_element.to_aframe(), 

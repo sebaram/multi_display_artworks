@@ -91,6 +91,38 @@
     </script>
     {% endif %}
 
+    {% if element_type == 'webpage' %}
+    <div id="webpage-controls" style="position:fixed;bottom:20px;left:20px;background:rgba(0,0,0,0.85);color:white;padding:15px;border-radius:8px;font-size:13px;z-index:9999;min-width:300px;">
+      <div style="font-weight:bold;margin-bottom:10px;">🌐 Webpage Element</div>
+      <div style="margin-bottom:8px;">
+        <label>Source URL:</label><br>
+        <div style="background:rgba(255,255,255,0.1);padding:6px 8px;border-radius:4px;word-break:break-all;font-size:11px;margin-top:4px;">
+          {{ webpage_url or '' }}
+        </div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label>Embeddable URL:</label><br>
+        <div style="display:flex;gap:5px;margin-top:4px;">
+          <input type="text" id="embed-url" readonly value="{{ webpage_embed_url or '' }}"
+                 style="flex:1;padding:5px;border-radius:4px;border:none;font-size:11px;background:rgba(255,255,255,0.1);color:white;">
+          <button onclick="copyEmbedUrl()" style="background:#4CAF50;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;">Copy</button>
+        </div>
+      </div>
+      <div style="margin-bottom:4px;">
+        <label>Note:</label>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;">Some sites block iframe embedding (CORS/X-Frame-Options). If blank/blank page shows, the target site doesn't allow embedding.</div>
+      </div>
+    </div>
+    <script>
+      function copyEmbedUrl() {
+        const input = document.getElementById('embed-url');
+        navigator.clipboard.writeText(input.value).then(() => {
+          alert('Copied!');
+        });
+      }
+    </script>
+    {% endif %}
+
     {% if drag_enabled %}
     <div id="admin-indicator" style="position:fixed;top:10px;right:10px;background:rgba(76,175,80,0.9);color:white;padding:6px 12px;border-radius:4px;font-size:12px;z-index:9999;">
       ✋ Drag Mode (Admin)

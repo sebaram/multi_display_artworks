@@ -1,21 +1,255 @@
-
-
 {% extends 'admin/master.html' %}
 
 {% block body %}
-  
 
   {% if current_user.is_anonymous %}
-    <p>This page is only allowed for admins</p>
-    <a class="btn btn-primary" href="{{ url_for('auth.signin', next='/kwanri') }}">Login First</a>
+    <p>이 페이지는 관리자만 접근할 수 있습니다</p>
+    <a class="btn btn-primary" href="{{ url_for('auth.signin', next='/kwanri') }}">로그인</a>
   {% elif current_user.is_admin() %}
-    <p>Logged in as {{ current_user.name }} <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Logout</a></p>
 
-    <h1>관리자 페이지</h1>
+  <style>
+    .help-container { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .help-header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; }
+    .help-header h1 { margin: 0 0 10px 0; font-size: 28px; }
+    .help-header p { margin: 0; opacity: 0.8; font-size: 14px; }
+    .help-section { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .help-section h2 { color: #2c3e50; font-size: 18px; margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
+    .help-section h3 { color: #34495e; font-size: 15px; margin-top: 20px; margin-bottom: 10px; }
+    .help-section p, .help-section li { color: #555; font-size: 14px; line-height: 1.7; }
+    .help-section ul { padding-left: 20px; }
+    .help-section li { margin-bottom: 8px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .badge-green { background: #2ecc71; color: white; }
+    .badge-blue { background: #3498db; color: white; }
+    .badge-orange { background: #e67e22; color: white; }
+    .badge-purple { background: #9b59b6; color: white; }
+    .badge-red { background: #e74c3c; color: white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { background: #f8f9fa; text-align: left; padding: 10px; border-bottom: 2px solid #dee2e6; font-size: 13px; }
+    td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #c7254e; }
+    .nav-hint { background: #fffde7; border-left: 4px solid #ffc107; padding: 12px; border-radius: 4px; margin: 15px 0; }
+    .cmd { background: #2d2d44; color: #a8ff78; padding: 8px 14px; border-radius: 6px; font-family: monospace; font-size: 12px; display: inline-block; margin: 3px; }
+  </style>
 
+  <div class="help-container">
+    <div class="help-header">
+      <h1>🏛️ MetaMuseum Admin Guide</h1>
+      <p>버전 0.4 · 마지막 업데이트: 2026-04-18</p>
+    </div>
+
+    <!-- Quick Nav -->
+    <div class="nav-hint">
+      <strong>🔗 빠른 메뉴:</strong>
+      <a href="#models" class="btn btn-sm btn-primary" style="margin-left:10px;background:#3498db;border:none;">데이터 모델</a>
+      <a href="#features" class="btn btn-sm btn-primary" style="margin-left:5px;background:#2ecc71;border:none;">기능 가이드</a>
+      <a href="#streaming" class="btn btn-sm btn-primary" style="margin-left:5px;background:#e67e22;border:none;">스트리밍</a>
+      <a href="#urls" class="btn btn-sm btn-primary" style="margin-left:5px;background:#9b59b6;border:none;">URL 가이드</a>
+      <a href="/kwanri" class="btn btn-sm btn-secondary" style="margin-left:5px;">← Flask-Admin</a>
+    </div>
+
+    <!-- Data Models -->
+    <div class="help-section" id="models">
+      <h2>📦 데이터 모델 / Data Models</h2>
+      <p>좌측 메뉴의 <strong>Model > </strong>에서 각 모델을 관리할 수 있습니다:</p>
+
+      <table>
+        <tr><th>모델</th><th>설명</th><th>주요 필드</th></tr>
+        <tr><td><strong>Room</strong></td><td>가상 전시실</td><td>name, description, boundary_min/max_x/y/z (경계)</td></tr>
+        <tr><td><strong>Wall</strong></td><td>벽면</td><td>name, position, rotation, width/height/depth, <mark>video_url</mark> (동영상 배경)</td></tr>
+        <tr><td><strong>Image</strong></td><td>이미지</td><td>name, image_url, width, height, position_x/y, <mark>scale_x/y/z, rotation_x/y/z</mark></td></tr>
+        <tr><td><strong>Gaussian Splat</strong></td><td>3D Gaussian Splat</td><td>name, splat_url, cutout_scale/position, scale/rotation</td></tr>
+        <tr><td><strong>GLTF Model</strong></td><td>glTF 3D 모델</td><td>name, gltf_url, scale, default_rotation, position_z</td></tr>
+        <tr><td><strong>Webpage</strong></td><td>웹페이지 임베드</td><td>name, <mark>webpage_url</mark>, width, height</td></tr>
+        <tr><td><strong>Location Preset</strong></td><td>위치 프리셋</td><td>name, position_x/y/z, rotation_x/y/z, <mark>is_default</mark> (시작점)</td></tr>
+      </table>
+    </div>
+
+    <!-- Features -->
+    <div class="help-section" id="features">
+      <h2>✨ 기능 가이드 / Feature Guide</h2>
+
+      <h3>🎭 Avatar System <span class="badge badge-green">완료</span></h3>
+      <p>URL 파라미터로 아바타 유형 지정:</p>
+      <code>?avatar=shiba</code> (강아지, 기본값)<br>
+      <code>?avatar=robot</code> (로봇)<br>
+      <code>?avatar=none</code> (카메라만)
+
+      <h3>✋ Drag & Transform <span class="badge badge-green">완료</span> <span class="badge badge-blue">admin only</span></h3>
+      <p>로그인한 관리자만 사용 가능. 3D 오브젝트를 드래그하거나:</p>
+      <ul>
+        <li><strong>드래그:</strong> 마우스 드래그로 위치 이동</li>
+        <li><strong>Transform 패널:</strong> ✏️ 드래그패널에서 scale/rotate 슬라이더로 세밀한 조정</li>
+        <li>Viewers는 드래그 불가 (읽기 전용)</li>
+      </ul>
+
+      <h3>📍 Location Presets <span class="badge badge-green">완료</span></h3>
+      <p>방 안의 특정 위치를 저장하고 빠르게 이동:</p>
+      <ul>
+        <li>관리자가 방에서 "💾 Save Pos" 클릭 → 이름 입력 → 프리셋 저장</li>
+        <li>모든 사용자가 드롭다운으로瞬間 텔레포트</li>
+        <li><mark>is_default=true</mark>인 프리셋이 입구( spawn point)가 됨</li>
+        <li>URL: <code>?preset=&lt;preset_id&gt;</code></li>
+      </ul>
+
+      <h3>🗺️ Mini-map <span class="badge badge-green">완료</span></h3>
+      <p>우측 상단 미니맵:</p>
+      <ul>
+        <li>🟢 점 = 내 위치 + 방향</li>
+        <li>🔵 점 = 프리셋 위치</li>
+        <li>⭐ (골드) = 기본 프리셋</li>
+        <li>클릭하면 기본 프리셋으로 텔레포트</li>
+      </ul>
+
+      <h3>🚧 Boundary Lock <span class="badge badge-green">완료</span></h3>
+      <p>Room模型的 boundary_min/max_* 필드로 플레이 영역 제한:</p>
+      <ul>
+        <li>바닥(Y&lt;0) 이하로 내려가지 않음</li>
+        <li>벽 범위(X/Z) 밖으로 나가지 않음</li>
+        <li>Room 편집에서 boundary 값 조정 가능</li>
+      </ul>
+
+      <h3>✂️ Gaussian Splat Cutout <span class="badge badge-green">완료</span></h3>
+      <p>splat 요소 페이지에서:</p>
+      <ul>
+        <li>cutout_scale: 잘라낼 영역 크기 (예: 0.5 0.5 0.5)</li>
+        <li>cutout_position: 잘라낼 위치 오프셋 (예: 0 0 0)</li>
+        <li>체크박스로 컷아웃 켜기/끄기</li>
+      </ul>
+
+      <h3>🌐 Webpage Embed <span class="badge badge-green">완료</span></h3>
+      <p>웹페이지를 3D 벽면에 임베드:</p>
+      <ul>
+        <li>Webpage 모델에서 webpage_url 입력</li>
+        <li>width, height로 크기 조절</li>
+        <li>YouTube/Twitch 임베드 URL도 가능</li>
+        <li>일부 사이트는 X-Frame-Options으로 차단될 수 있음</li>
+      </ul>
+
+      <h3>🎬 Video Background <span class="badge badge-green">완료</span></h3>
+      <p>벽면에 동영상 배경 설정:</p>
+      <ul>
+        <li>Wall模型的 video_url 필드에 URL 입력</li>
+        <li>mp4, webm 또는 HLS(.m3u8) 스트림 가능</li>
+        <li>동영상 파일이면 직접 재생, RTSP는 스트리밍 서버 필요</li>
+      </ul>
+
+      <h3>🤚 Hand Tracking <span class="badge badge-green">완료</span></h3>
+      <p>Quest 3 / Vision Pro에서:</p>
+      <ul>
+        <li>"🤚 Hand Tracking" 버튼이 자동으로 표시</li>
+        <li>클릭 → 손 추적 활성화</li>
+        <li>다른 사용자들도 초록색 손 오브젝트로 보임</li>
+      </ul>
+
+      <h3>🥽 AR Passthrough <span class="badge badge-green">완료</span> <span class="badge badge-blue">admin only</span></h3>
+      <p>관리자만 사용 가능:</p>
+      <ul>
+        <li>Quest 3 / ARCore 기기에서 "🥽 AR Passthrough" 버튼 클릭</li>
+        <li>현실 세계 카메라 피드 위에 가상 오브젝트 표시</li>
+        <li>위치/스케일/회전 조정 후 실제 환경에서 확인 가능</li>
+      </ul>
+
+      <h3>🔄 Auto-refresh <span class="badge badge-green">완료</span></h3>
+      <p>Wall 페이지에서:</p>
+      <code>?refresh=30</code> → 30초마다 컨텐츠 변경 확인 후 페이지만Reload<br>
+      변경 없으면Reload 안 함 (ETag 비교)
+
+      <h3>🔐 Authentication <span class="badge badge-green">완료</span></h3>
+      <p>드래그/변환은 <strong>로그인한 관리자</strong>만 가능:</p>
+      <ul>
+        <li>URL에 <code>?admin=1</code> 파라미터는 더 이상 사용 안 함</li>
+        <li>실제 admin 계정으로 로그인 필요</li>
+        <li><code>/kwanri</code> → 로그인</li>
+      </ul>
+    </div>
+
+    <!-- Streaming -->
+    <div class="help-section" id="streaming">
+      <h2>📹 라이브 스트리밍 / Live Streaming</h2>
+
+      <h3>IP 카메라 (RTSP) <span class="badge badge-orange">설정 필요</span></h3>
+      <ol>
+        <li>Wall 페이지에서 관리자로 로그인</li>
+        <li>하단 우측 <strong>📹 Stream</strong> 버튼 클릭</li>
+        <li>RTSP URL 입력 (예: <code>rtsp://camera:554/stream</code>)</li>
+        <li><strong>▶ Start RTSP</strong> 클릭</li>
+        <li>Status에 표시된 URL 복사 (예: <code>/stream/playlist/wall1</code>)</li>
+        <li>Wall模型的 video_url에 붙여넣기</li>
+      </ol>
+
+      <h3>폰 카메라 라이브 <span class="badge badge-orange">설정 필요</span></h3>
+      <ol>
+        <li>Wall 페이지에서 관리자로 로그인</li>
+        <li>하단 우측 <strong>📹 Stream</strong> 버튼 클릭</li>
+        <li><strong>📹 Start Phone Camera</strong> 클릭</li>
+        <li>카메라 권한 허용</li>
+        <li>화면의 QR코드나 URL로 접속하는 다른 사용자도 같은 영상을 볼 수 있음</li>
+        <li><strong>⏹ Stop Camera</strong>로 중지</li>
+      </ol>
+
+      <h3>YouTube / Twitch</h3>
+      <p>Webpage 모델 사용:</p>
+      <code>webpage_url = https://www.youtube.com/embed/LIVE_STREAM_ID?autoplay=1&mute=1</code>
+
+      <h3>정적 동영상 파일</h3>
+      <p>Wall模型的 video_url에 직접 URL 입력 (mp4, webm)</p>
+
+      <h3>Streaming API</h3>
+      <table>
+        <tr><th>Endpoint</th><th>Method</th><th>설명</th></tr>
+        <tr><td><code>/stream/start-rtsp</code></td><td>POST</td><td>RTSP→HLS 변환 시작</td></tr>
+        <tr><td><code>/stream/push/&lt;id&gt;</code></td><td>POST</td><td>MediaRecorder 청크 업로드</td></tr>
+        <tr><td><code>/stream/stop/&lt;id&gt;</code></td><td>POST</td><td>스트림 중지</td></tr>
+        <tr><td><code>/stream/playlist/&lt;id&gt;</code></td><td>GET</td><td>HLS 플레이리스트 (.m3u8)</td></tr>
+        <tr><td><code>/stream/list</code></td><td>GET</td><td>활성 스트림 목록</td></tr>
+      </table>
+    </div>
+
+    <!-- URL Guide -->
+    <div class="help-section" id="urls">
+      <h2>🔗 URL 가이드 / URL Reference</h2>
+
+      <h3>방문 URL</h3>
+      <table>
+        <tr><th>URL</th><th>설명</th></tr>
+        <tr><td><code>/</code></td><td>메인 페이지 (방 목록)</td></tr>
+        <tr><td><code>/room?room_id=...</code></td><td>3D 전시실 (ROOM)</td></tr>
+        <tr><td><code>/room?room_id=...&amp;avatar=robot</code></td><td>로봇 아바타</td></tr>
+        <tr><td><code>/room?room_id=...&amp;preset=...</code></td><td>프리셋 위치에서 시작</td></tr>
+        <tr><td><code>/wall?wall_id=...</code></td><td>단일 벽면</td></tr>
+        <tr><td><code>/wall?wall_id=...&amp;refresh=30</code></td><td>30초 오토새로고침</td></tr>
+        <tr><td><code>/element?wall_element_id=...&amp;type=image</code></td><td>이미지 요소</td></tr>
+        <tr><td><code>/element?wall_element_id=...&amp;type=webpage</code></td><td>웹페이지 요소</td></tr>
+        <tr><td><code>/kwanri</code></td><td>Flask-Admin (관리자)</td></tr>
+      </table>
+
+      <h3>데모 방</h3>
+      <table>
+        <tr><th>방</th><th>URL</th></tr>
+        <tr><td>splat_playground</td><td><code>/room?room_id=69e1f270b056cb591923cbb2</code></td></tr>
+        <tr><td>art_gallery</td><td><code>/room?room_id=69e1f270b056cb591923cbad</code></td></tr>
+        <tr><td>demo_room</td><td><code>/room?room_id=69e1ef7b76fbf9e03f0dbabc</code></td></tr>
+      </table>
+    </div>
+
+    <!-- Tips -->
+    <div class="help-section">
+      <h2>💡 팁 / Tips</h2>
+      <ul>
+        <li><strong>미니맵 없애기:</strong> 미니맵은 자동으로 표시되며 클릭으로 기본 위치로 텔레포트</li>
+        <li><strong>위치 조정:</strong> 드래그로 대략적 위치 → Transform 패널에서 좌표 직접 입력</li>
+        <li><strong>여러 브라우저 테스트:</strong> 시크릿 모드에서 일반 사용자 뷰 확인</li>
+        <li><strong>갤러리 미리보기:</strong> avatar=none으로 3D 씬만 보고 아바타 숨기기</li>
+        <li><strong>RTSP 안 될 때:</strong> IP 카메라가同一 네트워크에 있는지 확인, URL 형식 확인</li>
+        <li><strong>카메라 스트리밍 안 될 때:</strong> HTTPS 필요 (cloudflaredunnel은 HTTPS 제공)</li>
+      </ul>
+    </div>
+
+  </div>
   {% else %}
     <p>Not an admin</p>
     <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Logout</a>
   {% endif %}
-  
+
 {% endblock %}

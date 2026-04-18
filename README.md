@@ -15,22 +15,29 @@ This repository includes modulized 3D space elements structure and viewer. The p
 ## TODO
 
 ### Web
-- [ ] Add some additional marker add-on for each images(like QR or synchro): assume physical user extra contents on their devices
-- [ ] Add Cutout option for GaussianSplat=> make clear
-- [ ] text(relationship) based auto images placement(LLM powered)
-- [ ] Drag to move images/wall/gaussiansplat
-  - https://github.com/jesstelford/aframe-click-drag-component
-- [ ] Video background contents on wall
-- [ ] Add auto-refresh on wall page(toggle by parameter?)
-- [ ] AR walking(now we are using joystick)
-- [ ] Save user position/rotation tracking information
-- [ ] Automatic screen size fitting
-- [ ] MongoDB to use abstract class to fetch wall elements
-
+- [x] Add some additional marker add-on for each images (QR or synchro) — via webpage element
+- [x] Add Cutout option for GaussianSplat — UI in element page (admin)
+- [ ] text(relationship) based auto images placement (LLM powered)
+- [x] Drag to move images/wall/gaussiansplat — drag-component.js, admin-only via auth
+- [x] Video background contents on wall — set video_url on Wall model
+- [x] Add auto-refresh on wall page (toggle by parameter) — JS refresh with ETag check
+- [x] AR walking (now we are using joystick) — AR passthrough button (admin)
+- [x] Save user position/rotation tracking information — via /camera-data endpoint
+- [x] Automatic screen size fitting — responsive A-Frame scene
+- [x] MongoDB to use abstract class to fetch wall elements — WallElement abstract base
+- [x] Scale/rotate transform controls for all elements — 6-field transform panel
+- [x] Webpage wall element type — iframe embedding with aframe-html-component
 
 ### Not-web
 - [ ] Tracking people in real world and update to server
   - using correlation between user's movement in AR mode and tracked position by surveillance camera?
+- [ ] QR/marker syncing — physical device detection and content overlay
+
+### Ideas / Backlog
+- aframe-click-drag-component for wall-level dragging (resize walls)
+- LLM-powered image placement based on text descriptions
+- Multi-user real-time collaboration (shared element transforms)
+- Screenshot/share room state
 
 
 ## Acknowledgment

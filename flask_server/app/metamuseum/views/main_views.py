@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from metamuseum.core.pyAframe import Box, Sphere, Cylinder, Plane, Sky
 from metamuseum.core.ratelimit import rate_limiter
-from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat, GLTFmodel, Webpage
+from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat, GLTFmodel, Webpage, LocationPreset
 from metamuseum.elements.user import OnlineUser
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,29 @@ def room():
         if avatar not in ('shiba', 'robot', 'none'):
             avatar = 'shiba'
         drag_enabled = current_user.is_authenticated and current_user.is_admin()
-        return render_template('room_aframe.html', aframe_list=aframe_list, camera_d=3, avatar=avatar, drag_enabled=drag_enabled)
+
+        # Get presets for this room
+        presets = LocationPreset.objects(room=room_id)
+        preset_list = [p.to_dict() for p in presets]
+        # Find default preset for spawn point
+        default_preset = next((p for p in preset_list if p['is_default']), None)
+        preset_id = request.args.get('preset')
+        if preset_id:
+            selected = next((p for p in preset_list if p['id'] == preset_id), None)
+        else:
+            selected = default_preset
+
+        # Boundary for position lock
+        boundary = {
+            'min_x': this_room.boundary_min_x, 'max_x': this_room.boundary_max_x,
+            'min_y': this_room.boundary_min_y, 'max_y': this_room.boundary_max_y,
+            'min_z': this_room.boundary_min_z, 'max_z': this_room.boundary_max_z
+        }
+
+        return render_template('room_aframe.html',
+                             aframe_list=aframe_list, camera_d=3, avatar=avatar,
+                             drag_enabled=drag_enabled, presets=preset_list,
+                             spawn_preset=selected, boundary=boundary)
     except Exception as e:
         logger.error(f"Error loading room {room_id}: {e}")
         return "Database unavailable", 503
@@ -266,4 +288,90 @@ def update_element(element_id, element_type):
         return jsonify({"status": "success", "element_id": str(element._id)})
     except Exception as e:
         logger.error(f"Error updating element {element_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/room/<room_id>/presets", methods=['GET'])
+def get_room_presets(room_id):
+    """List all location presets for a room"""
+    try:
+        presets = LocationPreset.objects(room=room_id)
+        return jsonify([p.to_dict() for p in presets])
+    except Exception as e:
+        logger.error(f"Error loading presets for room {room_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/room/<room_id>/preset", methods=['POST'])
+def create_preset(room_id):
+    """Create a new location preset (admin only)"""
+    try:
+        if not current_user.is_authenticated or not current_user.is_admin():
+            return jsonify({"error": "admin login required"}), 403
+
+        room = Room.objects(_id=room_id).first()
+        if not room:
+            return jsonify({"error": "Room not found"}), 404
+
+        data = request.json
+        if not data or 'name' not in data:
+            return jsonify({"error": "name required"}), 400
+
+        # If setting as default, unset other defaults
+        if data.get('is_default'):
+            LocationPreset.objects(room=room).update(is_default=False)
+
+        preset = LocationPreset(
+            name=data['name'],
+            description=data.get('description', ''),
+            room=room,
+            position_x=float(data.get('position_x', 0)),
+            position_y=float(data.get('position_y', 1.6)),
+            position_z=float(data.get('position_z', 0)),
+            rotation_x=float(data.get('rotation_x', 0)),
+            rotation_y=float(data.get('rotation_y', 0)),
+            rotation_z=float(data.get('rotation_z', 0)),
+            is_default=data.get('is_default', False)
+        )
+        preset.save()
+        return jsonify({"status": "success", "preset": preset.to_dict()})
+    except Exception as e:
+        logger.error(f"Error creating preset: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/preset/<preset_id>", methods=['DELETE'])
+def delete_preset(preset_id):
+    """Delete a location preset (admin only)"""
+    try:
+        if not current_user.is_authenticated or not current_user.is_admin():
+            return jsonify({"error": "admin login required"}), 403
+
+        preset = LocationPreset.objects(_id=preset_id).first()
+        if not preset:
+            return jsonify({"error": "Preset not found"}), 404
+
+        preset.delete()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logger.error(f"Error deleting preset {preset_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/room/<room_id>/boundary", methods=['GET'])
+def get_room_boundary(room_id):
+    """Get boundary limits for a room"""
+    try:
+        room = Room.objects(_id=room_id).first()
+        if not room:
+            return jsonify({"error": "Room not found"}), 404
+        return jsonify({
+            "min_x": room.boundary_min_x,
+            "max_x": room.boundary_max_x,
+            "min_y": room.boundary_min_y,
+            "max_y": room.boundary_max_y,
+            "min_z": room.boundary_min_z,
+            "max_z": room.boundary_max_z
+        })
+    except Exception as e:
+        logger.error(f"Error loading boundary for room {room_id}: {e}")
         return jsonify({"error": str(e)}), 500

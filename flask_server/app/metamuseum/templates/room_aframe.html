@@ -5,6 +5,7 @@
     <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
     <script src="https://unpkg.com/aframe-html-component@1.0.0/build/aframe-html-component.min.js"></script>
     <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
+    <script src="{{url_for('static', filename='js/location-features.js')}}"></script>
 
   </head>
   <body>
@@ -12,7 +13,7 @@
       <a-assets>
           <a-asset-item id="avatarModel" src="{{url_for('static', filename='gltf/shiba/scene.gltf')}}"></a-asset-item>
       </a-assets>
-      <a-camera id="camera"></a-camera>
+      <a-camera id="camera" {% if spawn_preset %}position="{{ spawn_preset['position'] }}" rotation="{{ spawn_preset['rotation'] }}"{% endif %} boundary-clamp="minX: {{ boundary.min_x }}; maxX: {{ boundary.max_x }}; minY: {{ boundary.min_y }}; maxY: {{ boundary.max_y }}; minZ: {{ boundary.min_z }}; maxZ: {{ boundary.max_z }}"></a-camera>
 
       {% for one_ele in aframe_list %}
         {{ one_ele|safe }}
@@ -399,8 +400,19 @@
       }, 200);
 
       document.addEventListener('DOMContentLoaded', async () => {
+        // Extract room_id from URL
+        const roomId = new URLSearchParams(window.location.search).get('room_id');
+
         // Enable drag after scene loads
         setTimeout(enableDrag, 1000);
+
+        // Init location features (presets, boundary, mini-map)
+        const presets = {{ presets | tojson }};
+        const boundary = {{ boundary | tojson }};
+        const isAdmin = {{ 'true' if drag_enabled else 'false' }};
+        if (boundary) {
+          initLocationFeatures(presets, boundary, roomId, isAdmin);
+        }
 
         const supported = await checkHandTrackingSupport();
         if (supported) {

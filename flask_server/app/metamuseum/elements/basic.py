@@ -18,6 +18,13 @@ class Room(Document):
     created_time = DateTimeField(default=datetime.utcnow)
     updated_time = DateTimeField(default=datetime.utcnow)
     walls = ListField(ReferenceField("Wall"))
+    # Boundary limits for position lock
+    boundary_min_x = FloatField(default=-10.0)
+    boundary_max_x = FloatField(default=10.0)
+    boundary_min_y = FloatField(default=0.0)
+    boundary_max_y = FloatField(default=5.0)
+    boundary_min_z = FloatField(default=-10.0)
+    boundary_max_z = FloatField(default=10.0)
 
     def __repr__(self):
         return "<Room name:{}>".format(self.name)
@@ -177,6 +184,36 @@ class GaussianSplat(WallElement):
         
         return '<a-entity if="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" scale="{}" rotation="{}">{}</a-entity>'.format(
             self.name, self._id, this_position, self._get_scale_str(), this_rotation, aframes)
+
+
+class LocationPreset(Document):
+    _id = ObjectIdField(required=True, default=ObjectId, primary_key=True)
+    name = StringField(required=True)
+    description = StringField()
+    room = ReferenceField(Room, required=True)
+    position_x = FloatField(required=True)
+    position_y = FloatField(required=True)
+    position_z = FloatField(required=True)
+    rotation_x = FloatField(default=0.0)
+    rotation_y = FloatField(default=0.0)
+    rotation_z = FloatField(default=0.0)
+    is_default = BooleanField(default=False)
+    created_time = DateTimeField(default=datetime.utcnow)
+
+    def __repr__(self):
+        return "<LocationPreset:{}>".format(self.name)
+    def __str__(self):
+        return "<LocationPreset:{}>".format(self.name)
+
+    def to_dict(self):
+        return {
+            'id': str(self._id),
+            'name': self.name,
+            'description': self.description or '',
+            'position': '{} {} {}'.format(self.position_x, self.position_y, self.position_z),
+            'rotation': '{} {} {}'.format(self.rotation_x, self.rotation_y, self.rotation_z),
+            'is_default': self.is_default
+        }
 
 
 class Webpage(WallElement):

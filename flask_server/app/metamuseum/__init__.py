@@ -75,13 +75,14 @@ def create_app():
        
     # for admin page
     admin = Admin(app, name='MetaMuseum-admin', url='/kwanri')
-    from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat, GLTFmodel, Webpage
+    from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat, GLTFmodel, Webpage, LocationPreset
     admin.add_view(MyModelView(Room))
     admin.add_view(MyModelView(Wall))
     admin.add_view(MyModelView(Image))
     admin.add_view(MyModelView(GaussianSplat))
     admin.add_view(MyModelView(GLTFmodel))
     admin.add_view(MyModelView(Webpage))
+    admin.add_view(MyModelView(LocationPreset))
 
 
     return app

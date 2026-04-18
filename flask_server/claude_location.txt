@@ -1,0 +1,71 @@
+# Location Features Plan
+
+## 1. Location Presets — Named teleportation points
+
+### DB: LocationPreset model
+```
+LocationPreset:
+  _id, name, description
+  room (ReferenceField)
+  position_x, position_y, position_z (FloatField)
+  rotation_x, rotation_y, rotation_z (FloatField)
+  is_default (Boolean) — viewer spawn point
+  created_time
+```
+
+### UI: Preset panel
+- Admin: "📍 Save current position as preset" button → modal to name it
+- Admin: List of presets with delete button
+- Viewer: Dropdown or quick-buttons to teleport to presets
+
+### API
+- `POST /room/<room_id>/preset` — create preset from current position
+- `GET /room/<room_id>/presets` — list all presets for room
+- `DELETE /preset/<preset_id>` — admin delete
+- `GET /room/<room_id>?preset=<preset_id>` — spawn at preset
+
+---
+
+## 2. Boundary / Position Lock
+
+### DB: Add to Room
+```
+boundary_min_x, boundary_max_x
+boundary_min_y, boundary_max_y  
+boundary_min_z, boundary_max_z
+```
+Default: computed from wall extents.
+
+### JS: Clamp camera position
+```
+function clampPosition(pos):
+  pos.x = clamp(pos.x, room.boundary_min_x, boundary_max_x)
+  pos.y = max(pos.y, boundary_min_y)  // don't fall through floor
+  pos.z = clamp(pos.z, boundary_min_z, boundary_max_z)
+```
+- Run on every camera position update
+- Also clamp avatar wrapper position
+- Smooth lerp if going out of bounds (not jarring snap)
+
+### Floor detection
+- If camera Y < boundary_min_y → snap to floor level
+
+---
+
+## 3. Mini-map (bonus, if time)
+
+- Top-right corner small canvas/overlay
+- Top-down SVG view of room bounds
+- Player dot + rotation indicator
+- Preset location markers
+- Click to teleport
+
+---
+
+## Files to change
+
+1. `flask_server/app/metamuseum/elements/basic.py` — add LocationPreset model
+2. `flask_server/app/metamuseum/views/main_views.py` — preset CRUD endpoints
+3. `flask_server/app/metamuseum/__init__.py` — register in admin
+4. `flask_server/app/metamuseum/templates/room_aframe.html` — preset UI, boundary JS
+5. `flask_server/app/metamuseum/static/js/drag-component.js` — boundary clamp + preset teleport

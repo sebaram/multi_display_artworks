@@ -6,14 +6,33 @@
     <script src="https://unpkg.com/aframe-html-component@1.0.0/build/aframe-html-component.min.js"></script>
     <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
     <script src="{{url_for('static', filename='js/location-features.js')}}"></script>
+    {% if ar_mode %}
+    <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+    <script src="{{url_for('static', filename='js/marker-ar.js')}}"></script>
+    {% endif %}
 
   </head>
   <body>
-    <a-scene joystick xr-mode-ui="enabled: false" cursor="rayOrigin: mouse">
+    <a-scene joystick
+           {% if ar_mode %}embedded arjs="sourceType: webcam; debugUIEnabled: false;" xr-mode-ui="enabled: false"{% else %}xr-mode-ui="enabled: false" cursor="rayOrigin: mouse"{% endif %}>
       <a-assets>
           <a-asset-item id="avatarModel" src="{{url_for('static', filename='gltf/shiba/scene.gltf')}}"></a-asset-item>
       </a-assets>
-      <a-camera id="camera" {% if spawn_preset %}position="{{ spawn_preset['position'] }}" rotation="{{ spawn_preset['rotation'] }}"{% endif %} boundary-clamp="minX: {{ boundary.min_x }}; maxX: {{ boundary.max_x }}; minY: {{ boundary.min_y }}; maxY: {{ boundary.max_y }}; minZ: {{ boundary.min_z }}; maxZ: {{ boundary.max_z }}"></a-camera>
+
+      {% if ar_mode %}
+      {# AR mode: no default sky, will show camera feed #}
+      {% else %}
+      <a-sky color="#1a1a2e"></a-sky>
+      {% endif %}
+
+      <a-camera id="camera" {% if spawn_preset %}position="{{ spawn_preset['position'] }}" rotation="{{ spawn_preset['rotation'] }}"{% endif %} {% if not ar_mode %}boundary-clamp="minX: {{ boundary.min_x }}; maxX: {{ boundary.max_x }}; minY: {{ boundary.min_y }}; maxY: {{ boundary.max_y }}; minZ: {{ boundary.min_z }}; maxZ: {{ boundary.max_z }}"{% endif %}></a-camera>
+
+      {# Default Hiro marker in AR mode (room-specific markers loaded dynamically) #}
+      {% if ar_mode %}
+      <a-marker preset="hiro" id="default-hiro-marker">
+        <a-entity visible="false"></a-entity>
+      </a-marker>
+      {% endif %}
 
       {% for one_ele in aframe_list %}
         {{ one_ele|safe }}
@@ -402,6 +421,12 @@
       document.addEventListener('DOMContentLoaded', async () => {
         // Extract room_id from URL
         const roomId = new URLSearchParams(window.location.search).get('room_id');
+        const arMode = {{ 'true' if ar_mode else 'false' }};
+
+        // Init AR marker mode if ?ar=marker
+        if (arMode) {
+          bootstrapARMode(roomId, null);
+        }
 
         // Enable drag after scene loads
         setTimeout(enableDrag, 1000);
@@ -410,7 +435,7 @@
         const presets = {{ presets | tojson }};
         const boundary = {{ boundary | tojson }};
         const isAdmin = {{ 'true' if drag_enabled else 'false' }};
-        if (boundary) {
+        if (boundary && !arMode) {
           initLocationFeatures(presets, boundary, roomId, isAdmin);
         }
 

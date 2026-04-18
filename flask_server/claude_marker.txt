@@ -1,0 +1,85 @@
+# Marker-based Position System
+
+## Concept
+Physical fiducial markers (printed QR/AprilTag) placed in the real world correspond to positions in the virtual room. When a user scans a marker with their camera, they are placed at the corresponding virtual position.
+
+## Use Cases
+1. **Gallery entrance**: Place marker at real gallery entrance → user spawns at virtual gallery entrance
+2. **Artwork anchor**: Marker next to physical painting → shows additional AR content
+3. **Position calibration**: Multiple markers in room → precise 6DOF tracking
+
+## Technical Approach
+
+### AR.js Integration
+- Uses `<a-marker>` from AR.js (A-Frame compatible)
+- Marker types: Hiro preset, custom pattern, or image NFT
+- Pose (6DOF): position (x,y,z) + rotation (pitch,yaw,roll)
+
+### Marker Model
+```
+Marker {
+  _id: ObjectId
+  name: String           // "Entrance Marker", "Artwork A Marker"
+  marker_type: String    // "hiro" | "pattern" | "image"
+  marker_value: String   // "hiro" or URL to pattern file or NFT image URL
+  room: ObjectId → Room // which room this marker maps to
+  target_position: {x, y, z}   // virtual position user goes to
+  target_rotation: {x, y, z}   // virtual rotation user looks at
+  target_preset: ObjectId → LocationPreset // OR link to existing preset
+  offset_x/y/z: Float    // offset from marker center to actual position
+  is_active: Boolean
+  created_time: DateTime
+}
+```
+
+### Flow
+1. User visits `/room?room_id=...&ar=marker`
+2. Page starts AR.js camera (requests webcam permission)
+3. Camera scan detects marker → `markerDetected` event fires
+4. JS fetches marker config from `/marker/<marker_id>/config`
+5. Camera position in A-Frame scene set to `target_position`
+6. User is now "standing" at the marker location in virtual room
+7. Virtual content (walls, artworks) displayed via passthrough/overlay
+
+### URL Patterns
+```
+/room?room_id=...&ar=marker           → AR mode, any marker
+/room?room_id=...&ar=marker&marker=id → AR mode, specific marker expected
+```
+
+### Files
+- `core/marker.py` — Marker model, mapping logic
+- `views/marker_views.py` — API endpoints
+- `static/js/marker-ar.js` — AR.js integration JS
+- `templates/room_ar.html` — AR-mode room page (fullscreen camera)
+- `templates/admin/index.html` — updated with marker docs
+
+### Marker Detection Events
+```javascript
+document.querySelector('a-marker').addEventListener('markerFound', () => {
+  // Marker detected - teleport to virtual position
+  const markerId = el.getAttribute('marker_id');
+  fetchMarkerConfig(markerId);
+});
+
+document.querySelector('a-marker').addEventListener('markerLost', () => {
+  // Marker lost - optional: show "scan marker" overlay
+});
+```
+
+## Marker Types
+| Type | How it works | Print needed? |
+|------|-------------|--------------|
+| Hiro | Built-in AR.js marker | Yes |
+| Pattern | Custom printed pattern | Yes |
+| Image NFT | Any photo/image as marker | Yes (printed or on screen) |
+
+### Generate custom pattern
+```bash
+# Download AR.js pattern generator or use online tool
+# https://ar-js-org.github.io/AR.js-Docs/marker-based/
+```
+
+## External Dependencies
+- AR.js 3.4.x: `https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js`
+- A-Frame 1.6.0 (already included)

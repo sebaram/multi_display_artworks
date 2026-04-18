@@ -265,6 +265,50 @@ class GLTFmodel(WallElement):
             self.name, self._id, this_position, self._get_scale_str(), self._get_rotation_str(), aframes)
 
 
+class Marker(Document):
+    """Physical marker → virtual position mapping for AR mode."""
+    _id = ObjectIdField(required=True, default=ObjectId, primary_key=True)
+    name = StringField(required=True)
+    description = StringField()
+    room = ReferenceField(Room, required=True)
+    marker_type = StringField(required=True, choices=['hiro', 'pattern', 'image'], default='hiro')
+    marker_value = StringField(required=True, default='hiro')  # 'hiro' or pattern URL or image URL
+    target_position_x = FloatField(required=True, default=0.0)
+    target_position_y = FloatField(required=True, default=1.6)
+    target_position_z = FloatField(required=True, default=0.0)
+    target_rotation_x = FloatField(default=0.0)
+    target_rotation_y = FloatField(default=0.0)
+    target_rotation_z = FloatField(default=0.0)
+    target_preset = ReferenceField(LocationPreset, default=None)
+    offset_x = FloatField(default=0.0)
+    offset_y = FloatField(default=0.0)
+    offset_z = FloatField(default=0.0)
+    is_active = BooleanField(default=True)
+    created_time = DateTimeField(default=datetime.utcnow)
+
+    def __repr__(self):
+        return "<Marker:{}>".format(self.name)
+    def __str__(self):
+        return "<Marker:{}>".format(self.name)
+
+    def to_dict(self):
+        d = {
+            'id': str(self._id),
+            'name': self.name,
+            'marker_type': self.marker_type,
+            'marker_value': self.marker_value,
+            'target_position': '{} {} {}'.format(
+                self.target_position_x, self.target_position_y, self.target_position_z),
+            'target_rotation': '{} {} {}'.format(
+                self.target_rotation_x, self.target_rotation_y, self.target_rotation_z),
+            'offset': '{} {} {}'.format(self.offset_x, self.offset_y, self.offset_z),
+            'is_active': self.is_active
+        }
+        if self.target_preset:
+            d['preset_name'] = self.target_preset.name
+        return d
+
+
 if __name__ == "__main__":
     new_splat = GaussianSplat(name="test_splat", description="luma-seal", splat_url="https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/luma-seal.splat", scale_x=1, scale_y=1, scale_z=1, rotation_x=0, rotation_y=0, rotation_z=0, position="-1 0.3 3", position_x=0, position_y=0)
     new_splat.save()

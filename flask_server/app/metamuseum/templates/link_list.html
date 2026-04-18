@@ -50,6 +50,21 @@
 <div class="container">
     <div class="row">
         <div class="col-md-12 mt-3">
+
+            {# Quick Instructions #}
+            <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;padding:20px 24px;margin-bottom:24px;color:white;">
+                <h2 style="margin:0 0 8px 0;font-size:22px;">🏛️ MetaMuseum</h2>
+                <p style="margin:0 0 14px 0;opacity:0.8;font-size:14px;">Virtual gallery — explore artworks in 3D, add your own, or step inside with AR</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <a href="/kwanri" style="background:rgba(76,175,80,0.9);color:white;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;">⚙️ Admin</a>
+                    <a href="/room?room_id=69e1f270b056cb591923cbb2&avatar=shiba" style="background:rgba(52,152,219,0.9);color:white;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;" target="_blank">🎨 Art Gallery</a>
+                    <a href="/room?room_id=69e1f270b056cb591923cbb2&ar=marker" style="background:rgba(155,89,182,0.9);color:white;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;">📷 AR Mode</a>
+                </div>
+                <div style="margin-top:12px;font-size:12px;opacity:0.7;">
+                    <strong>URL params:</strong> ?avatar=shiba|robot|none · ?ar=marker (AR with camera) · ?ar=companion (Vision Pro via phone) · ?preset=id
+                </div>
+            </div>
+
             <h3>Link for elements</h3>
             <hr>
             {% for one_room in all_rooms %}

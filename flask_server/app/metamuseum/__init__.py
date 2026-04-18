@@ -81,7 +81,11 @@ def create_app():
 
     # Initialize SocketIO for AR companion (phone→Vision Pro relay)
     from metamuseum.core.ar_proxy import init_socketio
-    init_socketio(app)
+    sio = init_socketio(app)
+
+    # Also init position sync using the same SocketIO instance
+    from metamuseum.core.position_sync import init_socketio as init_pos_sync
+    init_pos_sync(app)
        
     # for admin page
     admin = Admin(app, name='MetaMuseum-admin', url='/kwanri')

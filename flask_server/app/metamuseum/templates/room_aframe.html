@@ -6,13 +6,14 @@
     <script src="https://unpkg.com/aframe-html-component@1.0.0/build/aframe-html-component.min.js"></script>
     <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
     <script src="{{url_for('static', filename='js/location-features.js')}}"></script>
-    {% if is_ar_marker %}
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+
+  {% if is_ar_marker %}
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
     <script src="{{url_for('static', filename='js/marker-ar.js')}}"></script>
-    {% elif is_ar_companion %}
-    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+  {% elif is_ar_companion %}
     <script src="{{url_for('static', filename='js/ar-receiver.js')}}"></script>
-    {% endif %}
+  {% endif %}
 
   </head>
   <body>
@@ -303,34 +304,32 @@
         return hand;
       }
 
-      function sendCameraData(leftHand = null, rightHand = null) {
+function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         const cameraEl = document.getElementById('camera');
         const position = cameraEl.getAttribute('position');
         const rotation = cameraEl.getAttribute('rotation');
 
-        fetch("{{url_for('main.receive_camera_data')}}", {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            position, 
-            rotation, 
-            userId: myUserId, 
-            avatar: avatarType,
-            leftHand,
-            rightHand,
-            handTrackingEnabled: { enabled: handTrackingEnabled, device: 'webxr' }
-          }),
-        }).catch(err => console.error('Camera data error:', err));
+        if (!posSocket || !posSocketConnected) return;
+        posSocket.emit('position_update', {
+          room_id: roomId,
+          userId: myUserId,
+          avatar: avatarType,
+          position,
+          rotation,
+          leftHand,
+          rightHand,
+          handTracking: handTrackingEnabled
+        });
       }
 
-      setInterval(() => {
-        if (!handTrackingEnabled) {
-          const cameraEl = document.getElementById('camera');
-          const position = cameraEl.getAttribute('position');
-          const rotation = cameraEl.getAttribute('rotation');
-          sendCameraData();
-        }
-      }, 200);
+      // Throttled position sender — 10fps instead of 5fps HTTP polling
+      let lastPosSend = 0;
+      function throttledSendPosition(leftHand = null, rightHand = null) {
+        const now = Date.now();
+        if (now - lastPosSend < 100) return;
+        lastPosSend = now;
+        sendCameraDataViaSocket(leftHand, rightHand);
+      }
 
       function updateOtherUsersCameras(data) {
         let cameraIdList = [];
@@ -343,11 +342,14 @@
           handIdList.push(el.id);
         });
 
-        Object.keys(data).forEach(_index => {
-          const userId = data[_index].userId;
+        // data is an array of user objects (from room_state or individual updates)
+        const users = Array.isArray(data) ? data : Object.values(data);
+
+        users.forEach(userData => {
+          const userId = userData.userId;
           if (userId === myUserId) return;
 
-          const otherAvatarType = data[_index].avatar || 'shiba';
+          const otherAvatarType = userData.avatar || 'shiba';
 
           let cameraEl = document.getElementById(`camera-${userId}`);
           if (!cameraEl) {
@@ -369,12 +371,12 @@
 
             document.querySelector('a-scene').appendChild(cameraEl);
           }
-          cameraEl.setAttribute('position', data[_index].position);
-          cameraEl.setAttribute('rotation', data[_index].rotation);
+          cameraEl.setAttribute('position', userData.position);
+          cameraEl.setAttribute('rotation', userData.rotation);
 
-          if (data[_index].handTrackingEnabled && data[_index].handTrackingEnabled.enabled) {
-            const leftHandData = data[_index].leftHand;
-            const rightHandData = data[_index].rightHand;
+          if (userData.handTracking && userData.handTracking.enabled) {
+            const leftHandData = userData.leftHand;
+            const rightHandData = userData.rightHand;
 
             ['left', 'right'].forEach((side, i) => {
               const handData = i === 0 ? leftHandData : rightHandData;
@@ -414,12 +416,79 @@
         });
       }
 
+      // ─── Socket.IO Position Sync ───────────────────────────────────────
+      let posSocket = null;
+      let posSocketConnected = false;
+
+      function initPositionSocket() {
+        if (posSocket) return;
+
+        const proto = location.protocol === 'https:' ? 'https:' : 'http:';
+        posSocket = io(`${proto}//${location.host}`, {
+          transports: ['websocket', 'polling'],
+          reconnection: true
+        });
+
+        posSocket.on('connect', () => {
+          console.log('[PosSync] Connected:', posSocket.id);
+          posSocketConnected = true;
+          posSocket.emit('join_position_room', {
+            room_id: roomId,
+            userId: myUserId,
+            avatar: avatarType
+          });
+        });
+
+        posSocket.on('disconnect', () => {
+          console.log('[PosSync] Disconnected');
+          posSocketConnected = false;
+        });
+
+        // Full room state on join (other existing users)
+        posSocket.on('room_state', (data) => {
+          console.log('[PosSync] Room state:', data.users.length, 'users');
+          updateOtherUsersCameras(data.users);
+        });
+
+        // New user joined
+        posSocket.on('user_joined', (data) => {
+          console.log('[PosSync] User joined:', data.userId);
+          // Will be handled by position_update or add directly
+        });
+
+        // User left — remove their avatar
+        posSocket.on('user_left', (data) => {
+          console.log('[PosSync] User left:', data.userId);
+          const el = document.getElementById(`camera-${data.userId}`);
+          if (el) el.parentNode.removeChild(el);
+        });
+
+        // Real-time position update from another user
+        posSocket.on('position_update', (data) => {
+          if (data.userId === myUserId) return;
+          updateOtherUsersCameras([data]);
+        });
+      }
+
+      // Alias for hand tracking (backward compat)
+      function sendCameraData(leftHand = null, rightHand = null) {
+        throttledSendPosition(leftHand, rightHand);
+      }
+
+      // Start socket sync immediately (before scene loads)
+      initPositionSocket();
+
+      // Replace polling setIntervals — send position via socket at 10fps
       setInterval(() => {
-        fetch("{{url_for('main.get_cameras')}}")
-          .then(response => response.json())
-          .then(data => updateOtherUsersCameras(data))
-          .catch(err => console.error('Get cameras error:', err));
-      }, 200);
+        if (!handTrackingEnabled) {
+          throttledSendPosition();
+        }
+      }, 100);
+
+      // Hand tracking sends via socket
+      function onHandTrackingUpdate(leftHandData, rightHandData) {
+        throttledSendPosition(leftHandData, rightHandData);
+      }
 
       document.addEventListener('DOMContentLoaded', async () => {
         // Extract room_id from URL

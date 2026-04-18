@@ -1,0 +1,81 @@
+# Vision Pro Companion AR — Phone as Camera Proxy
+
+## Problem
+Vision Pro Safari doesn't give web apps camera access → AR.js marker detection doesn't work.
+
+## Solution
+Use iPhone as a "camera proxy":
+1. iPhone runs a companion web page that accesses its camera
+2. iPhone detects markers locally using AR.js
+3. When marker found, iPhone sends marker_id + pose (position/rotation) to server via WebSocket
+4. Vision Pro web app receives pose via WebSocket and teleports to corresponding virtual position
+5. Both devices share the same virtual room view
+
+## Architecture
+```
+┌─────────────┐         WebSocket          ┌─────────────┐
+│   iPhone    │ ◄── marker detection ───► │   Server    │
+│ (Companion) │         /ws/ar            │  (Flask)    │
+└─────────────┘                            └──────┬──────┘
+                                                 │ WebSocket
+                                                 ▼
+                                          ┌─────────────┐
+                                          │ Vision Pro  │
+                                          │  (Safari)   │
+                                          └─────────────┘
+```
+
+## Flow
+1. **iPhone** opens `/ar-companion?room_id=...` (companion page)
+2. **iPhone** grants camera → AR.js starts marker detection
+3. **iPhone** connects WebSocket to `/ws/ar`
+4. **iPhone** sends: `{ type: "marker_found", marker_id: "...", pose: {x, y, z, rot} }`
+5. **Vision Pro** opens `/room?room_id=...&ar=companion` (no camera needed)
+6. **Vision Pro** connects same WebSocket
+7. **Server** relays marker pose to Vision Pro
+8. **Vision Pro** teleports camera to virtual position
+
+## WebSocket Messages
+```json
+// Phone → Server (marker detected)
+{ "type": "marker_found", "room_id": "...", "marker_id": "...", "pose": { "x": 0, "y": 1.6, "z": 0, "rx": 0, "ry": 90, "rz": 0 } }
+
+// Phone → Server (marker lost)
+{ "type": "marker_lost", "room_id": "...", "marker_id": "..." }
+
+// Phone → Server (camera frame for Vision Pro — optional low-res)
+{ "type": "frame", "room_id": "...", "data": "base64..." }
+
+// Server → Vision Pro (marker pose update)
+{ "type": "pose_update", "marker_id": "...", "pose": { ... }, "target_position": "...", "target_rotation": "..." }
+
+// Server → Phone (sync confirm)
+{ "type": "synced", "vision_pro_count": 0 }
+```
+
+## Companion Page (`/ar-companion`)
+- Fullscreen AR.js camera view
+- Shows detected marker name + status
+- Minimal UI: room name, marker status, connection indicator
+- Auto-reconnects WebSocket on disconnect
+- Can serve as a standalone AR experience too
+
+## Vision Pro Page
+- `/room?room_id=...&ar=companion`
+- No camera needed (display-only)
+- WebSocket receives pose updates
+- Teleports camera when pose received
+- Optional: show low-res camera feed from phone as background
+
+## Files
+- `core/ar_proxy.py` — WebSocket handler, room clients registry
+- `views/ar_proxy_views.py` — /ar-companion page, WebSocket upgrade
+- `templates/ar_companion.html` — iPhone companion AR page
+- `static/js/ar-companion.js` — AR.js + WebSocket client for phone
+- `static/js/ar-receiver.js` — WebSocket client for Vision Pro (receives pose)
+
+## WebSocket Endpoint
+`ws://server/ws/ar?room_id=...&device=phone|vision_pro`
+
+## Sessions
+When multiple phones detect the same marker, server picks the most confident/closest detection and broadcasts to all Vision Pro clients in that room.

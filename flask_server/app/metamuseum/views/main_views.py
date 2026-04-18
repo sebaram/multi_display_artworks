@@ -53,7 +53,9 @@ def room():
         if avatar not in ('shiba', 'robot', 'none'):
             avatar = 'shiba'
         drag_enabled = current_user.is_authenticated and current_user.is_admin()
-        ar_mode = request.args.get('ar') == 'marker'
+        ar_mode = request.args.get('ar')  # 'marker' or 'companion'
+        is_ar_marker = ar_mode == 'marker'
+        is_ar_companion = ar_mode == 'companion'
         preset_id = request.args.get('preset')
 
         # Get presets for this room
@@ -76,7 +78,8 @@ def room():
                              aframe_list=aframe_list, camera_d=3, avatar=avatar,
                              drag_enabled=drag_enabled, presets=preset_list,
                              spawn_preset=selected, boundary=boundary,
-                             ar_mode=ar_mode, room_id=room_id)
+                             is_ar_marker=is_ar_marker, is_ar_companion=is_ar_companion,
+                             room_id=room_id)
     except Exception as e:
         logger.error(f"Error loading room {room_id}: {e}")
         return "Database unavailable", 503

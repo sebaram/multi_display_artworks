@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>AR Companion — {{ room_name }}</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #000; font-family: -apple-system, sans-serif; }
+
+    #status-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      padding: 12px 16px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    #status-bar .room-name { font-weight: 600; }
+    #ws-status { font-size: 12px; opacity: 0.8; }
+    #ws-status.connected { color: #4CAF50; }
+    #ws-status.disconnected { color: #f44336; }
+
+    #marker-flash {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(76, 175, 80, 0.9);
+      color: white;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      z-index: 9998;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    #marker-flash.show { opacity: 1; }
+
+    #info-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 9999;
+      text-align: center;
+      max-width: 90vw;
+    }
+    #info-panel .marker-name { font-weight: 600; color: #4CAF50; }
+    #info-panel .hint { opacity: 0.7; font-size: 12px; margin-top: 4px; }
+
+    #retry-btn {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      display: none;
+      z-index: 9999;
+    }
+
+    a-scene { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <!-- Status bar -->
+  <div id="status-bar">
+    <span class="room-name">🏛️ {{ room_name }}</span>
+    <span id="ws-status">🔌 Connecting...</span>
+  </div>
+
+  <!-- AR flash notification -->
+  <div id="marker-flash"></div>
+
+  <!-- Info panel -->
+  <div id="info-panel">
+    <div>Point camera at a marker</div>
+    <div class="hint">{{ markers|length }} marker(s) configured</div>
+  </div>
+
+  <!-- Retry button -->
+  <button id="retry-btn" onclick="initApp()">🔄 Retry Camera</button>
+
+  <!-- AR Scene -->
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logEvents: false;"
+    vr-mode-ui="enabled: false"
+    gesture-detection
+  >
+    <!-- Camera -->
+    <a-entity camera></a-entity>
+
+    <!-- Markers for this room -->
+    {% for m in markers %}
+    <a-marker
+      id="marker-{{ m.id }}"
+      preset="{{ m.marker_type if m.marker_type == 'hiro' else 'pattern' }}"
+      {% if m.marker_type == 'pattern' %}type="pattern" url="{{ m.marker_value }}"{% endif %}
+      smooth="true"
+      smoothCount="5"
+      smoothTolerance="0.01"
+      smoothThreshold="2"
+    >
+      <!-- Invisible anchor — we just track pose -->
+      <a-entity position="0 0 0"></a-entity>
+    </a-marker>
+    {% else %}
+    <a-marker preset="hiro" id="marker-hiro" smooth="true" smoothCount="5">
+      <a-entity position="0 0 0"></a-entity>
+    </a-marker>
+    {% endfor %}
+  </a-scene>
+
+  <!-- Socket.IO client -->
+  <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+  <script>
+    const ROOM_ID = '{{ room_id }}';
+    const MARKERS = {{ markers | tojson }};
+    let socket = null;
+    let currentMarkerId = null;
+    let socketConnected = false;
+
+    // Flash notification
+    function flashMessage(text, duration = 2000) {
+      const el = document.getElementById('marker-flash');
+      el.textContent = text;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), duration);
+    }
+
+    function updateWsStatus(status) {
+      const el = document.getElementById('ws-status');
+      if (status === 'connected') {
+        el.textContent = '🟢 Connected';
+        el.className = 'connected';
+        socketConnected = true;
+      } else if (status === 'disconnected') {
+        el.textContent = '🔴 Disconnected';
+        el.className = 'disconnected';
+        socketConnected = false;
+      }
+    }
+
+    // Socket.IO connection
+    function connectSocket() {
+      // Use the same host, socket.io handles ws/wss
+      const proto = location.protocol === 'https:' ? 'https:' : 'http:';
+      const host = location.host;
+      socket = io(`${proto}//${host}`, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 10
+      });
+
+      socket.on('connect', () => {
+        console.log('[Socket] Connected:', socket.id);
+        updateWsStatus('connected');
+
+        // Join the AR room as a phone (camera source)
+        socket.emit('join_ar_room', {
+          room_id: ROOM_ID,
+          device: 'phone'
+        });
+
+        // Send marker configs to server so it can relay target positions
+        socket.emit('set_marker_config', {
+          room_id: ROOM_ID,
+          markers: MARKERS
+        });
+      });
+
+      socket.on('disconnect', () => {
+        console.log('[Socket] Disconnected');
+        updateWsStatus('disconnected');
+      });
+
+      socket.on('joined', (data) => {
+        console.log('[Socket] Joined room:', data);
+        document.querySelector('#info-panel .hint').textContent =
+          `${data.phones_count} phone(s), ${data.vision_pros_count} Vision Pro(s) connected`;
+      });
+
+      socket.on('pose_update', (data) => {
+        // Server is broadcasting pose from another phone (not ours)
+        console.log('[Socket] Pose from another device:', data);
+      });
+
+      socket.on('sync_state', (data) => {
+        console.log('[Socket] Sync state:', data);
+      });
+    }
+
+    // AR Marker detection
+    function setupMarkerHandlers() {
+      const scene = document.querySelector('a-scene');
+
+      scene.addEventListener('markerFound', (e) => {
+        const markerEl = e.target;
+        const markerId = markerEl.getAttribute('id');
+        const markerValue = markerEl.getAttribute('preset') || markerEl.getAttribute('url') || 'hiro';
+        const markerType = markerEl.getAttribute('preset') ? 'hiro' : 'pattern';
+
+        console.log('[AR] Marker found:', markerId, markerValue);
+        currentMarkerId = markerId;
+
+        // Find marker config
+        const config = MARKERS.find(m =>
+          (m.marker_type === markerType && m.marker_value === markerValue) ||
+          m.id === markerId ||
+          m.name === markerId
+        );
+
+        const markerName = config ? config.name : markerId;
+        flashMessage(`✅ "${markerName}" detected!`);
+
+        // Update info panel
+        document.querySelector('#info-panel .marker-name').textContent = markerName;
+        document.querySelector('#info-panel .hint').textContent = 'Sending to Vision Pro...';
+
+        // Get marker pose (AR.js provides position/rotation of marker in camera space)
+        const markerWorldPos = markerEl.object3D.position;
+        const markerWorldRot = markerEl.object3D.rotation;
+
+        const pose = {
+          x: parseFloat(markerWorldPos.x.toFixed(3)),
+          y: parseFloat(markerWorldPos.y.toFixed(3)),
+          z: parseFloat(markerWorldPos.z.toFixed(3)),
+          rx: parseFloat((markerWorldRot.x * 180 / Math.PI).toFixed(1)),
+          ry: parseFloat((markerWorldRot.y * 180 / Math.PI).toFixed(1)),
+          rz: parseFloat((markerWorldRot.z * 180 / Math.PI).toFixed(1))
+        };
+
+        // Send to server → relayed to Vision Pro
+        if (socket && socketConnected) {
+          socket.emit('marker_update', {
+            room_id: ROOM_ID,
+            update_type: 'found',
+            marker_id: markerId,
+            pose: pose
+          });
+        }
+      });
+
+      scene.addEventListener('markerLost', (e) => {
+        const markerEl = e.target;
+        const markerId = markerEl.getAttribute('id');
+        console.log('[AR] Marker lost:', markerId);
+
+        if (currentMarkerId === markerId) {
+          currentMarkerId = null;
+          flashMessage('📷 Marker lost', 1500);
+
+          document.querySelector('#info-panel .marker-name').textContent = '';
+          document.querySelector('#info-panel .hint').textContent = 'Point camera at a marker';
+
+          if (socket && socketConnected) {
+            socket.emit('marker_update', {
+              room_id: ROOM_ID,
+              update_type: 'lost',
+              marker_id: markerId
+            });
+          }
+        }
+      });
+    }
+
+    // Continuous pose update while tracking
+    let lastPoseUpdate = 0;
+    function setupPoseUpdates() {
+      const scene = document.querySelector('a-scene');
+
+      setInterval(() => {
+        if (!currentMarkerId) return;
+
+        const now = Date.now();
+        if (now - lastPoseUpdate < 100) return;  // throttle to 10fps
+        lastPoseUpdate = now;
+
+        const markerEl = document.getElementById(currentMarkerId);
+        if (!markerEl || !markerEl.object3D) return;
+
+        const pos = markerEl.object3D.position;
+        const rot = markerEl.object3D.rotation;
+
+        const pose = {
+          x: parseFloat(pos.x.toFixed(3)),
+          y: parseFloat(pos.y.toFixed(3)),
+          z: parseFloat(pos.z.toFixed(3)),
+          rx: parseFloat((rot.x * 180 / Math.PI).toFixed(1)),
+          ry: parseFloat((rot.y * 180 / Math.PI).toFixed(1)),
+          rz: parseFloat((rot.z * 180 / Math.PI).toFixed(1))
+        };
+
+        if (socket && socketConnected) {
+          socket.emit('marker_update', {
+            room_id: ROOM_ID,
+            update_type: 'pose',
+            marker_id: currentMarkerId,
+            pose: pose
+          });
+        }
+      }, 100);
+    }
+
+    function initApp() {
+      document.getElementById('retry-btn').style.display = 'none';
+      connectSocket();
+      setupMarkerHandlers();
+      setupPoseUpdates();
+    }
+
+    // Handle camera errors
+    document.querySelector('a-scene').addEventListener('camera-error', (e) => {
+      console.error('[AR] Camera error:', e);
+      flashMessage('❌ Camera access denied', 3000);
+      document.getElementById('retry-btn').style.display = 'block';
+    });
+
+    // Start when scene is ready
+    document.querySelector('a-scene').addEventListener('loaded', () => {
+      console.log('[AR] Scene loaded, starting...');
+      initApp();
+    });
+  </script>
+</body>
+</html>

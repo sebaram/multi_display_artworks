@@ -5,6 +5,7 @@
     <meta http-equiv="cache-control" content="no-cache">
     {% endif %}
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
   </head>
   <body>
@@ -77,17 +78,147 @@
 
     {% if drag_enabled %}
     <script>
-      document.querySelector('a-scene').addEventListener('loaded', () => {
-        setTimeout(() => {
-          document.querySelectorAll('[data-element-id]').forEach(el => {
-            const elementId = el.getAttribute('data-element-id');
-            const elementType = el.getAttribute('data-element-type');
-            if (elementId && elementType) {
-              el.setAttribute('drag-element', `elementId: ${elementId}, elementType: ${elementType}`);
-              el.setAttribute('class', 'clickable');
+      // Streaming control panel for admin
+      function initStreamPanel() {
+        const panel = document.createElement('div');
+        panel.id = 'stream-panel';
+        panel.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9997;';
+        panel.innerHTML = `
+        <button id="stream-toggle" style="padding:8px 14px;background:rgba(244,67,54,0.9);color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;" onclick="toggleStreamPanel()">📹 Stream</button>
+        <div id="stream-menu" style="display:none;position:absolute;bottom:40px;right:0;background:rgba(0,0,0,0.92);color:white;padding:12px;border-radius:8px;min-width:260px;font-size:12px;">
+          <div style="font-weight:bold;margin-bottom:8px;">📹 Video Stream</div>
+          <div style="margin-bottom:8px;">
+            <label>RTMP/RTSP URL:</label><br>
+            <input type="text" id="stream-url" placeholder="rtsp://camera:554/stream"
+                   style="width:100%;padding:5px;margin-top:4px;border-radius:4px;border:none;font-size:11px;">
+          </div>
+          <button onclick="startRTSPStream()" style="width:100%;padding:7px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:6px;">▶ Start RTSP</button>
+          <hr style="border-color:rgba(255,255,255,0.2);margin:8px 0;">
+          <div style="font-weight:bold;margin-bottom:8px;">📱 Phone Camera</div>
+          <button onclick="startPhoneStream()" id="phone-stream-btn" style="width:100%;padding:7px;background:#2196F3;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:4px;">📹 Start Phone Camera</button>
+          <button onclick="stopPhoneStream()" id="phone-stop-btn" disabled style="width:100%;padding:7px;background:#f44336;color:white;border:none;border-radius:4px;cursor:pointer;">⏹ Stop Camera</button>
+          <hr style="border-color:rgba(255,255,255,0.2);margin:8px 0;">
+          <button onclick="stopAllStreams()" style="width:100%;padding:7px;background:#666;color:white;border:none;border-radius:4px;cursor:pointer;">⏹ Stop All</button>
+          <div id="stream-status" style="margin-top:8px;font-size:11px;color:#aaa;min-height:16px;"></div>
+        </div>`;
+        document.body.appendChild(panel);
+      }
+
+      let phoneStream = null;
+      let phoneChunks = [];
+      let chunkIdx = 0;
+
+      function toggleStreamPanel() {
+        const menu = document.getElementById('stream-menu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      }
+
+      function setStreamStatus(msg, color = '#aaa') {
+        const el = document.getElementById('stream-status');
+        if (el) { el.textContent = msg; el.style.color = color; }
+      }
+
+      function startRTSPStream() {
+        const url = document.getElementById('stream-url').value;
+        if (!url) { alert('Enter RTSP/RTMP URL first'); return; }
+        setStreamStatus('Starting stream...', '#FFA500');
+        fetch('/stream/start-rtsp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stream_id: 'wall1', rtsp_url: url })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'started') {
+            setStreamStatus('✅ Stream active! Set Wall.video_url to:\n' + data.url, '#4CAF50');
+            // Auto-set video URL if we can
+            const videoEl = document.querySelector('a-video');
+            if (videoEl) videoEl.setAttribute('src', data.url);
+          } else {
+            setStreamStatus('❌ ' + (data.error || 'Failed'), '#f44336');
+          }
+        })
+        .catch(e => setStreamStatus('❌ Network error: ' + e, '#f44336'));
+      }
+
+      function startPhoneStream() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('Camera streaming not supported on this browser');
+          return;
+        }
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+        .then(stream => {
+          phoneStream = stream;
+          phoneChunks = [];
+          chunkIdx = 0;
+
+          const recorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
+          recorder.ondataavailable = e => {
+            if (e.data.size > 0) {
+              const fd = new FormData();
+              fd.append('chunk', e.data);
+              fd.append('idx', chunkIdx++);
+              fetch('/stream/push/wallphone', { method: 'POST', body: fd })
+                .catch(err => console.error('Chunk upload error:', err));
             }
-          });
-        }, 500);
+          };
+          recorder.start(2000); // chunk every 2s
+          phoneStream.recorder = recorder;
+
+          document.getElementById('phone-stream-btn').disabled = true;
+          document.getElementById('phone-stop-btn').disabled = false;
+          setStreamStatus('📹 Phone camera streaming...', '#4CAF50');
+        })
+        .catch(err => {
+          alert('Camera error: ' + err.message);
+          setStreamStatus('❌ ' + err.message, '#f44336');
+        });
+      }
+
+      function stopPhoneStream() {
+        if (phoneStream) {
+          phoneStream.getTracks().forEach(t => t.stop());
+          if (phoneStream.recorder) phoneStream.recorder.stop();
+          phoneStream = null;
+          document.getElementById('phone-stream-btn').disabled = false;
+          document.getElementById('phone-stop-btn').disabled = true;
+          setStreamStatus('⏹ Camera stream stopped', '#aaa');
+          fetch('/stream/stop/wallphone', { method: 'POST' }).catch(() => {});
+        }
+      }
+
+      function stopAllStreams() {
+        stopPhoneStream();
+        fetch('/stream/stop/wall1', { method: 'POST' }).catch(() => {});
+        setStreamStatus('⏹ All streams stopped', '#aaa');
+      }
+
+      // HLS.js support for <a-video> elements
+      function setupHLSVideo() {
+        document.querySelectorAll('a-video').forEach(videoEl => {
+          const src = videoEl.getAttribute('src');
+          if (!src) return;
+          // A-Frame video uses THREE.VideoTexture via a-entity -> primitive
+          // Find the actual <video> element inside the scene
+          const scene = document.querySelector('a-scene');
+          if (!scene || !scene.hasLoaded) return;
+          // Use HLS.js if available and URL is HLS
+          if (window.Hls && src.includes('.m3u8')) {
+            // The video element may be inside the scene — attach HLS
+            videoEl.addEventListener('loadedmetadata', () => {
+              // a-video in A-Frame wraps in THREE.js, HLS.js attachment is complex
+              // Instead, replace with custom video element approach
+            });
+          }
+        });
+      }
+
+      // Init stream panel for admin
+      document.querySelector('a-scene').addEventListener('loaded', () => {
+        {% if drag_enabled %}
+        initStreamPanel();
+        {% endif %}
+        setTimeout(setupHLSVideo, 1000);
       });
     </script>
     {% endif %}

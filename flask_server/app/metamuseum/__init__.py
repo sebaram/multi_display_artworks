@@ -69,9 +69,11 @@ def create_app():
 
     # register blueprints
     from metamuseum.views import main_views
+    from metamuseum.views import stream_views
     from metamuseum import auth
     app.register_blueprint(main_views.bp)
     app.register_blueprint(auth.bp)
+    app.register_blueprint(stream_views.bp)
        
     # for admin page
     admin = Admin(app, name='MetaMuseum-admin', url='/kwanri')

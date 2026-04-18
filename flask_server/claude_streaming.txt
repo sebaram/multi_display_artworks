@@ -1,0 +1,51 @@
+# Video Streaming Support
+
+## Streaming Types
+
+### 1. Static Video File (already works)
+`<a-video src="movie.mp4">` — direct file URL, no processing needed
+
+### 2. HLS (.m3u8)
+`<a-video src="stream.m3u8">` — natively supported in A-Frame
+
+### 3. YouTube Live / Twitch (iframe embed)
+Add `Webpage` element with `webpage_url` = YouTube/Twitch embed URL
+```
+https://www.youtube.com/embed/LIVE_STREAM_ID?autoplay=1
+```
+Same as webpage element — just use an iframe.
+
+### 4. RTSP (IP Camera) → need transcoding
+Use MediaMTX (lightweight Go binary) as RTSP→HLS bridge:
+- Phone on network runs MediaMTX:554 → HLS at :8888
+- Set Wall.video_url = http://mediaMTX-server:8888/stream.m3u8
+
+### 5. Phone Camera Live Stream
+Use browser MediaRecorder API to stream to a Flask endpoint:
+- User clicks "📹 Start Streaming" → navigator.mediaDevices.getUserMedia
+- MediaRecorder chunks → POST to /stream/upload every 2s
+- Flask saves chunks → serves .ts files → m3u8 playlist
+- Wall.video_url = /stream/playlist.m3u8
+
+## Implementation
+
+### A) YouTube/Twitch webpage element
+Already works! Just create a Webpage element with embed URL.
+
+### B) HLS.js polyfill for A-Frame (better HLS support)
+Add HLS.js library for browsers that don't natively support HLS.
+
+### C) Flask streaming endpoint
+- `POST /stream/push` — receive MediaRecorder chunks
+- `GET /stream/playlist/<stream_id>.m3u8` — serve playlist
+- `GET /stream/segment/<stream_id>_<n>.ts` — serve segments
+- Simple FFmpeg bridge for RTSP→HLS if ffmpeg available
+
+### D) Stream management
+- `GET /streams` — list active streams
+- `DELETE /stream/<id>` — stop/delete stream
+
+## Files
+- `core/streaming.py` — stream management (chunk storage, playlist generation)
+- `views/stream_views.py` — /stream/* endpoints
+- `templates/wall_aframe.html` — add HLS.js for better video support

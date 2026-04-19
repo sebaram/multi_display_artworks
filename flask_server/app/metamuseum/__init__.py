@@ -72,12 +72,14 @@ def create_app():
     from metamuseum.views import stream_views
     from metamuseum.views import marker_views
     from metamuseum.views import ar_companion_views
+    from metamuseum.views import llm_layout
     from metamuseum import auth
     app.register_blueprint(main_views.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(stream_views.bp)
     app.register_blueprint(marker_views.bp)
     app.register_blueprint(ar_companion_views.bp)
+    app.register_blueprint(llm_layout.bp)
 
     # Initialize SocketIO for AR companion (phone→Vision Pro relay)
     from metamuseum.core.ar_proxy import init_socketio

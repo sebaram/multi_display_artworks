@@ -67,6 +67,7 @@ def _register_sync_handlers(sio):
         room_users[room_id][request.sid] = {
             'userId': userId,
             'avatar': avatar,
+            'displayName': data.get('displayName', userId),
             'position': data.get('position', '0 1.6 0'),
             'rotation': data.get('rotation', '0 0 0'),
             'leftHand': None,
@@ -80,19 +81,6 @@ def _register_sync_handlers(sio):
             for sid, u in room_users[room_id].items()
             if sid != request.sid
         ]
-        sio.emit('room_state', {
-            'users': existing_users,
-            'room_id': room_id
-        }, room=request.sid)
-
-        # Notify others
-        sio.emit('user_joined', {
-            'userId': userId,
-            'avatar': avatar,
-            'room_id': room_id
-        }, room=room_id, skip_sid=request.sid)
-
-        print(f'[PositionSync] {userId} joined room {room_id} ({len(room_users[room_id])} users)')
 
     @sio.on('leave_position_room')
     def on_leave(data):
@@ -132,6 +120,7 @@ def _register_sync_handlers(sio):
         broadcast_data = {
             'userId': user['userId'],
             'avatar': user['avatar'],
+            'displayName': user.get('displayName', user['userId']),
             'position': user['position'],
             'rotation': user['rotation'],
             'leftHand': user['leftHand'],
@@ -157,6 +146,20 @@ def _register_sync_handlers(sio):
             'users': existing_users,
             'room_id': room_id
         }, room=request.sid)
+
+
+    @sio.on('expression')
+    def on_expression(data):
+        """Broadcast emoji expression to all other users in room."""
+        room_id = data.get('room_id')
+        if not room_id or room_id not in room_users:
+            return
+
+        sio.emit('expression', {
+            'userId': room_users[room_id].get(request.sid, {}).get('userId', '?'),
+            'expression': data.get('expression', ''),
+            'room_id': room_id
+        }, room=room_id, skip_sid=request.sid)
 
 
 # ─── Legacy HTTP endpoints (kept for backward compat, can be removed later) ───

@@ -1,0 +1,46 @@
+# LLM Auto-Layout — MiniMax-powered image arrangement
+
+## Concept
+Curator types natural language instruction → LLM assigns positions → images auto-move.
+
+## Example prompts
+- "Place all traditional paintings on the left wall, modern art on the right"
+- "Arrange by color: warm tones together, cool tones on the far wall"
+- "Group Korean artists on wall_gallery_main, Western artists on wall_gallery_side"
+
+## API
+`POST /api/auto-layout`
+
+Request:
+```json
+{
+  "room_id": "...",
+  "prompt": "Place all traditional paintings on the left wall, modern art on the right",
+  "elements": [
+    { "id": "...", "name": "Great Wave", "type": "image", "wall_name": "..." },
+    { "id": "...", "name": "Dalí Clock", "type": "image", "wall_name": "..." }
+  ],
+  "walls": [
+    { "name": "wall_left", "position": "-5 0 -1", "normal": "1 0 0" },
+    { "name": "wall_right", "position": "5 0 -1", "normal": "-1 0 0" }
+  ]
+}
+```
+
+Response:
+```json
+{
+  "arrangements": [
+    { "element_id": "...", "wall_name": "wall_left", "position_x": 0, "position_y": 1.2, "position_z": 0 },
+    { "element_id": "...", "wall_name": "wall_right", "position_x": 0, "position_y": 1.0, "position_z": 0 }
+  ],
+  "explanation": "Placed 2 traditional artworks on wall_left and 3 modern pieces on wall_right."
+}
+```
+
+## MiniMax prompt
+Role: expert gallery curator. Analyze the prompt and assign each artwork to the most appropriate wall based on style, period, or theme. Return JSON with positions.
+
+## Implementation
+- `views/llm_layout.py` — POST /api/auto-layout
+- JS: admin button → modal with textarea → fetch → apply positions via PUT

@@ -30,6 +30,9 @@ MAIL_USERNAME = 'ejuyoung@gmail.com'
 MAIL_PASSWORD = 'something only you know'
 MAIL_DEFAULT_SENDER = 'ejuyoung@gmail.com'
 
+MINIMAX_API_KEY = os.environ.get('MINIMAX_API_KEY', '')
+MINIMAX_API_BASE = 'https://api.minimax.io/v1'
+
 
 AVATAR_OPTIONS = {
     'shiba': {'name': 'Shiba Dog', 'model': None},

@@ -38,6 +38,11 @@ function initVoiceChat(roomId, userId, isAdmin) {
   VoiceChat.userId = userId;
   VoiceChat.isAdmin = isAdmin;
 
+  // Request authoritative voice state from server
+  if (posSocket && posSocketConnected) {
+    posSocket.emit('voice.get_state', { room_id: roomId });
+  }
+
   // Listen for signaling events
   setupVoiceSignaling();
 
@@ -340,7 +345,7 @@ function toggleMute() {
 
 function toggleVoiceAdmin() {
   if (!VoiceChat.isAdmin) return;
-
+  // Toggle always goes through server (server is authoritative)
   posSocket.emit('voice.admin_toggle', {
     room_id: VoiceChat.roomId,
     enabled: !VoiceChat.enabled

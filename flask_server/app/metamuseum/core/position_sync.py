@@ -20,6 +20,10 @@ socketio_instance = None
 room_users = defaultdict(dict)
 
 
+# room_voice_enabled: { room_id: bool } — server-authoritative voice state
+room_voice_enabled = defaultdict(lambda: False)
+
+
 def init_socketio(app):
     global socketio_instance
     if socketio_instance:
@@ -163,12 +167,31 @@ def _register_sync_handlers(sio):
 
     @sio.on('voice.admin_toggle')
     def on_voice_admin_toggle(data):
-        """Admin enables/disables voice chat for a room."""
+        """Admin enables/disables voice chat for a room. Server-authoritative."""
         room_id = data.get('room_id')
         if not room_id:
             return
-        # Broadcast to all in room
-        sio.emit('voice_admin_toggle', {'enabled': data.get('enabled', False)}, room=room_id)
+
+        # Update server-side authoritative state
+        enabled = bool(data.get('enabled', False))
+        room_voice_enabled[room_id] = enabled
+
+        # Broadcast to all in room (including sender — they sync to server state)
+        sio.emit('voice_admin_toggle', {
+            'enabled': enabled,
+            'room_id': room_id
+        }, room=room_id)
+
+    @sio.on('voice.get_state')
+    def on_voice_get_state(data):
+        """Client requests current voice state (on join/reconnect)."""
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+        sio.emit('voice_admin_toggle', {
+            'enabled': room_voice_enabled.get(room_id, False),
+            'room_id': room_id
+        }, room=request.sid)
 
     @sio.on('voice.offer')
     def on_voice_offer(data):

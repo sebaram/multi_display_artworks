@@ -443,6 +443,9 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
             userId: myUserId,
             avatar: avatarType
           });
+
+          // Request current voice state from server (authoritative)
+          posSocket.emit('voice.get_state', { room_id: roomId });
         });
 
         posSocket.on('disconnect', () => {

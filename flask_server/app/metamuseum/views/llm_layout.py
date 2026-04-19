@@ -157,31 +157,38 @@ def apply_layout():
 
 
 def call_llm(system_prompt, user_prompt):
-    """Call MiniMax API directly via requests (OpenAI-compatible)."""
+    """Call LLM using active config from MongoDB (supports any OpenAI-compatible provider)."""
     import requests
-    import app.config as cfg
+    from metamuseum.models import LLMConfig
 
-    api_key = cfg.MINIMAX_API_KEY
+    config = LLMConfig.get_active()
+    if not config:
+        return None, 'No LLM config set. Add one via Flask-Admin (LLMConfig model) or set MINIMAX_API_KEY env var.'
+
+    api_key = config.api_key
+    api_base = config.api_base
+    model = config.model
+
     if not api_key:
-        return None, 'MINIMAX_API_KEY not configured'
+        return None, 'LLM API key not configured'
 
     try:
         resp = requests.post(
-            f'{cfg.MINIMAX_API_BASE}/chat/completions',
+            f'{api_base.rstrip("/")}/chat/completions',
             headers={
                 'Authorization': f'Bearer {api_key}',
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'MiniMax-M2.7',
+                'model': model,
                 'messages': [
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
                 ],
-                'temperature': 0.3,
-                'max_tokens': 1024
+                'temperature': config.temperature,
+                'max_tokens': config.max_tokens
             },
-            timeout=30
+            timeout=60
         )
         resp.raise_for_status()
         data = resp.json()

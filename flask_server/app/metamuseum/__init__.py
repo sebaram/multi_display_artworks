@@ -50,7 +50,7 @@ class MyModelView(ModelView):
         return redirect(url_for('auth.signin', next=request.url))
     
 
-from metamuseum.models import User
+from metamuseum.models import User, LLMConfig, WhisperConfig
 
 
 def create_app():
@@ -73,6 +73,7 @@ def create_app():
     from metamuseum.views import marker_views
     from metamuseum.views import ar_companion_views
     from metamuseum.views import llm_layout
+    from metamuseum.views import whisper_views
     from metamuseum import auth
     app.register_blueprint(main_views.bp)
     app.register_blueprint(auth.bp)
@@ -80,6 +81,7 @@ def create_app():
     app.register_blueprint(marker_views.bp)
     app.register_blueprint(ar_companion_views.bp)
     app.register_blueprint(llm_layout.bp)
+    app.register_blueprint(whisper_views.bp)
 
     # Initialize SocketIO for AR companion (phone→Vision Pro relay)
     from metamuseum.core.ar_proxy import init_socketio
@@ -100,6 +102,8 @@ def create_app():
     admin.add_view(MyModelView(Webpage))
     admin.add_view(MyModelView(LocationPreset))
     admin.add_view(MyModelView(Marker))
+    admin.add_view(MyModelView(LLMConfig))
+    admin.add_view(MyModelView(WhisperConfig))
 
 
     return app

@@ -1,0 +1,27 @@
+# Whisper Voice Transcription — audio → text via Whisper API
+
+## Concept
+When voice chat is enabled, also transcribe what users say and display as text in the room.
+
+## Flow
+1. Voice chat mic → MediaRecorder records audio chunks (webm/opus)
+2. Audio chunks sent via Socket.IO to server (or POST /api/transcribe)
+3. Server sends to Whisper API (OpenAI-compatible endpoint)
+4. Transcript text broadcast via Socket.IO to all users in room
+5. Text appears as speech bubble above avatar
+
+## WhisperConfig model (stored in MongoDB)
+- whisper_api_key
+- whisper_api_url (default: https://api.openai.com/v1/audio/transcriptions)
+- whisper_model (default: whisper-1)
+- enabled: bool
+
+## API
+POST /api/transcribe
+- Body: audio/* (webm/opus blob)
+- Response: { "text": "what was said", "language": "en" }
+
+## WebRTC Voice note
+- Socket.IO event: voice.transcript
+- { userId, text, language }
+- Displayed as floating text bubble above avatar for 5 seconds

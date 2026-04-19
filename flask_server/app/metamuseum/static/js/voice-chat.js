@@ -26,7 +26,9 @@ var VoiceChat = {
   peerStreams: {},       // peerId → remote stream
   roomId: null,
   userId: null,
-  isAdmin: false
+  isAdmin: false,
+  transcriber: null,     // MediaRecorder for Whisper
+  lastTranscriptTime: 0
 };
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
@@ -90,6 +92,11 @@ function setupVoiceSignaling() {
     if (audioEl) {
       audioEl.muted = data.muted;
     }
+  });
+
+  posSocket.on('voice.transcript', function(data) {
+    if (data.userId === VoiceChat.userId) return;
+    showTranscriptBubble(data.userId, data.text);
   });
 
   posSocket.on('user_left', function(data) {
@@ -262,18 +269,17 @@ async function joinVoice() {
 
     VoiceChat.active = true;
 
+    // Set up Whisper transcription
+    startWhisperTranscription();
+
     // Notify room
     posSocket.emit('voice.join', {
       room_id: VoiceChat.roomId,
       userId: VoiceChat.userId
     });
 
-    // Create offers to all existing voice users
-    // (server will broadcast our join — but we need to know who else is in voice)
-    // For simplicity: when others receive our join, they'll create offers to us
-
     updateVoiceButton();
-    showVoiceNotification('🎙️ Voice chat active — click to mute/unmute');
+    showVoiceNotification('🎙️ Voice active — click to mute');
   } catch (e) {
     console.error('[Voice] Mic access denied:', e);
     showVoiceNotification('❌ Microphone access denied');
@@ -282,6 +288,9 @@ async function joinVoice() {
 
 function leaveVoice() {
   if (!VoiceChat.active) return;
+
+  // Stop Whisper transcription
+  stopWhisperTranscription();
 
   // Stop local stream
   if (VoiceChat.localStream) {
@@ -336,6 +345,135 @@ function toggleVoiceAdmin() {
     room_id: VoiceChat.roomId,
     enabled: !VoiceChat.enabled
   });
+}
+
+// ─── Whisper Transcription ───────────────────────────────────────────────────
+
+var whisperConfig = null;
+
+async function checkWhisperEnabled() {
+  if (whisperConfig !== null) return whisperConfig;
+  try {
+    var resp = await fetch('/api/whisper-config');
+    if (resp.ok) {
+      var data = await resp.json();
+      whisperConfig = data.enabled;
+      return whisperConfig;
+    }
+  } catch (e) {}
+  whisperConfig = false;
+  return false;
+}
+
+function startWhisperTranscription() {
+  if (!VoiceChat.localStream || VoiceChat.transcriber) return;
+
+  // Check if Whisper is enabled on server
+  checkWhisperEnabled().then(function(enabled) {
+    if (!enabled) return;
+    setupMediaRecorder();
+  });
+}
+
+function setupMediaRecorder() {
+  var stream = VoiceChat.localStream;
+  if (!stream) return;
+
+  // Use webm/opus if supported, otherwise fallback
+  var mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus'
+    : 'audio/ogg;codecs=opus';
+
+  var recorder = new MediaRecorder(stream, { mimeType: mimeType, audioBitsPerSecond: 128000 });
+  VoiceChat.transcriber = recorder;
+
+  var audioChunks = [];
+
+  recorder.ondataavailable = function(e) {
+    if (e.data && e.data.size > 1000) {  // ignore tiny chunks
+      audioChunks.push(e.data);
+    }
+  };
+
+  recorder.onstop = async function() {
+    if (audioChunks.length === 0) return;
+    var blob = new Blob(audioChunks, { type: mimeType });
+    audioChunks = [];
+
+    // Throttle: don't transcribe more than once per 3 seconds
+    var now = Date.now();
+    if (now - VoiceChat.lastTranscriptTime < 3000) return;
+    VoiceChat.lastTranscriptTime = now;
+
+    await sendToWhisper(blob);
+  };
+
+  // Request data every 3 seconds
+  recorder.start(3000);
+}
+
+async function sendToWhisper(blob) {
+  try {
+    var formData = new FormData();
+    formData.append('audio', blob, 'audio.webm');
+
+    var resp = await fetch('/api/transcribe', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!resp.ok) return;
+
+    var data = await resp.json();
+    var text = (data.text || '').trim();
+    if (!text) return;
+
+    // Broadcast transcript to all users in room
+    if (posSocket && posSocketConnected) {
+      posSocket.emit('voice.transcript', {
+        room_id: VoiceChat.roomId,
+        userId: VoiceChat.userId,
+        text: text,
+        language: data.language || 'auto'
+      });
+    }
+
+    // Show own transcript locally
+    showTranscriptBubble(VoiceChat.userId, text);
+  } catch (e) {
+    console.warn('[Whisper] Transcription error:', e);
+  }
+}
+
+function stopWhisperTranscription() {
+  if (VoiceChat.transcriber) {
+    VoiceChat.transcriber.stop();
+    VoiceChat.transcriber = null;
+  }
+}
+
+function showTranscriptBubble(peerId, text) {
+  var cam = document.getElementById('camera-' + peerId);
+  if (!cam) return;
+
+  var bubble = cam.querySelector('.transcript-bubble');
+  if (!bubble) {
+    bubble = document.createElement('a-text');
+    bubble.setAttribute('class', 'transcript-bubble');
+    bubble.setAttribute('position', '0 1.0 0');
+    bubble.setAttribute('scale', '0.5 0.5 0.5');
+    bubble.setAttribute('align', 'center');
+    bubble.setAttribute('color', '#FFF');
+    bubble.setAttribute('width', '3');
+    bubble.setAttribute('wrap-count', '30');
+    cam.appendChild(bubble);
+  }
+
+  bubble.setAttribute('value', '💬 ' + text);
+
+  setTimeout(function() {
+    if (bubble) bubble.setAttribute('value', '');
+  }, 5000);
 }
 
 // ─── UI ───────────────────────────────────────────────────────────────────────

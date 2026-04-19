@@ -1,60 +1,106 @@
 # -*- coding: utf-8 -*-
-
+"""API config models stored in MongoDB — allows runtime changes without restart."""
 from datetime import datetime
-from mongoengine import Document, ObjectIdField, StringField, DateTimeField, BooleanField
-from bson import ObjectId
-from flask_login import UserMixin
-from flask.helpers import url_for
+from mongoengine import Document, StringField, BooleanField, IntField, FloatField
 
 
-if __name__ == "__main__":
-    pass
+class LLMConfig(Document):
+    """LLM provider configuration — supports MiniMax, OpenAI, OpenRouter, etc."""
+    _id = 'llm_config'  # singleton
+
+    provider = StringField(required=True, choices=['minimax', 'openai', 'openrouter', 'anthropic'])
+    api_base = StringField(required=True)  # e.g. https://api.minimax.io/v1
+    api_key = StringField(required=True)
+    model = StringField(required=True)  # e.g. MiniMax-M2.7, gpt-4o, claude-3-opus
+    temperature = FloatField(default=0.3)
+    max_tokens = IntField(default=1024)
+    is_active = BooleanField(default=True)
+    updated_at = StringField(default=datetime.utcnow().isoformat)
+
+    meta = {'collection': 'llm_configs', 'allow_inheritance': False}
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow().isoformat()
+        return super().save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'provider': self.provider,
+            'api_base': self.api_base,
+            'model': self.model,
+            'temperature': self.temperature,
+            'max_tokens': self.max_tokens,
+            'is_active': self.is_active
+            # Don't expose api_key in dict
+        }
+
+    @classmethod
+    def get_active(cls):
+        """Return the active LLM config, or None."""
+        return cls.objects(is_active=True).first()
+
+    @classmethod
+    def set_active(cls, provider, api_base, api_key, model, temperature=0.3, max_tokens=1024):
+        """Set or create the active config."""
+        # Deactivate all
+        cls.objects.update(set__is_active=False)
+        # Create new
+        config = cls(
+            _id='llm_config',
+            provider=provider,
+            api_base=api_base,
+            api_key=api_key,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            is_active=True
+        )
+        config.save()
+        return config
 
 
-class Log(Document):
-    _id = ObjectIdField(required=True, default=ObjectId, primary_key=True)
-    created_time = DateTimeField(default=datetime.utcnow)
-    log_text = StringField(required=True)
+class WhisperConfig(Document):
+    """Whisper API configuration for voice transcription."""
+    _id = 'whisper_config'
 
-    def __repr__(self):
-        return "<Log created_time:{} log:{}>".format(self.created_time, self.log_text)
+    provider = StringField(required=True, choices=['openai', 'minimax', 'local'])
+    api_base = StringField(required=True)  # e.g. https://api.openai.com/v1
+    api_key = StringField(required=True)
+    model = StringField(default='whisper-1')
+    language = StringField(default='')  # empty = auto-detect
+    enabled = BooleanField(default=False)
+    updated_at = StringField(default=datetime.utcnow().isoformat())
 
+    meta = {'collection': 'whisper_configs', 'allow_inheritance': False}
 
-class User(UserMixin, Document):
-    _id = ObjectIdField(required=True, default=ObjectId, primary_key=True)
-    name = StringField(required=True)
-    password = StringField(required=True)
-    email = StringField(required=True, unique=True)
-    email_verified = BooleanField(default=False)
-    user_type = StringField(default="new")
-    phone = StringField(required=True)
-    affiliation = StringField(required=True)
-    language = StringField(default="en")
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow().isoformat()
+        return super().save(*args, **kwargs)
 
-    is_authenticated = False
-    is_anonymous = False
-    is_active = True
+    @classmethod
+    def get_active(cls):
+        return cls.objects.first()
 
-    def __repr__(self):
-        return "<User _id:{} name:{}>".format(self._id, self.name)
-
-    def is_admin(self):
-        if self.user_type is None:
-            return False
-        return "admin" in self.user_type
-
-    def to_json(self):
-        return {"name": self.name, "email": self.email}
-
-    def is_authenticated(self):
-        return self.is_authenticated
-
-    def is_active(self):
-        return True
-
-    def get_id(self):
-        return str(self.email)
-
-
-if __name__ == "__main__":
-    print("done")
+    @classmethod
+    def set_config(cls, provider, api_base, api_key, model='whisper-1', language='', enabled=False):
+        existing = cls.objects.first()
+        if existing:
+            existing.provider = provider
+            existing.api_base = api_base
+            existing.api_key = api_key
+            existing.model = model
+            existing.language = language
+            existing.enabled = enabled
+            existing.save()
+        else:
+            existing = cls(
+                _id='whisper_config',
+                provider=provider,
+                api_base=api_base,
+                api_key=api_key,
+                model=model,
+                language=language,
+                enabled=enabled
+            )
+            existing.save()
+        return existing

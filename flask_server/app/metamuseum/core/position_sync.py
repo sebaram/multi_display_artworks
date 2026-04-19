@@ -221,6 +221,14 @@ def _register_sync_handlers(sio):
             return
         sio.emit('voice.mute', data, room=room_id, skip_sid=request.sid)
 
+    @sio.on('voice.transcript')
+    def on_voice_transcript(data):
+        """Relay Whisper transcript to all others in room."""
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+        sio.emit('voice.transcript', data, room=room_id, skip_sid=request.sid)
+
 
 # ─── Legacy HTTP endpoints (kept for backward compat, can be removed later) ───
 

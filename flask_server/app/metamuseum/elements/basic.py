@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from random import randint
-from mongoengine import Document, ObjectIdField, StringField, DateTimeField, ReferenceField, ListField, FloatField, DictField
+from mongoengine import Document, ObjectIdField, StringField, DateTimeField, ReferenceField, ListField, FloatField, DictField, BooleanField
 from bson import ObjectId
 from flask.helpers import url_for
 
@@ -182,7 +182,7 @@ class GaussianSplat(WallElement):
         else:
             aframes += '<a-entity gaussian_splatting="src: {};"></a-entity>'.format(self.splat_url)
         
-        return '<a-entity if="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" scale="{}" rotation="{}">{}</a-entity>'.format(
+        return '<a-entity id="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" scale="{}" rotation="{}">{}</a-entity>'.format(
             self.name, self._id, this_position, self._get_scale_str(), this_rotation, aframes)
 
 
@@ -317,6 +317,7 @@ class RoomEffect(Document):
     target_id = StringField()  # element _id to affect (optional)
     params = DictField()  # effect-specific parameters as dict
     description = StringField()  # human-readable description
+    created_by = StringField()  # who triggered this effect
     created_time = DateTimeField(default=datetime.utcnow)
     expires_at = DateTimeField()  # auto-expire (optional)
     active = BooleanField(default=True)
@@ -324,9 +325,9 @@ class RoomEffect(Document):
     EFFECT_TYPES = ['glitter', 'spotlight', 'ambient', 'fog', 'sound', 'pulse', 'color_shift', 'shake', 'fade']
 
     def __repr__(self):
-        return "<RoomEffect:{} {}>" .format(self.effect_type, self.name)
+        return "<RoomEffect:{} {}>" .format(self.effect_type, self.description)
     def __str__(self):
-        return "<RoomEffect:{} {}>" .format(self.effect_type, self.name)
+        return "<RoomEffect:{} {}>" .format(self.effect_type, self.description)
 
     def to_dict(self):
         return {

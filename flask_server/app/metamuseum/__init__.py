@@ -89,7 +89,7 @@ def create_app():
 
     # Also init position sync using the same SocketIO instance
     from metamuseum.core.position_sync import init_socketio as init_pos_sync
-    init_pos_sync(app)
+    init_pos_sync(app, existing_sio=sio)
        
     # for admin page
     admin = Admin(app, name='MetaMuseum-admin', url='/kwanri')

@@ -1,7 +1,33 @@
 # -*- coding: utf-8 -*-
-"""API config models stored in MongoDB — allows runtime changes without restart."""
+"""MongoDB document models — users, LLM config, Whisper config."""
 from datetime import datetime
-from mongoengine import Document, StringField, BooleanField, IntField, FloatField
+from flask_login import UserMixin
+from mongoengine import Document, StringField, BooleanField, IntField, FloatField, ListField
+
+
+class User(UserMixin, Document):
+    """Application user with email-based authentication."""
+    email = StringField(required=True, unique=True)
+    name = StringField(required=True)
+    password = StringField(required=True)
+    phone = StringField()
+    affiliation = StringField()
+    user_type = ListField(StringField(), default=list)  # e.g. ['admin']
+    email_verified = BooleanField(default=False)
+
+    meta = {'collection': 'users', 'allow_inheritance': False}
+
+    def get_id(self):
+        return self.email
+
+    def is_admin(self):
+        return 'admin' in (self.user_type or [])
+
+    def __repr__(self):
+        return "<User:{}>".format(self.email)
+
+    def __str__(self):
+        return "<User:{}>".format(self.email)
 
 
 class LLMConfig(Document):

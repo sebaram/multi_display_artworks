@@ -9,12 +9,12 @@ Events:
 - user_left            → notify others a user left
 - room_state           → send full room state to newly joined user
 """
-import socketio
 from collections import defaultdict
 from flask import request
 
-# Global socketio instance
+# Global socketio instance (also exported as `socketio` for convenience)
 socketio_instance = None
+socketio = None  # alias used by other modules
 
 # room_users: { room_id: { sid: { userId, avatar, position, rotation, leftHand, rightHand, handTracking } } }
 room_users = defaultdict(dict)
@@ -24,23 +24,28 @@ room_users = defaultdict(dict)
 room_voice_enabled = defaultdict(lambda: False)
 
 
-def init_socketio(app):
-    global socketio_instance
+def init_socketio(app, existing_sio=None):
+    global socketio_instance, socketio
     if socketio_instance:
         return socketio_instance
 
-    from flask_socketio import SocketIO
-    socketio_instance = SocketIO(
-        app,
-        cors_allowed_origins='*',
-        async_mode='gevent'
-    )
+    if existing_sio:
+        socketio_instance = existing_sio
+    else:
+        from flask_socketio import SocketIO
+        socketio_instance = SocketIO(
+            app,
+            cors_allowed_origins='*',
+            async_mode='gevent'
+        )
 
+    socketio = socketio_instance  # update module-level alias
     _register_sync_handlers(socketio_instance)
     return socketio_instance
 
 
 def _register_sync_handlers(sio):
+    from flask_socketio import join_room, leave_room
 
     @sio.on('connect')
     def on_connect():
@@ -67,7 +72,7 @@ def _register_sync_handlers(sio):
         if not room_id or not userId:
             return
 
-        sio.enter_room(room_id)
+        join_room(room_id)
         room_users[room_id][request.sid] = {
             'userId': userId,
             'avatar': avatar,
@@ -85,6 +90,18 @@ def _register_sync_handlers(sio):
             for sid, u in room_users[room_id].items()
             if sid != request.sid
         ]
+        sio.emit('room_state', {
+            'users': existing_users,
+            'room_id': room_id
+        }, room=request.sid)
+
+        # Notify others that a new user joined
+        sio.emit('user_joined', {
+            'userId': userId,
+            'avatar': avatar,
+            'displayName': data.get('displayName', userId),
+            'room_id': room_id
+        }, room=room_id, skip_sid=request.sid)
 
     @sio.on('leave_position_room')
     def on_leave(data):
@@ -93,7 +110,7 @@ def _register_sync_handlers(sio):
             return
 
         user = room_users[room_id].pop(request.sid, None)
-        sio.leave_room(room_id)
+        leave_room(room_id)
 
         if user:
             sio.emit('user_left', {

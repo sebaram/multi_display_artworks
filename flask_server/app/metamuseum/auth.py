@@ -118,7 +118,7 @@ def confirm_email(token):
     except (SignatureExpired, BadSignature):
         # Handle the invalid or expired token
         flash('The confirmation link is invalid or has expired.', 'danger')
-        return redirect(url_for('register'))
+        return redirect(url_for('auth.register'))
 
     user = User.objects(email=email).first()
     if user.email_verified:

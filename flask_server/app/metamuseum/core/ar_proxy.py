@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """AR Companion WebSocket — phone detects markers, relays pose to Vision Pro."""
-import socketio
 import json
 from collections import defaultdict
+from flask import request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 # Global socketio instance (initialized in __init__.py)
@@ -36,14 +36,14 @@ def _register_handlers(sio):
 
     @sio.on('connect')
     def on_connect():
-        print('[SocketIO] Client connected:', request.sid if 'request' in dir() else '?')
+        print('[SocketIO] Client connected:', request.sid)
 
     @sio.on('disconnect')
     def on_disconnect():
         # Remove from all rooms
         for room_id, room in ar_rooms.items():
-            room['phones'].discard(request.sid if 'request' in dir() else None)
-            room['vision_pros'].discard(request.sid if 'request' in dir() else None)
+            room['phones'].discard(request.sid)
+            room['vision_pros'].discard(request.sid)
 
     @sio.on('join_ar_room')
     def on_join_ar_room(data):

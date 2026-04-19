@@ -4,7 +4,7 @@ import json
 import logging
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
-from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat, WallElement
+from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('llm_layout', __name__, url_prefix='/api')
@@ -76,15 +76,22 @@ def auto_layout():
     # Gather images and gaussian splats
     elements = []
     for wall in walls:
-        for ele in WallElement.objects(wall=wall):
-            if ele.wall_element_type in ('image', 'gaussiansplat'):
-                elements.append({
-                    'id': str(ele._id),
-                    'name': getattr(ele, 'name', 'Untitled'),
-                    'type': ele.wall_element_type,
-                    'wall_name': wall.name,
-                    'description': getattr(ele, 'description', '') or getattr(ele, 'name', '')
-                })
+        for img in Image.objects(wall=wall):
+            elements.append({
+                'id': str(img._id),
+                'name': getattr(img, 'name', 'Untitled'),
+                'type': img.wall_element_type,
+                'wall_name': wall.name,
+                'description': getattr(img, 'description', '') or getattr(img, 'name', '')
+            })
+        for splat in GaussianSplat.objects(wall=wall):
+            elements.append({
+                'id': str(splat._id),
+                'name': getattr(splat, 'name', 'Untitled'),
+                'type': splat.wall_element_type,
+                'wall_name': wall.name,
+                'description': getattr(splat, 'description', '') or getattr(splat, 'name', '')
+            })
 
     if not elements:
         return jsonify({'error': 'No placeable elements found in room'}), 400
@@ -181,7 +188,8 @@ def apply_layout():
         pz = arr.get('position_z', 0)
 
         try:
-            ele = WallElement.objects(_id=element_id).first()
+            ele = (Image.objects(_id=element_id).first() or
+                   GaussianSplat.objects(_id=element_id).first())
             if not ele:
                 results.append({'id': element_id, 'status': 'not_found'})
                 continue
@@ -225,11 +233,18 @@ def auto_effect():
     walls = Wall.objects(room=room_id)
     elements = []
     for wall in walls:
-        for ele in WallElement.objects(wall=wall):
+        for img in Image.objects(wall=wall):
             elements.append({
-                'id': str(ele._id),
-                'name': getattr(ele, 'name', ''),
-                'type': ele.wall_element_type,
+                'id': str(img._id),
+                'name': getattr(img, 'name', ''),
+                'type': img.wall_element_type,
+                'wall_name': wall.name
+            })
+        for splat in GaussianSplat.objects(wall=wall):
+            elements.append({
+                'id': str(splat._id),
+                'name': getattr(splat, 'name', ''),
+                'type': splat.wall_element_type,
                 'wall_name': wall.name
             })
 
@@ -272,7 +287,7 @@ def auto_effect():
             target_id=target_id,
             params=params,
             description=desc,
-            created_by=current_user.username if current_user.is_authenticated else 'admin',
+            created_by=current_user.name if current_user.is_authenticated else 'admin',
             expires_at=expires_at,
             active=True
         )

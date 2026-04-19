@@ -117,6 +117,49 @@ def auto_layout():
     })
 
 
+EFFECTS_SYSTEM_PROMPT = """You are an expert virtual gallery curator controlling visual and audio effects.
+
+You control these effect types:
+- glitter: particle sparkles that float in the room. params: density (1-100), color (hex), duration (seconds)
+- spotlight: focused light beam on a specific artwork. params: target_id, intensity (0-1), color (hex)
+- ambient: change room lighting atmosphere. params: type (warm|cool|dramatic|subtle), intensity (0-1)
+- fog: add atmospheric depth fog. params: density (0-1), color (hex)
+- sound: play ambient audio. params: url (audio file URL), volume (0-1), loop (bool)
+- pulse: pulsing glow effect on an artwork. params: target_id, color (hex), speed (slow|medium|fast)
+- color_shift: tint the room lighting. params: color (hex), intensity (0-1)
+- shake: camera shake effect. params: intensity (0.1-1.0), duration (seconds)
+- fade: fade in/out effect. params: type (in|out), duration (seconds)
+
+You respond with ONLY valid JSON:
+{
+  "effects": [
+    {"effect_type": "spotlight", "target_id": "element_id_or_empty", "params": {"intensity": 0.8, "color": "#FFFF88"}, "description": "Focus light on the portrait"},
+    {"effect_type": "ambient", "target_id": "", "params": {"type": "dramatic", "intensity": 0.6}, "description": "Dramatic spotlight atmosphere"}
+  ],
+  "explanation": "brief explanation"
+}
+
+Rules:
+- Do NOT invent new effect types beyond the ones listed
+- target_id can be empty string if effect applies to whole room
+- Use element names or IDs from the provided list
+- Keep effects simple and impactful — 2-4 effects max
+- duration/fade effects auto-expire
+- Respond with ONLY JSON (no markdown, no explanation)
+"""
+
+EFFECTS_USER_TEMPLATE = """Curator's instruction: "{instruction}"
+
+Room: {room_name}
+All elements in this room:
+{elements}
+
+Available walls:
+{walls}
+
+Respond with ONLY valid JSON."""
+
+
 @bp.route('/apply-layout', methods=['POST'])
 def apply_layout():
     """Apply LLM-generated layout to elements (update positions in DB)."""
@@ -154,6 +197,125 @@ def apply_layout():
             results.append({'id': element_id, 'status': 'error', 'msg': str(e)})
 
     return jsonify({'results': results})
+
+
+@bp.route('/auto-effect', methods=['POST'])
+def auto_effect():
+    """Trigger visual/audio effects in a room using natural language via LLM."""
+    from bson import ObjectId
+    from datetime import datetime, timedelta
+
+    if not current_user.is_authenticated or not current_user.is_admin():
+        return jsonify({'error': 'Admin required'}), 403
+
+    data = request.json
+    room_id = data.get('room_id')
+    instruction = data.get('prompt', '').strip()
+
+    if not room_id:
+        return jsonify({'error': 'room_id required'}), 400
+    if not instruction:
+        return jsonify({'error': 'prompt/instruction required'}), 400
+
+    room = Room.objects(_id=room_id).first()
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+
+    # Gather all elements in room
+    walls = Wall.objects(room=room_id)
+    elements = []
+    for wall in walls:
+        for ele in WallElement.objects(wall=wall):
+            elements.append({
+                'id': str(ele._id),
+                'name': getattr(ele, 'name', ''),
+                'type': ele.wall_element_type,
+                'wall_name': wall.name
+            })
+
+    wall_list = '\n'.join(f"- {w.name}" for w in walls)
+    elements_str = '\n'.join(f"- {e['name']} ({e['type']})" for e in elements)
+
+    user_prompt = EFFECTS_USER_TEMPLATE.format(
+        instruction=instruction,
+        room_name=room.name,
+        elements=elements_str,
+        walls=wall_list
+    )
+
+    effect_list, explanation = call_llm(EFFECTS_SYSTEM_PROMPT, user_prompt)
+
+    if effect_list is None:
+        return jsonify({'error': explanation}), 500
+
+    # Store effects in DB
+    from metamuseum.elements.basic import RoomEffect
+    results = []
+    for fx in effect_list:
+        effect_type = fx.get('effect_type')
+        if effect_type not in RoomEffect.EFFECT_TYPES:
+            continue
+
+        target_id = fx.get('target_id', '')
+        params = fx.get('params', {})
+        desc = fx.get('description', '')
+
+        # Auto-expire duration-based effects
+        duration = params.get('duration')
+        expires_at = None
+        if duration:
+            expires_at = datetime.utcnow() + timedelta(seconds=int(duration))
+
+        effect = RoomEffect(
+            room=room,
+            effect_type=effect_type,
+            target_id=target_id,
+            params=params,
+            description=desc,
+            created_by=current_user.username if current_user.is_authenticated else 'admin',
+            expires_at=expires_at,
+            active=True
+        )
+        effect.save()
+        results.append(effect.to_dict())
+
+    # Broadcast active effects to all users in room
+    try:
+        from metamuseum.core.position_sync import socketio
+        socketio.emit('room_effects', {
+            'room_id': room_id,
+            'effects': RoomEffect.get_active_for_room(room_id).to_json() if hasattr(RoomEffect.get_active_for_room(room_id), 'to_json') else [r.to_dict() for r in results]
+        }, room=room_id)
+    except Exception as e:
+        logger.warning(f'Could not broadcast effects: {e}')
+
+    return jsonify({
+        'effects': results,
+        'explanation': explanation
+    })
+
+
+@bp.route('/clear-effects', methods=['POST'])
+def clear_effects():
+    """Clear all active effects in a room."""
+    from bson import ObjectId
+    if not current_user.is_authenticated or not current_user.is_admin():
+        return jsonify({'error': 'Admin required'}), 403
+
+    room_id = request.json.get('room_id') if request.is_json else request.form.get('room_id')
+    if not room_id:
+        return jsonify({'error': 'room_id required'}), 400
+
+    from metamuseum.elements.basic import RoomEffect
+    RoomEffect.clear_room(room_id)
+
+    try:
+        from metamuseum.core.position_sync import socketio
+        socketio.emit('room_effects_cleared', {'room_id': room_id}, room=room_id)
+    except Exception:
+        pass
+
+    return jsonify({'status': 'ok'})
 
 
 def call_llm(system_prompt, user_prompt):

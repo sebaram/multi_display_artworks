@@ -309,6 +309,44 @@ class Marker(Document):
         return d
 
 
+class RoomEffect(Document):
+    """LLM-triggered visual/audio effects for a room."""
+    _id = ObjectIdField(required=True, default=ObjectId, primary_key=True)
+    room = ReferenceField(Room, required=True)
+    effect_type = StringField(required=True)  # glitter | spotlight | ambient | fog | sound | pulse
+    target_id = StringField()  # element _id to affect (optional)
+    params = DictField()  # effect-specific parameters as dict
+    description = StringField()  # human-readable description
+    created_time = DateTimeField(default=datetime.utcnow)
+    expires_at = DateTimeField()  # auto-expire (optional)
+    active = BooleanField(default=True)
+
+    EFFECT_TYPES = ['glitter', 'spotlight', 'ambient', 'fog', 'sound', 'pulse', 'color_shift', 'shake', 'fade']
+
+    def __repr__(self):
+        return "<RoomEffect:{} {}>" .format(self.effect_type, self.name)
+    def __str__(self):
+        return "<RoomEffect:{} {}>" .format(self.effect_type, self.name)
+
+    def to_dict(self):
+        return {
+            'id': str(self._id),
+            'effect_type': self.effect_type,
+            'target_id': self.target_id or '',
+            'params': self.params or {},
+            'description': self.description or '',
+            'active': self.active
+        }
+
+    @classmethod
+    def get_active_for_room(cls, room_id):
+        return cls.objects(room=ObjectId(room_id), active=True)
+
+    @classmethod
+    def clear_room(cls, room_id):
+        cls.objects(room=ObjectId(room_id), active=True).update(set__active=False)
+
+
 if __name__ == "__main__":
     new_splat = GaussianSplat(name="test_splat", description="luma-seal", splat_url="https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/luma-seal.splat", scale_x=1, scale_y=1, scale_z=1, rotation_x=0, rotation_y=0, rotation_z=0, position="-1 0.3 3", position_x=0, position_y=0)
     new_splat.save()

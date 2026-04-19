@@ -9,6 +9,7 @@
   <script src="{{url_for('static', filename='js/guest-name.js')}}"></script>
   <script src="{{url_for('static', filename='js/share-qr.js')}}"></script>
   <script src="{{url_for('static', filename='js/llm-layout.js')}}"></script>
+  <script src="{{url_for('static', filename='js/room-effects.js')}}"></script>
   <script src="{{url_for('static', filename='js/avatar-expression.js')}}"></script>
   <script src="{{url_for('static', filename='js/voice-chat.js')}}"></script>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
@@ -532,9 +533,19 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
           initLocationFeatures(presets, boundary, roomId, isAdmin);
         }
 
-        // Admin-only: AI arrange button
+        // Admin-only: AI arrange + effects buttons
         if (isAdmin) {
           addLLMLayoutButton();
+          addLLMEffectsButton();
+        }
+
+        // Initialize room effects renderer
+        if (posSocket) {
+          posSocket.on('connect', function() {
+            if (typeof RoomEffects !== 'undefined') {
+              RoomEffects.init(roomId);
+            }
+          });
         }
 
         // Face expression detection (desktop browsers)

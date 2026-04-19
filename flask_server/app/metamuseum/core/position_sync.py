@@ -161,6 +161,66 @@ def _register_sync_handlers(sio):
             'room_id': room_id
         }, room=room_id, skip_sid=request.sid)
 
+    @sio.on('voice.admin_toggle')
+    def on_voice_admin_toggle(data):
+        """Admin enables/disables voice chat for a room."""
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+        # Broadcast to all in room
+        sio.emit('voice_admin_toggle', {'enabled': data.get('enabled', False)}, room=room_id)
+
+    @sio.on('voice.offer')
+    def on_voice_offer(data):
+        """Relay WebRTC offer to target peer."""
+        target = data.get('target')
+        room_id = data.get('room_id')
+        if not target or not room_id:
+            return
+        sio.emit('voice.offer', data, room=room_id)
+
+    @sio.on('voice.answer')
+    def on_voice_answer(data):
+        """Relay WebRTC answer to target peer."""
+        target = data.get('target')
+        room_id = data.get('room_id')
+        if not target or not room_id:
+            return
+        sio.emit('voice.answer', data, room=room_id)
+
+    @sio.on('voice.ice')
+    def on_voice_ice(data):
+        """Relay ICE candidate to target peer."""
+        target = data.get('target')
+        room_id = data.get('room_id')
+        if not target or not room_id:
+            return
+        sio.emit('voice.ice', data, room=room_id)
+
+    @sio.on('voice.join')
+    def on_voice_join(data):
+        """Relay voice join to all others in room."""
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+        sio.emit('voice.join', data, room=room_id, skip_sid=request.sid)
+
+    @sio.on('voice.leave')
+    def on_voice_leave(data):
+        """Relay voice leave to all others in room."""
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+        sio.emit('voice.leave', data, room=room_id, skip_sid=request.sid)
+
+    @sio.on('voice.mute')
+    def on_voice_mute(data):
+        """Relay mute state to all others in room."""
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+        sio.emit('voice.mute', data, room=room_id, skip_sid=request.sid)
+
 
 # ─── Legacy HTTP endpoints (kept for backward compat, can be removed later) ───
 

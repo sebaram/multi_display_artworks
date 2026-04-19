@@ -10,6 +10,7 @@
   <script src="{{url_for('static', filename='js/share-qr.js')}}"></script>
   <script src="{{url_for('static', filename='js/llm-layout.js')}}"></script>
   <script src="{{url_for('static', filename='js/avatar-expression.js')}}"></script>
+  <script src="{{url_for('static', filename='js/voice-chat.js')}}"></script>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
 
   {% if is_ar_marker %}
@@ -535,6 +536,17 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
 
         // Face expression detection (desktop browsers)
         initAvatarExpressions();
+
+        // Voice chat init (socket must be connected)
+        if (posSocket) {
+          posSocket.on('connect', function() {
+            initVoiceChat(roomId, myUserId, isAdmin);
+          });
+          // If already connected
+          if (posSocketConnected) {
+            initVoiceChat(roomId, myUserId, isAdmin);
+          }
+        }
 
         const supported = await checkHandTrackingSupport();
         if (supported) {

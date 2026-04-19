@@ -4,7 +4,6 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 from flask_admin import Admin
-from flask_admin.form import Select2Widget
 from flask_cors import CORS
 from metamuseum.core.mailing import mail
 

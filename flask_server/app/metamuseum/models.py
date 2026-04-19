@@ -41,7 +41,7 @@ class LLMConfig(Document):
     temperature = FloatField(default=0.3)
     max_tokens = IntField(default=1024)
     is_active = BooleanField(default=True)
-    updated_at = StringField(default=datetime.utcnow().isoformat)
+    updated_at = StringField(default=lambda: datetime.utcnow().isoformat())
 
     meta = {'collection': 'llm_configs', 'allow_inheritance': False}
 
@@ -95,7 +95,7 @@ class WhisperConfig(Document):
     model = StringField(default='whisper-1')
     language = StringField(default='')  # empty = auto-detect
     enabled = BooleanField(default=False)
-    updated_at = StringField(default=datetime.utcnow().isoformat())
+    updated_at = StringField(default=lambda: datetime.utcnow().isoformat())
 
     meta = {'collection': 'whisper_configs', 'allow_inheritance': False}
 

@@ -377,9 +377,10 @@ def call_llm(system_prompt, user_prompt):
             content = '\n'.join(lines[1:-1])
 
         result = json.loads(content)
-        arrangements = result.get('arrangements', [])
+        # Support both 'arrangements' (layout) and 'effects' (effects) response keys
+        items = result.get('arrangements') or result.get('effects', [])
         explanation = result.get('explanation', '')
-        return arrangements, explanation
+        return items, explanation
 
     except json.JSONDecodeError as e:
         logger.error(f'LLM returned invalid JSON: {e}\nContent: {content[:500]}')

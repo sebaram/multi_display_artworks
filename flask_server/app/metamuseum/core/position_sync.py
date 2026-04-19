@@ -47,13 +47,15 @@ def init_socketio(app, existing_sio=None):
 def _register_sync_handlers(sio):
     from flask_socketio import join_room, leave_room
 
-    @sio.on('connect')
-    def on_connect():
-        print('[PositionSync] Connected:', request.sid)
-
     @sio.on('disconnect')
     def on_disconnect():
-        # Remove from all rooms and notify others
+        # Clean up AR rooms (ar_proxy shares this SocketIO instance)
+        from metamuseum.core.ar_proxy import ar_rooms
+        for room_id, room in ar_rooms.items():
+            room['phones'].discard(request.sid)
+            room['vision_pros'].discard(request.sid)
+
+        # Remove from all position rooms and notify others
         for room_id, users in list(room_users.items()):
             if request.sid in users:
                 user = users.pop(request.sid)

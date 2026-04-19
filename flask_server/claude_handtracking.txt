@@ -3,10 +3,12 @@ Add WebXR hand tracking support for Quest 3 and Apple Vision Pro users.
 ## Overview
 Enable arm and hand movement tracking for users with hand-tracking-capable devices (Meta Quest 3, Apple Vision Pro, etc.). When enabled, users should see their own hands in VR and other users should see hand/arm representations.
 
-## Current State
+## Current State (IMPLEMENTED)
 - Camera position/rotation is tracked and broadcast via `/camera-data`
 - Avatar types (shiba/robot/none) are supported per user
-- No hand/controller tracking currently exists
+- Hand tracking IS implemented: left_hand, right_hand, hand_tracking_enabled fields on OnlineUser
+- Position sync via Socket.IO broadcasts hand data to all room participants
+- Hand data sent via `position_update` Socket.IO event and also via POST `/camera-data`
 
 ## Implementation
 

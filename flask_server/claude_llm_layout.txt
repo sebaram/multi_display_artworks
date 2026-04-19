@@ -41,6 +41,20 @@ Response:
 ## MiniMax prompt
 Role: expert gallery curator. Analyze the prompt and assign each artwork to the most appropriate wall based on style, period, or theme. Return JSON with positions.
 
+## Additional Endpoints
+- `POST /api/apply-layout` — Apply LLM-generated layout to elements (batch position update)
+- `POST /api/auto-effect` — Trigger visual/audio RoomEffects using natural language via LLM
+- `POST /api/clear-effects` — Clear all active effects in a room
+
+## RoomEffect Model (elements/basic.py)
+LLM can trigger RoomEffect objects with effect_type in:
+glitter, spotlight, ambient, fog, sound, pulse, color_shift, shake, fade
+
+## LLMConfig Model (models.py)
+Singleton config stored in MongoDB. Supports providers: minimax, openai, openrouter, anthropic.
+Fields: provider, api_base, api_key, model, temperature, max_tokens, is_active.
+Configure via Flask-Admin at /kwanri → LLM Config.
+
 ## Implementation
-- `views/llm_layout.py` — POST /api/auto-layout
+- `views/llm_layout.py` — POST /api/auto-layout, /api/apply-layout, /api/auto-effect, /api/clear-effects
 - JS: admin button → modal with textarea → fetch → apply positions via PUT

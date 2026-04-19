@@ -35,15 +35,18 @@ Already works! Just create a Webpage element with embed URL.
 ### B) HLS.js polyfill for A-Frame (better HLS support)
 Add HLS.js library for browsers that don't natively support HLS.
 
-### C) Flask streaming endpoint
-- `POST /stream/push` — receive MediaRecorder chunks
-- `GET /stream/playlist/<stream_id>.m3u8` — serve playlist
-- `GET /stream/segment/<stream_id>_<n>.ts` — serve segments
-- Simple FFmpeg bridge for RTSP→HLS if ffmpeg available
+### C) Flask streaming endpoints (actual routes in views/stream_views.py)
+- `POST /stream/push/<stream_id>` — receive MediaRecorder chunks from browser
+- `POST /stream/start-rtsp` — start RTSP→HLS conversion via FFmpeg
+- `POST /stream/stop/<stream_id>` — stop an active stream
+- `GET /stream/playlist/<stream_id>` — serve HLS playlist (.m3u8)
+- `GET /stream/segment/<stream_id>/<segment>` — serve HLS segment (.ts)
+- `GET /stream/list` — list all active and available streams
 
-### D) Stream management
-- `GET /streams` — list active streams
-- `DELETE /stream/<id>` — stop/delete stream
+### D) Stream management (core/streaming.py)
+- `start_rtsp_to_hls(stream_id, rtsp_url)` — start FFmpeg conversion
+- `stop_stream(stream_id)` — stop active stream
+- `save_mediarecorder_chunk(stream_id, chunk_data, chunk_idx)` — save browser chunks
 
 ## Files
 - `core/streaming.py` — stream management (chunk storage, playlist generation)

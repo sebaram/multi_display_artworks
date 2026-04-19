@@ -48,11 +48,18 @@ Marker {
 ```
 
 ### Files
-- `core/marker.py` — Marker model, mapping logic
-- `views/marker_views.py` — API endpoints
+- `elements/basic.py` — Marker model (Document with target_position, target_rotation, marker_type, etc.)
+- `views/marker_views.py` — API endpoints (GET/PUT/DELETE)
 - `static/js/marker-ar.js` — AR.js integration JS
 - `templates/room_ar.html` — AR-mode room page (fullscreen camera)
 - `templates/admin/index.html` — updated with marker docs
+
+### Actual API Endpoints (views/marker_views.py)
+- `GET /marker/room/<room_id>/markers` — list all active markers for a room
+- `GET /marker/<marker_id>/config` — get marker config for AR mode
+- `GET /marker/by-value/<marker_type>/<marker_value>` — look up marker by type+value
+- `PUT /marker/<marker_id>` — update marker config (admin only)
+- `DELETE /marker/<marker_id>` — delete marker (admin only)
 
 ### Marker Detection Events
 ```javascript

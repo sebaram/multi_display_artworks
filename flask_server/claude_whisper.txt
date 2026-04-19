@@ -21,6 +21,17 @@ POST /api/transcribe
 - Body: audio/* (webm/opus blob)
 - Response: { "text": "what was said", "language": "en" }
 
+GET /api/whisper-config (admin only)
+- Returns current Whisper configuration
+
+PUT /api/whisper-config (admin only)
+- Update Whisper configuration (provider, api_base, api_key, model, language, enabled)
+
+## WhisperConfig Model (models.py)
+Singleton config stored in MongoDB. Supports providers: openai, minimax, local.
+Fields: provider, api_base, api_key, model, language, enabled.
+Configure via Flask-Admin at /kwanri → Whisper Config.
+
 ## WebRTC Voice note
 - Socket.IO event: voice.transcript
 - { userId, text, language }

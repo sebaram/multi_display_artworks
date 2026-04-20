@@ -340,7 +340,7 @@ def call_llm(system_prompt, user_prompt):
 
     config = LLMConfig.get_active()
     if not config:
-        return None, 'No LLM config set. Add one via Flask-Admin (LLMConfig model) or set MINIMAX_API_KEY env var.'
+        return None, 'No LLM config set. Add one via Flask-Admin → LLMConfig model.'
 
     api_key = config.api_key
     api_base = config.api_base

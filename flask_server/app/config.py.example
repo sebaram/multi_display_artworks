@@ -28,8 +28,9 @@ MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')  # Gmail address
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')  # App password
 MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', MAIL_USERNAME)
 
-MINIMAX_API_KEY = os.environ.get('MINIMAX_API_KEY', '')
-MINIMAX_API_BASE = os.environ.get('MINIMAX_API_BASE', 'https://api.minimax.io/v1')
+# LLM keys are set via Flask-Admin → LLMConfig model (stored in MongoDB)
+# Whisper keys are set via Flask-Admin → WhisperConfig model
+# MINIMAX_API_KEY is no longer needed here — configure in admin panel
 
 
 AVATAR_OPTIONS = {

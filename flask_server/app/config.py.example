@@ -6,9 +6,10 @@ Do NOT commit config.py — it contains secrets.
 import os
 
 
-MONGODB_HOST = os.environ.get('MONGODB_HOST', 'localhost')
-MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
-MONGODB_DB = os.environ.get('MONGODB_DB', 'metamuseum')
+# MongoDB connection — supports auth via URI
+# Format: mongodb://user:password@host:port/dbname
+# Or set MONGODB_HOST, MONGODB_PORT, MONGODB_DB individually (no auth)
+MONGODB_URI = os.environ.get('MONGODB_URI', '')
 
 DEFAULT_TITLE = "MetaMuseum"
 

@@ -9,6 +9,8 @@ variables:
 build:
   stage: build
   image: docker:24-dind
+  tags:
+    - jy-testing
   services:
     - docker:24-dind
   before_script:
@@ -24,6 +26,8 @@ build:
 
 deploy:
   stage: deploy
+  tags:
+    - jy-testing
   image: ubuntu:24.04
   before_script:
     - apt-get update && apt-get install -y openssh-client

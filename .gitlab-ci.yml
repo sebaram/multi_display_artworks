@@ -10,6 +10,7 @@ build:
   services:
     - docker:24-dind
   script:
+    - docker builder prune -f || true
     - docker compose -f docker-compose.yml build app
     - echo "Build complete — skipping registry push (no CI_REGISTRY credentials set)"
   variables:

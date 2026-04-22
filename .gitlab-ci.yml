@@ -6,7 +6,7 @@ variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
 
-.build:
+build:
   stage: build
   image: docker:24-dind
   services:
@@ -22,15 +22,14 @@ variables:
   only:
     - master
 
-.deploy:
+deploy:
   stage: deploy
   image: ubuntu:24.04
   before_script:
     - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
   script:
     - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "cd /home/$SSH_USER/projects/multi_display_artworks && docker compose pull && docker compose up -d"
   environment:

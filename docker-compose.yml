@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./flask_server
+      dockerfile: Dockerfile
+    container_name: metamuseum_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Flask
+      - SECRET_KEY=your-secret-key-here
+      - SECURITY_PASSWORD_SALT=your-salt-here
+      # MongoDB
+      - MONGODB_URI=mongodb://mongo:27017/metamuseum
+      # Email
+      - MAIL_SERVER=smtp.gmail.com
+      - MAIL_PORT=465
+      - MAIL_USE_SSL=True
+      - MAIL_USERNAME=your@gmail.com
+      - MAIL_PASSWORD=your-app-password
+      - MAIL_DEFAULT_SENDER=your@gmail.com
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mongo:
+    image: mongo:7
+    container_name: metamuseum_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongo_data:

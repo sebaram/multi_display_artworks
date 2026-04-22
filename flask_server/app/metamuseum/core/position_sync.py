@@ -9,8 +9,13 @@ Events:
 - user_left            → notify others a user left
 - room_state           → send full room state to newly joined user
 """
+import importlib.util
 from collections import defaultdict
 from flask import request
+
+_SOCKETIO_ASYNC_MODE = (
+    'gevent' if importlib.util.find_spec('gevent') is not None else 'threading'
+)
 
 # Global socketio instance (also exported as `socketio` for convenience)
 socketio_instance = None
@@ -36,7 +41,7 @@ def init_socketio(app, existing_sio=None):
         socketio_instance = SocketIO(
             app,
             cors_allowed_origins='*',
-            async_mode='gevent'
+            async_mode=_SOCKETIO_ASYNC_MODE
         )
 
     socketio = socketio_instance  # update module-level alias

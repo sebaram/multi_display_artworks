@@ -352,7 +352,8 @@ def create_app():
     admin.add_view(WebpageView(Webpage))
     admin.add_view(LocationPresetView(LocationPreset))
     admin.add_view(RoomEffectView(RoomEffect))
-    admin.add_view(MarkerView(Marker))
+    # endpoint must differ from public API blueprint name "marker" (marker_views.bp)
+    admin.add_view(MarkerView(Marker, endpoint='mm_marker_admin'))
     admin.add_view(LLMConfigView(LLMConfig))
     admin.add_view(WhisperConfigView(WhisperConfig))
 

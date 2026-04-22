@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 """AR Companion WebSocket — phone detects markers, relays pose to Vision Pro."""
+import importlib.util
 import json
 from collections import defaultdict
 from flask import request
 from flask_socketio import SocketIO, emit, join_room, leave_room
+
+_SOCKETIO_ASYNC_MODE = (
+    'gevent' if importlib.util.find_spec('gevent') is not None else 'threading'
+)
 
 # Global socketio instance (initialized in __init__.py)
 socketio_instance = None
@@ -23,7 +28,7 @@ def init_socketio(app):
     socketio_instance = SocketIO(
         app,
         cors_allowed_origins='*',
-        async_mode='gevent',
+        async_mode=_SOCKETIO_ASYNC_MODE,
         message_queue=None,
         channel='ar_companion'
     )

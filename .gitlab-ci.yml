@@ -9,12 +9,9 @@ build:
     - jy-testing
   services:
     - docker:24-dind
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY || true
   script:
     - docker compose -f docker-compose.yml build app
-    - docker tag multi_display_artworks-app:latest $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA || echo "Registry push skipped"
+    - echo "Build complete — skipping registry push (no CI_REGISTRY credentials set)"
   variables:
     DOCKER_DRIVER: overlay2
   only:

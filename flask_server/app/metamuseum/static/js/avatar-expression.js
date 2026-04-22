@@ -43,6 +43,12 @@ async function loadFaceAPI() {
 async function startExpressionDetection() {
   if (!faceApiModelsLoaded) return;
 
+  // Only attempt camera on mobile devices — desktop browsers shouldn't be prompted
+  if (navigator.maxTouchPoints === 0) {
+    console.log('[FaceAPI] Desktop detected, skipping camera for expressions');
+    return;
+  }
+
   const video = document.createElement('video');
   video.style.cssText = 'position:fixed;width:1px;height:1px;top:-9999px;left:-9999px;opacity:0;';
   video.autoplay = true;

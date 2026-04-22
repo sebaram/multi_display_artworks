@@ -60,6 +60,9 @@ class Wall(Document):
     color = StringField()
     image_url = StringField()
     video_url = StringField()
+    # Surface orientation: 'wall' (vertical), 'floor', 'ceiling'
+    # Determines how element z-offset is computed inside to_aframe
+    surface_type = StringField(default='wall')
 
     def __repr__(self):
         return "<Wall:{}>".format(self.name)
@@ -88,11 +91,31 @@ class Wall(Document):
                 self.color or '#333333', self.width, self.height, self.depth)
 
         for one_ele in self.get_all_elements():
-            aframes += one_ele.to_aframe(single=False, wall_depth=self.depth)
+            # Floor/Ceiling: element z stays at local 0 (on the surface), only a tiny lift
+            # Wall: element pushed slightly in front of wall surface (depth + small gap)
+            if self.surface_type in ('floor', 'ceiling'):
+                ele_depth = 0.0  # on surface, no depth offset needed
+            else:
+                ele_depth = self.depth
+            aframes += one_ele.to_aframe(single=False, wall_depth=ele_depth)
 
         aframe_str = '<a-entity id="wall_{}" position="{}" rotation="{}">{}</a-entity>'.format(
             self.name, this_position, this_rotation, aframes)
         return aframe_str
+
+    def clean(self):
+        """Auto-assign surface_type from wall name for consistency."""
+        name_lower = self.name.lower()
+        if 'floor' in name_lower:
+            self.surface_type = 'floor'
+        elif 'ceiling' in name_lower:
+            self.surface_type = 'ceiling'
+        else:
+            self.surface_type = 'wall'
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
 
 
 class WallElement(Document):
@@ -128,6 +151,42 @@ class WallElement(Document):
 
     def _get_rotation_str(self):
         return "{} {} {}".format(self.rotation_x, self.rotation_y, self.rotation_z)
+
+    def clean(self):
+        """Validate and auto-fix element position to stay within wall bounds.
+        
+        Wall coordinate system: origin at wall center.
+        - x: horizontal (-width/2 to +width/2)
+        - y: vertical (-height/2 to +height/2)
+        - z: depth (0 = on surface, positive = in front)
+        """
+        if not self.wall:
+            return
+        
+        try:
+            wall = self.wall.fetch()
+        except Exception:
+            return
+        
+        hw = wall.width / 2.0
+        hh = wall.height / 2.0
+        
+        # Clamp X within wall horizontal bounds
+        self.position_x = max(-hw, min(hw, self.position_x))
+        
+        # Clamp Y within wall vertical bounds
+        self.position_y = max(-hh, min(hh, self.position_y))
+        
+        # For floor/ceiling: z should be 0 (on surface)
+        # For walls: z should be near 0 (slightly in front of wall face)
+        if wall.surface_type in ('floor', 'ceiling'):
+            self.position_z = 0.0
+        else:
+            self.position_z = max(0.0, min(0.5, self.position_z))
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
 
 
 class Image(WallElement):

@@ -501,8 +501,8 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
       }
 
       document.addEventListener('DOMContentLoaded', async () => {
-        // Extract room_id from URL
-        const roomId = new URLSearchParams(window.location.search).get('room_id');
+        // roomId must be global — used by functions outside DOMContentLoaded scope
+        window.roomId = new URLSearchParams(window.location.search).get('room_id');
         const arMode = {{ 'true' if is_ar_marker else 'false' }};
         const arCompanion = {{ 'true' if is_ar_companion else 'false' }};
 

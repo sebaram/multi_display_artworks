@@ -86,7 +86,7 @@ function submitGuestName() {
   // Update socket join with name
   if (typeof posSocket !== 'undefined' && posSocket && posSocketConnected) {
     posSocket.emit('join_position_room', {
-      room_id: roomId,
+      room_id: window.roomId,
       userId: myUserId,
       avatar: avatarType,
       displayName: name

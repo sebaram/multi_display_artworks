@@ -161,38 +161,49 @@ function initMiniMap(presets, boundary, wallList) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Wall geometry rectangles
+    // Wall geometry — floors as filled rects, walls as lines
     if (wallList && wallList.length > 0) {
       wallList.forEach(wall => {
         const parts = wall.position.split(' ');
         const wx = parseFloat(parts[0]);
-        const wy = parseFloat(parts[1] || 0);
         const wz = parseFloat(parts[2] || 0);
         const wW = wall.width || 2;
-        const wH = wall.height || 2;
         const ry = parseFloat(wall.rotation ? wall.rotation.split(' ')[1] || 0 : 0);
+        const isFloor = wall.surface_type === 'floor';
 
-        // Determine wall extent in XZ plane based on Y rotation
+        // Determine extent in XZ plane
         let x1, x2, z1, z2;
         const deg = Math.abs(ry % 180);
         if (deg < 45 || deg > 135) {
-          // Wall runs along X axis
           x1 = wx - wW / 2; x2 = wx + wW / 2;
           z1 = z2 = wz;
         } else {
-          // Wall runs along Z axis
           z1 = wz - wW / 2; z2 = wz + wW / 2;
           x1 = x2 = wx;
         }
         const p1 = toScreen(x1, z1);
         const p2 = toScreen(x2, z2);
 
-        ctx.strokeStyle = 'rgba(120,160,255,0.8)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
+        if (isFloor) {
+          // Draw floor as filled rectangle
+          const rectX = Math.min(p1.x, p2.x);
+          const rectY = Math.min(p1.y, p2.y);
+          const rectW = Math.abs(p2.x - p1.x) || 4;
+          const rectH = Math.abs(p2.y - p1.y) || 4;
+          ctx.fillStyle = 'rgba(60,90,180,0.25)';
+          ctx.fillRect(rectX, rectY, Math.max(rectW, 4), Math.max(rectH, 4));
+          ctx.strokeStyle = 'rgba(80,120,255,0.5)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(rectX, rectY, Math.max(rectW, 4), Math.max(rectH, 4));
+        } else {
+          // Draw wall as a line
+          ctx.strokeStyle = 'rgba(120,160,255,0.8)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
       });
     }
 

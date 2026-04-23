@@ -76,7 +76,7 @@ def room():
 
         # Wall geometry for minimap
         wall_list = [{'name': w.name, 'position': w.position, 'rotation': w.rotation,
-                       'width': w.width, 'height': w.height}
+                       'width': w.width, 'height': w.height, 'surface_type': getattr(w, 'surface_type', 'wall')}
                       for w in this_room.walls]
 
         return render_template('room_aframe.html',

@@ -295,10 +295,11 @@ class Webpage(WallElement):
         scale_str = self._get_scale_str()
         rot_str = self._get_rotation_str()
         aspect = self.width / self.height
-        html_content = '<div style="width:{}px;height:{}px;"><iframe src="{}" style="width:100%;height:100%;border:none;"></iframe></div>'.format(
-            int(self.width * 100), int(self.height * 100), self.webpage_url)
-        return '<a-entity id="webpage_{}" data-element-id="{}" data-element-type="webpage" position="{}" scale="{}" rotation="{}" html="html:#webpage-content-{};cursor:#cursor;"></a-entity><div id="webpage-content-{}" style="position:fixed;width:{}px;height:{}px;left:50%;top:50%;margin-left:-{}px;margin-top:-{}px;opacity:1;pointer-events:none;z-index:9999;">{}</div>'.format(
-            self.name, self._id, this_position, scale_str, rot_str, self.name, self.name, int(self.width * 100), int(self.height * 100), int(self.width * 50), int(self.height * 50), html_content)
+        url_label = self.webpage_url if len(self.webpage_url) <= 30 else self.webpage_url[:27] + '...'
+        html_content = '<a-text value="{}" color="#CCCCCC" width="4" position="0 0 0.01" align="center"></a-text><a-plane color="#1a1a2e" width="{}" height="{}" material geometry></a-plane>'.format(
+            url_label, self.width, self.height)
+        return '<a-entity id="webpage_{}" data-element-id="{}" data-element-type="webpage" position="{}" scale="{}" rotation="{}">{}</a-entity>'.format(
+            self.name, self._id, this_position, scale_str, rot_str, html_content)
 
 
 class GLTFmodel(WallElement):

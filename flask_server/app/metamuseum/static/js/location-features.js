@@ -83,7 +83,7 @@ function saveCurrentPositionAsPreset(roomId, boundary) {
   .catch(err => alert('❌ Network error: ' + err));
 }
 
-function initLocationFeatures(presets, boundary, roomId, isAdmin) {
+function initLocationFeatures(presets, boundary, roomId, isAdmin, wallList) {
   // Teleport dropdown (all users)
   if (presets && presets.length > 0) {
     const container = document.createElement('div');
@@ -116,10 +116,10 @@ function initLocationFeatures(presets, boundary, roomId, isAdmin) {
   }
 
   // Mini-map
-  initMiniMap(presets, boundary);
+  initMiniMap(presets, boundary, wallList);
 }
 
-function initMiniMap(presets, boundary) {
+function initMiniMap(presets, boundary, wallList) {
   const canvas = document.createElement('canvas');
   canvas.id = 'minimap-canvas';
   canvas.width = 110;
@@ -160,6 +160,41 @@ function initMiniMap(presets, boundary) {
     ctx.lineTo(br.x, cx.y);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // Wall geometry rectangles
+    if (wallList && wallList.length > 0) {
+      wallList.forEach(wall => {
+        const parts = wall.position.split(' ');
+        const wx = parseFloat(parts[0]);
+        const wy = parseFloat(parts[1] || 0);
+        const wz = parseFloat(parts[2] || 0);
+        const wW = wall.width || 2;
+        const wH = wall.height || 2;
+        const ry = parseFloat(wall.rotation ? wall.rotation.split(' ')[1] || 0 : 0);
+
+        // Determine wall extent in XZ plane based on Y rotation
+        let x1, x2, z1, z2;
+        const deg = Math.abs(ry % 180);
+        if (deg < 45 || deg > 135) {
+          // Wall runs along X axis
+          x1 = wx - wW / 2; x2 = wx + wW / 2;
+          z1 = z2 = wz;
+        } else {
+          // Wall runs along Z axis
+          z1 = wz - wW / 2; z2 = wz + wW / 2;
+          x1 = x2 = wx;
+        }
+        const p1 = toScreen(x1, z1);
+        const p2 = toScreen(x2, z2);
+
+        ctx.strokeStyle = 'rgba(120,160,255,0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      });
+    }
 
     // Preset markers
     if (presets) {

@@ -74,12 +74,17 @@ def room():
             'min_z': this_room.boundary_min_z, 'max_z': this_room.boundary_max_z
         }
 
+        # Wall geometry for minimap
+        wall_list = [{'name': w.name, 'position': w.position, 'rotation': w.rotation,
+                       'width': w.width, 'height': w.height}
+                      for w in this_room.walls]
+
         return render_template('room_aframe.html',
                              aframe_list=aframe_list, camera_d=3, avatar=avatar,
                              drag_enabled=drag_enabled, presets=preset_list,
                              spawn_preset=selected, boundary=boundary,
                              is_ar_marker=is_ar_marker, is_ar_companion=is_ar_companion,
-                             room_id=room_id)
+                             room_id=room_id, wall_list=wall_list)
     except Exception as e:
         logger.error(f"Error loading room {room_id}: {e}")
         return "Database unavailable", 503

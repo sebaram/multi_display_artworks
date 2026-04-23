@@ -74,10 +74,36 @@ def room():
             'min_z': this_room.boundary_min_z, 'max_z': this_room.boundary_max_z
         }
 
-        # Wall geometry for minimap
-        wall_list = [{'name': w.name, 'position': w.position, 'rotation': w.rotation,
-                       'width': w.width, 'height': w.height, 'surface_type': getattr(w, 'surface_type', 'wall')}
-                      for w in this_room.walls]
+        # Wall + element geometry for minimap
+        wall_list = []
+        for w in this_room.walls:
+            parts = w.position.split(' ')
+            wx, wy, wz = float(parts[0]), float(parts[1]), float(parts[2])
+            rot_parts = (w.rotation or '0 0 0').split(' ')
+            ry = float(rot_parts[1]) if len(rot_parts) > 1 else 0.0
+            cos_r, sin_r = math.cos(math.radians(ry)), math.sin(math.radians(ry))
+            wall_depth = float(w.depth) if hasattr(w, 'depth') and w.depth else 0.2
+
+            # Collect element world positions for minimap
+            ele_list = []
+            for ele in w.get_all_elements():
+                # World XZ accounting for wall Y rotation
+                ex, ez = ele.position_x, 0.05 + wall_depth
+                world_x = wx + ex * cos_r
+                world_z = wz + ex * sin_r
+                ele_list.append({
+                    'name': ele.name,
+                    'type': ele.wall_element_type,
+                    'world_x': world_x,
+                    'world_z': world_z,
+                })
+
+            wall_list.append({
+                'name': w.name, 'position': w.position, 'rotation': w.rotation,
+                'width': w.width, 'height': w.height,
+                'surface_type': getattr(w, 'surface_type', 'wall'),
+                'elements': ele_list
+            })
 
         return render_template('room_aframe.html',
                              aframe_list=aframe_list, camera_d=3, avatar=avatar,

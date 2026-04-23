@@ -207,6 +207,33 @@ function initMiniMap(presets, boundary, wallList) {
       });
     }
 
+    // Element markers (images, splats, webpages, gltfs)
+    const elemColors = {
+      'image': '#4CAF50',
+      'gaussian_splat': '#FF9800',
+      'webpage': '#00BCD4',
+      'gltf': '#9C27B0',
+    };
+    if (wallList) {
+      wallList.forEach(wall => {
+        (wall.elements || []).forEach(ele => {
+          const px = ((parseFloat(ele.world_x) - bx.min_x) / (bx.max_x - bx.min_x)) * W;
+          const py = ((parseFloat(ele.world_z) - bx.min_z) / (bx.max_z - bx.min_z)) * H;
+          const color = elemColors[ele.type] || '#FFFFFF';
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(px, py, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
+          ctx.font = '6px sans-serif';
+          ctx.fillText(ele.name.substring(0, 8), px + 5, py + 3);
+        });
+      });
+    }
+
     // Preset markers
     if (presets) {
       presets.forEach(p => {

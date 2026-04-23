@@ -236,13 +236,10 @@ class GaussianSplat(WallElement):
         splat_url = self.splat_url
         if not splat_url.endswith('.splat') and not splat_url.endswith('.ply'):
             splat_url = 'https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/luma-seal.splat'
-        if self.cutout_scale is not None:
-            aframes += '<a-box id="cutout-box-{}" visible="false" scale="{}" position="{}"></a-box>'.format(
-                self.name, self.cutout_scale, self.cutout_position)
-            aframes += '<a-entity gaussian_splatting="src: {}; cutoutEntity: #cutout-box-{};"></a-entity>'.format(
-                splat_url, self.name)
-        else:
-            aframes += '<a-entity gaussian_splatting="src: {};"></a-entity>'.format(splat_url)
+        # NOTE: cutout is disabled — aframe-gaussian-splatting uses fixed [-0.5,0.5] unit-cube
+        # bounds which doesn't align with real scanned splats. Cutout culls everything.
+        # TODO: re-implement cutout using world-space AABB checks instead of local-space cube.
+        aframes += '<a-entity gaussian_splatting="src: {};"></a-entity>'.format(splat_url)
         
         return '<a-entity id="splat-{}" data-element-id="{}" data-element-type="gaussian_splat" position="{}" scale="{}" rotation="{}">{}</a-entity>'.format(
             self.name, self._id, this_position, self._get_scale_str(), this_rotation, aframes)

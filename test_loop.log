@@ -1,0 +1,5115 @@
+========================================
+  Test Loop Started: Thu Apr 23 08:31:04 AM KST 2026
+  Test Loop Started: Thu Apr 23 08:31:04 AM KST 2026
+========================================
+========================================
+
+
+--- Round 1 -----------------------------------------------
+--- Round 1 -----------------------------------------------
+Start: 08:31:04
+Start: 08:31:04
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 1: PASS
+✅ Round 1: PASS
+
+
+--- Round 2 -----------------------------------------------
+--- Round 2 -----------------------------------------------
+Start: 08:31:34
+Start: 08:31:34
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 2: PASS
+✅ Round 2: PASS
+
+
+--- Round 3 -----------------------------------------------
+--- Round 3 -----------------------------------------------
+Start: 08:32:04
+Start: 08:32:04
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 3: PASS
+✅ Round 3: PASS
+
+
+--- Round 4 -----------------------------------------------
+--- Round 4 -----------------------------------------------
+Start: 08:32:35
+Start: 08:32:35
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 4: PASS
+✅ Round 4: PASS
+
+
+--- Round 5 -----------------------------------------------
+--- Round 5 -----------------------------------------------
+Start: 08:33:05
+Start: 08:33:05
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 5: PASS
+✅ Round 5: PASS
+
+
+--- Round 6 -----------------------------------------------
+--- Round 6 -----------------------------------------------
+Start: 08:33:35
+Start: 08:33:35
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 6: PASS
+✅ Round 6: PASS
+
+
+--- Round 7 -----------------------------------------------
+--- Round 7 -----------------------------------------------
+Start: 08:34:06
+Start: 08:34:06
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 7: PASS
+✅ Round 7: PASS
+
+
+--- Round 8 -----------------------------------------------
+--- Round 8 -----------------------------------------------
+Start: 08:34:36
+Start: 08:34:36
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 8: PASS
+✅ Round 8: PASS
+
+
+--- Round 9 -----------------------------------------------
+--- Round 9 -----------------------------------------------
+Start: 08:35:07
+Start: 08:35:07
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 9: PASS
+✅ Round 9: PASS
+
+
+--- Round 10 -----------------------------------------------
+--- Round 10 -----------------------------------------------
+Start: 08:35:37
+Start: 08:35:37
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 10: PASS
+✅ Round 10: PASS
+
+
+--- Round 11 -----------------------------------------------
+--- Round 11 -----------------------------------------------
+Start: 08:36:07
+Start: 08:36:07
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 11: PASS
+✅ Round 11: PASS
+
+
+--- Round 12 -----------------------------------------------
+--- Round 12 -----------------------------------------------
+Start: 08:36:38
+Start: 08:36:38
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 12: PASS
+✅ Round 12: PASS
+
+
+--- Round 13 -----------------------------------------------
+--- Round 13 -----------------------------------------------
+Start: 08:37:08
+Start: 08:37:08
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 13: PASS
+✅ Round 13: PASS
+
+
+--- Round 14 -----------------------------------------------
+--- Round 14 -----------------------------------------------
+Start: 08:37:38
+Start: 08:37:38
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 14: PASS
+✅ Round 14: PASS
+
+
+--- Round 15 -----------------------------------------------
+--- Round 15 -----------------------------------------------
+Start: 08:38:09
+Start: 08:38:09
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 15: PASS
+✅ Round 15: PASS
+
+
+--- Round 16 -----------------------------------------------
+--- Round 16 -----------------------------------------------
+Start: 08:38:39
+Start: 08:38:39
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 16: PASS
+✅ Round 16: PASS
+
+
+--- Round 17 -----------------------------------------------
+--- Round 17 -----------------------------------------------
+Start: 08:39:09
+Start: 08:39:09
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 17: PASS
+✅ Round 17: PASS
+
+
+--- Round 18 -----------------------------------------------
+--- Round 18 -----------------------------------------------
+Start: 08:39:40
+Start: 08:39:40
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 18: PASS
+✅ Round 18: PASS
+
+
+--- Round 19 -----------------------------------------------
+--- Round 19 -----------------------------------------------
+Start: 08:40:10
+Start: 08:40:10
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 19: PASS
+✅ Round 19: PASS
+
+
+--- Round 20 -----------------------------------------------
+--- Round 20 -----------------------------------------------
+Start: 08:40:40
+Start: 08:40:40
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 20: PASS
+✅ Round 20: PASS
+
+
+--- Round 21 -----------------------------------------------
+--- Round 21 -----------------------------------------------
+Start: 08:41:11
+Start: 08:41:11
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 21: PASS
+✅ Round 21: PASS
+
+
+--- Round 22 -----------------------------------------------
+--- Round 22 -----------------------------------------------
+Start: 08:41:41
+Start: 08:41:41
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 22: PASS
+✅ Round 22: PASS
+
+
+--- Round 23 -----------------------------------------------
+--- Round 23 -----------------------------------------------
+Start: 08:42:11
+Start: 08:42:11
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 23: PASS
+✅ Round 23: PASS
+
+
+--- Round 24 -----------------------------------------------
+--- Round 24 -----------------------------------------------
+Start: 08:42:42
+Start: 08:42:42
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 24: PASS
+✅ Round 24: PASS
+
+
+--- Round 25 -----------------------------------------------
+--- Round 25 -----------------------------------------------
+Start: 08:43:12
+Start: 08:43:12
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 25: PASS
+✅ Round 25: PASS
+
+
+--- Round 26 -----------------------------------------------
+--- Round 26 -----------------------------------------------
+Start: 08:43:42
+Start: 08:43:42
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 26: PASS
+✅ Round 26: PASS
+
+
+--- Round 27 -----------------------------------------------
+--- Round 27 -----------------------------------------------
+Start: 08:44:13
+Start: 08:44:13
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 27: PASS
+✅ Round 27: PASS
+
+
+--- Round 28 -----------------------------------------------
+--- Round 28 -----------------------------------------------
+Start: 08:44:43
+Start: 08:44:43
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 28: PASS
+✅ Round 28: PASS
+
+
+--- Round 29 -----------------------------------------------
+--- Round 29 -----------------------------------------------
+Start: 08:45:14
+Start: 08:45:14
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 29: PASS
+✅ Round 29: PASS
+
+
+--- Round 30 -----------------------------------------------
+--- Round 30 -----------------------------------------------
+Start: 08:45:44
+Start: 08:45:44
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 30: PASS
+✅ Round 30: PASS
+
+
+--- Round 31 -----------------------------------------------
+--- Round 31 -----------------------------------------------
+Start: 08:46:14
+Start: 08:46:14
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 31: PASS
+✅ Round 31: PASS
+
+
+--- Round 32 -----------------------------------------------
+--- Round 32 -----------------------------------------------
+Start: 08:46:45
+Start: 08:46:45
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 32: PASS
+✅ Round 32: PASS
+
+
+--- Round 33 -----------------------------------------------
+--- Round 33 -----------------------------------------------
+Start: 08:47:15
+Start: 08:47:15
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 33: PASS
+✅ Round 33: PASS
+
+
+--- Round 34 -----------------------------------------------
+--- Round 34 -----------------------------------------------
+Start: 08:47:45
+Start: 08:47:45
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 34: PASS
+✅ Round 34: PASS
+
+
+--- Round 35 -----------------------------------------------
+--- Round 35 -----------------------------------------------
+Start: 08:48:16
+Start: 08:48:16
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 35: PASS
+✅ Round 35: PASS
+
+
+--- Round 36 -----------------------------------------------
+--- Round 36 -----------------------------------------------
+Start: 08:48:46
+Start: 08:48:46
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 36: PASS
+✅ Round 36: PASS
+
+
+--- Round 37 -----------------------------------------------
+--- Round 37 -----------------------------------------------
+Start: 08:49:16
+Start: 08:49:16
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 37: PASS
+✅ Round 37: PASS
+
+
+--- Round 38 -----------------------------------------------
+--- Round 38 -----------------------------------------------
+Start: 08:49:47
+Start: 08:49:47
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 38: PASS
+✅ Round 38: PASS
+
+
+--- Round 39 -----------------------------------------------
+--- Round 39 -----------------------------------------------
+Start: 08:50:17
+Start: 08:50:17
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 39: PASS
+✅ Round 39: PASS
+
+
+--- Round 40 -----------------------------------------------
+--- Round 40 -----------------------------------------------
+Start: 08:50:47
+Start: 08:50:47
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 40: PASS
+✅ Round 40: PASS
+
+
+--- Round 41 -----------------------------------------------
+--- Round 41 -----------------------------------------------
+Start: 08:51:18
+Start: 08:51:18
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 41: PASS
+✅ Round 41: PASS
+
+
+--- Round 42 -----------------------------------------------
+--- Round 42 -----------------------------------------------
+Start: 08:51:48
+Start: 08:51:48
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 42: PASS
+✅ Round 42: PASS
+
+
+--- Round 43 -----------------------------------------------
+--- Round 43 -----------------------------------------------
+Start: 08:52:19
+Start: 08:52:19
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 43: PASS
+✅ Round 43: PASS
+
+
+--- Round 44 -----------------------------------------------
+--- Round 44 -----------------------------------------------
+Start: 08:52:49
+Start: 08:52:49
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 44: PASS
+✅ Round 44: PASS
+
+
+--- Round 45 -----------------------------------------------
+--- Round 45 -----------------------------------------------
+Start: 08:53:19
+Start: 08:53:19
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 45: PASS
+✅ Round 45: PASS
+
+
+--- Round 46 -----------------------------------------------
+--- Round 46 -----------------------------------------------
+Start: 08:53:50
+Start: 08:53:50
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 46: PASS
+✅ Round 46: PASS
+
+
+--- Round 47 -----------------------------------------------
+--- Round 47 -----------------------------------------------
+Start: 08:54:20
+Start: 08:54:20
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 47: PASS
+✅ Round 47: PASS
+
+
+--- Round 48 -----------------------------------------------
+--- Round 48 -----------------------------------------------
+Start: 08:54:50
+Start: 08:54:50
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 48: PASS
+✅ Round 48: PASS
+
+
+--- Round 49 -----------------------------------------------
+--- Round 49 -----------------------------------------------
+Start: 08:55:21
+Start: 08:55:21
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 49: PASS
+✅ Round 49: PASS
+
+
+--- Round 50 -----------------------------------------------
+--- Round 50 -----------------------------------------------
+Start: 08:55:51
+Start: 08:55:51
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+========================================
+  multi_display_artworks Test Round
+========================================
+
+1. Health & Container
+  ✅ Container running
+  ✅ Health endpoint ok
+
+2. Main Page
+  ✅ Main page loads
+  ℹ️  Rooms found: 3
+
+3. Room List
+  ✅ Room: splat_playground
+  ✅ Room: art_gallery
+  ✅ Room: demo_room
+
+4. Room URLs (HTML render)
+  ℹ️  3 rooms accessible (1 skipped as stale)
+  ✅ All rooms render
+
+5. Image URLs
+  ℹ️  3 images accessible
+  ✅ Images load
+
+6. A-Frame Scene Elements
+  ✅ A-Frame scene present
+  ✅ Wall boxes render
+  ℹ️  No images in this room (may be normal)
+
+7. Mobile View
+  ✅ Mobile main page
+
+8. JS Critical Patterns
+  ✅ window.roomId set
+  ✅ Socket.IO loaded
+
+9. Admin Panel
+  ✅ Admin panel accessible
+
+10. Wall Page
+  ✅ Wall page renders
+
+========================================
+  Summary
+========================================
+  All checks passed! ✅
+✅ Round 50: PASS
+✅ Round 50: PASS
+
+
+========================================
+========================================
+  Test Loop Ended: Thu Apr 23 08:56:21 AM KST 2026
+  Test Loop Ended: Thu Apr 23 08:56:21 AM KST 2026
+  Rounds completed: 50
+  Rounds completed: 50
+========================================
+========================================

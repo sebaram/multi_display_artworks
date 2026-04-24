@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import mongoengine
 from flask import Flask
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
@@ -303,12 +304,33 @@ class WhisperConfigView(MyModelView):
 from metamuseum.models import User, LLMConfig, WhisperConfig
 
 
+def _init_mongoengine(app):
+    """Single MongoEngine connection from Flask config (see config.py)."""
+    use_mock = app.config.get('MONGODB_USE_MOCK', False)
+    db_name = app.config.get('MONGODB_DB', 'metamuseum')
+    uri = (app.config.get('MONGODB_URI') or '').strip()
+    host = app.config.get('MONGODB_HOST', 'localhost')
+    port = int(app.config.get('MONGODB_PORT', 27017))
+
+    if use_mock:
+        import mongomock
+
+        mongoengine.connect(db_name, mongo_client_class=mongomock.MongoClient)
+        print('=======RUNNING WITH MONGOMOCK (in-memory DB)==========')
+    elif uri:
+        mongoengine.connect(db_name, host=uri)
+        print('=======RUNNING MAIN APP (with auth URI)==========')
+    else:
+        mongoengine.connect(db_name, host=host, port=port)
+        print('=======RUNNING MAIN APP (no auth)==========')
+
+
 def create_app():
     app = Flask(__name__,
                  static_folder='static',
                  template_folder='templates')
     app.config.from_object(config)
-    
+    _init_mongoengine(app)
 
     # ORM
     login_manager.init_app(app)

@@ -1,116 +1,178 @@
 ========================================
-  Test Loop Started: Thu Apr 23 08:31:04 AM KST 2026
-  Test Loop Started: Thu Apr 23 08:31:04 AM KST 2026
+  Test Loop Started: Sun May 31 08:33:32 PM KST 2026
+  Test Loop Started: Sun May 31 08:33:32 PM KST 2026
 ========================================
 ========================================
 
 
 --- Round 1 -----------------------------------------------
 --- Round 1 -----------------------------------------------
-Start: 08:31:04
-Start: 08:31:04
+Start: 20:33:32
+Start: 20:33:32
 ========================================
   multi_display_artworks Test Round
 ========================================
 
 1. Health & Container
   ✅ Container running
-  ✅ Health endpoint ok
+  ❌ Health
 
 2. Main Page
-  ✅ Main page loads
-  ℹ️  Rooms found: 3
+  ❌ Main page
 
 3. Room List
-  ✅ Room: splat_playground
-  ✅ Room: art_gallery
-  ✅ Room: demo_room
+  ❌ Room missing
+  ❌ Room missing
+  ❌ Room missing
 
 4. Room URLs (HTML render)
-  ℹ️  3 rooms accessible (1 skipped as stale)
-  ✅ All rooms render
+  ℹ️  0 rooms accessible (0 skipped as stale)
+  ❌ Room render
 
 5. Image URLs
-  ℹ️  3 images accessible
-  ✅ Images load
+  ❌ Images
 
 6. A-Frame Scene Elements
-  ✅ A-Frame scene present
-  ✅ Wall boxes render
+  ❌ A-Frame
+  ❌ Wall boxes
   ℹ️  No images in this room (may be normal)
 
 7. Mobile View
-  ✅ Mobile main page
+  ❌ Mobile main page
 
 8. JS Critical Patterns
-  ✅ window.roomId set
-  ✅ Socket.IO loaded
+  ❌ window.roomId
+  ❌ Socket.IO
 
 9. Admin Panel
-  ✅ Admin panel accessible
+  ❌ Admin panel
 
 10. Wall Page
-  ✅ Wall page renders
+  ℹ️  No wall ID found (may be normal)
 
 ========================================
   Summary
 ========================================
-  All checks passed! ✅
+  13 issue(s) found:
+    • [Health] Got: 
+    • [Main page] Not loading
+    • [Room missing] splat_playground not found in main page
+    • [Room missing] art_gallery not found in main page
+    • [Room missing] demo_room not found in main page
+    • [Room render] 0/3 rooms
+    • [Images] No room with images found
+    • [A-Frame] a-scene not found
+    • [Wall boxes] No a-box found
+    • [Mobile main page] Not loading on mobile UA
+    • [window.roomId] Not found in room template
+    • [Socket.IO] Not found
+    • [Admin panel] Status: 000
 ========================================
   multi_display_artworks Test Round
 ========================================
 
 1. Health & Container
   ✅ Container running
-  ✅ Health endpoint ok
+  ❌ Health
 
 2. Main Page
-  ✅ Main page loads
-  ℹ️  Rooms found: 3
+  ❌ Main page
 
 3. Room List
-  ✅ Room: splat_playground
-  ✅ Room: art_gallery
-  ✅ Room: demo_room
+  ❌ Room missing
+  ❌ Room missing
+  ❌ Room missing
 
 4. Room URLs (HTML render)
-  ℹ️  3 rooms accessible (1 skipped as stale)
-  ✅ All rooms render
+  ℹ️  0 rooms accessible (0 skipped as stale)
+  ❌ Room render
 
 5. Image URLs
-  ℹ️  3 images accessible
-  ✅ Images load
+  ❌ Images
 
 6. A-Frame Scene Elements
-  ✅ A-Frame scene present
-  ✅ Wall boxes render
+  ❌ A-Frame
+  ❌ Wall boxes
   ℹ️  No images in this room (may be normal)
 
 7. Mobile View
-  ✅ Mobile main page
+  ❌ Mobile main page
 
 8. JS Critical Patterns
-  ✅ window.roomId set
-  ✅ Socket.IO loaded
+  ❌ window.roomId
+  ❌ Socket.IO
 
 9. Admin Panel
-  ✅ Admin panel accessible
+  ❌ Admin panel
 
 10. Wall Page
-  ✅ Wall page renders
+  ℹ️  No wall ID found (may be normal)
 
 ========================================
   Summary
 ========================================
-  All checks passed! ✅
-✅ Round 1: PASS
-✅ Round 1: PASS
+  13 issue(s) found:
+    • [Health] Got: 
+    • [Main page] Not loading
+    • [Room missing] splat_playground not found in main page
+    • [Room missing] art_gallery not found in main page
+    • [Room missing] demo_room not found in main page
+    • [Room render] 0/3 rooms
+    • [Images] No room with images found
+    • [A-Frame] a-scene not found
+    • [Wall boxes] No a-box found
+    • [Mobile main page] Not loading on mobile UA
+    • [window.roomId] Not found in room template
+    • [Socket.IO] Not found
+    • [Admin panel] Status: 000
+❌ Round 1: FAIL — Issues:
+❌ Round 1: FAIL — Issues:
+[Health] Got: 
+[Main page] Not loading
+[Room missing] splat_playground not found in main page
+[Room missing] art_gallery not found in main page
+[Room missing] demo_room not found in main page
+[Room render] 0/3 rooms
+[Images] No room with images found
+[A-Frame] a-scene not found
+[Wall boxes] No a-box found
+[Mobile main page] Not loading on mobile UA
+[window.roomId] Not found in room template
+[Socket.IO] Not found
+[Admin panel] Status: 000
+[Health] Got: 
+[Main page] Not loading
+[Room missing] splat_playground not found in main page
+[Room missing] art_gallery not found in main page
+[Room missing] demo_room not found in main page
+[Room render] 0/3 rooms
+[Images] No room with images found
+[A-Frame] a-scene not found
+[Wall boxes] No a-box found
+[Mobile main page] Not loading on mobile UA
+[window.roomId] Not found in room template
+[Socket.IO] Not found
+[Admin panel] Status: 000
+
+
+🔧 Spawning Codex to debug...
+🔧 Spawning Codex to debug...
+Codex PID: 4090, waiting for completion...
+Codex PID: 4090, waiting for completion...
+
+
+Codex output:
+Codex output:
+test_loop.sh: line 63: codex: command not found
+test_loop.sh: line 63: codex: command not found
+Round 1 complete. Sleeping 30s before next round...
+Round 1 complete. Sleeping 30s before next round...
 
 
 --- Round 2 -----------------------------------------------
 --- Round 2 -----------------------------------------------
-Start: 08:31:34
-Start: 08:31:34
+Start: 20:34:02
+Start: 20:34:02
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -211,8 +273,8 @@ Start: 08:31:34
 
 --- Round 3 -----------------------------------------------
 --- Round 3 -----------------------------------------------
-Start: 08:32:04
-Start: 08:32:04
+Start: 20:34:33
+Start: 20:34:33
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -313,8 +375,8 @@ Start: 08:32:04
 
 --- Round 4 -----------------------------------------------
 --- Round 4 -----------------------------------------------
-Start: 08:32:35
-Start: 08:32:35
+Start: 20:35:03
+Start: 20:35:03
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -415,8 +477,8 @@ Start: 08:32:35
 
 --- Round 5 -----------------------------------------------
 --- Round 5 -----------------------------------------------
-Start: 08:33:05
-Start: 08:33:05
+Start: 20:35:33
+Start: 20:35:33
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -517,8 +579,8 @@ Start: 08:33:05
 
 --- Round 6 -----------------------------------------------
 --- Round 6 -----------------------------------------------
-Start: 08:33:35
-Start: 08:33:35
+Start: 20:36:04
+Start: 20:36:04
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -619,8 +681,8 @@ Start: 08:33:35
 
 --- Round 7 -----------------------------------------------
 --- Round 7 -----------------------------------------------
-Start: 08:34:06
-Start: 08:34:06
+Start: 20:36:34
+Start: 20:36:34
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -721,8 +783,8 @@ Start: 08:34:06
 
 --- Round 8 -----------------------------------------------
 --- Round 8 -----------------------------------------------
-Start: 08:34:36
-Start: 08:34:36
+Start: 20:37:04
+Start: 20:37:04
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -823,8 +885,8 @@ Start: 08:34:36
 
 --- Round 9 -----------------------------------------------
 --- Round 9 -----------------------------------------------
-Start: 08:35:07
-Start: 08:35:07
+Start: 20:37:35
+Start: 20:37:35
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -925,8 +987,8 @@ Start: 08:35:07
 
 --- Round 10 -----------------------------------------------
 --- Round 10 -----------------------------------------------
-Start: 08:35:37
-Start: 08:35:37
+Start: 20:38:05
+Start: 20:38:05
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1027,8 +1089,8 @@ Start: 08:35:37
 
 --- Round 11 -----------------------------------------------
 --- Round 11 -----------------------------------------------
-Start: 08:36:07
-Start: 08:36:07
+Start: 20:38:35
+Start: 20:38:35
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1129,8 +1191,8 @@ Start: 08:36:07
 
 --- Round 12 -----------------------------------------------
 --- Round 12 -----------------------------------------------
-Start: 08:36:38
-Start: 08:36:38
+Start: 20:39:06
+Start: 20:39:06
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1231,8 +1293,8 @@ Start: 08:36:38
 
 --- Round 13 -----------------------------------------------
 --- Round 13 -----------------------------------------------
-Start: 08:37:08
-Start: 08:37:08
+Start: 20:39:36
+Start: 20:39:36
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1333,8 +1395,8 @@ Start: 08:37:08
 
 --- Round 14 -----------------------------------------------
 --- Round 14 -----------------------------------------------
-Start: 08:37:38
-Start: 08:37:38
+Start: 20:40:06
+Start: 20:40:06
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1435,8 +1497,8 @@ Start: 08:37:38
 
 --- Round 15 -----------------------------------------------
 --- Round 15 -----------------------------------------------
-Start: 08:38:09
-Start: 08:38:09
+Start: 20:40:37
+Start: 20:40:37
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1537,8 +1599,8 @@ Start: 08:38:09
 
 --- Round 16 -----------------------------------------------
 --- Round 16 -----------------------------------------------
-Start: 08:38:39
-Start: 08:38:39
+Start: 20:41:07
+Start: 20:41:07
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1639,8 +1701,8 @@ Start: 08:38:39
 
 --- Round 17 -----------------------------------------------
 --- Round 17 -----------------------------------------------
-Start: 08:39:09
-Start: 08:39:09
+Start: 20:41:37
+Start: 20:41:37
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1741,8 +1803,8 @@ Start: 08:39:09
 
 --- Round 18 -----------------------------------------------
 --- Round 18 -----------------------------------------------
-Start: 08:39:40
-Start: 08:39:40
+Start: 20:42:08
+Start: 20:42:08
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1843,8 +1905,8 @@ Start: 08:39:40
 
 --- Round 19 -----------------------------------------------
 --- Round 19 -----------------------------------------------
-Start: 08:40:10
-Start: 08:40:10
+Start: 20:42:38
+Start: 20:42:38
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -1945,8 +2007,8 @@ Start: 08:40:10
 
 --- Round 20 -----------------------------------------------
 --- Round 20 -----------------------------------------------
-Start: 08:40:40
-Start: 08:40:40
+Start: 20:43:08
+Start: 20:43:08
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2047,8 +2109,8 @@ Start: 08:40:40
 
 --- Round 21 -----------------------------------------------
 --- Round 21 -----------------------------------------------
-Start: 08:41:11
-Start: 08:41:11
+Start: 20:43:39
+Start: 20:43:39
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2149,8 +2211,8 @@ Start: 08:41:11
 
 --- Round 22 -----------------------------------------------
 --- Round 22 -----------------------------------------------
-Start: 08:41:41
-Start: 08:41:41
+Start: 20:44:09
+Start: 20:44:09
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2251,8 +2313,8 @@ Start: 08:41:41
 
 --- Round 23 -----------------------------------------------
 --- Round 23 -----------------------------------------------
-Start: 08:42:11
-Start: 08:42:11
+Start: 20:44:40
+Start: 20:44:40
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2353,8 +2415,8 @@ Start: 08:42:11
 
 --- Round 24 -----------------------------------------------
 --- Round 24 -----------------------------------------------
-Start: 08:42:42
-Start: 08:42:42
+Start: 20:45:10
+Start: 20:45:10
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2455,8 +2517,8 @@ Start: 08:42:42
 
 --- Round 25 -----------------------------------------------
 --- Round 25 -----------------------------------------------
-Start: 08:43:12
-Start: 08:43:12
+Start: 20:45:40
+Start: 20:45:40
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2557,8 +2619,8 @@ Start: 08:43:12
 
 --- Round 26 -----------------------------------------------
 --- Round 26 -----------------------------------------------
-Start: 08:43:42
-Start: 08:43:42
+Start: 20:46:11
+Start: 20:46:11
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2659,8 +2721,8 @@ Start: 08:43:42
 
 --- Round 27 -----------------------------------------------
 --- Round 27 -----------------------------------------------
-Start: 08:44:13
-Start: 08:44:13
+Start: 20:46:41
+Start: 20:46:41
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2761,8 +2823,8 @@ Start: 08:44:13
 
 --- Round 28 -----------------------------------------------
 --- Round 28 -----------------------------------------------
-Start: 08:44:43
-Start: 08:44:43
+Start: 20:47:11
+Start: 20:47:11
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2863,8 +2925,8 @@ Start: 08:44:43
 
 --- Round 29 -----------------------------------------------
 --- Round 29 -----------------------------------------------
-Start: 08:45:14
-Start: 08:45:14
+Start: 20:47:42
+Start: 20:47:42
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -2965,8 +3027,8 @@ Start: 08:45:14
 
 --- Round 30 -----------------------------------------------
 --- Round 30 -----------------------------------------------
-Start: 08:45:44
-Start: 08:45:44
+Start: 20:48:12
+Start: 20:48:12
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3067,8 +3129,8 @@ Start: 08:45:44
 
 --- Round 31 -----------------------------------------------
 --- Round 31 -----------------------------------------------
-Start: 08:46:14
-Start: 08:46:14
+Start: 20:48:42
+Start: 20:48:42
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3169,8 +3231,8 @@ Start: 08:46:14
 
 --- Round 32 -----------------------------------------------
 --- Round 32 -----------------------------------------------
-Start: 08:46:45
-Start: 08:46:45
+Start: 20:49:13
+Start: 20:49:13
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3271,8 +3333,8 @@ Start: 08:46:45
 
 --- Round 33 -----------------------------------------------
 --- Round 33 -----------------------------------------------
-Start: 08:47:15
-Start: 08:47:15
+Start: 20:49:43
+Start: 20:49:43
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3373,8 +3435,8 @@ Start: 08:47:15
 
 --- Round 34 -----------------------------------------------
 --- Round 34 -----------------------------------------------
-Start: 08:47:45
-Start: 08:47:45
+Start: 20:50:13
+Start: 20:50:13
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3475,8 +3537,8 @@ Start: 08:47:45
 
 --- Round 35 -----------------------------------------------
 --- Round 35 -----------------------------------------------
-Start: 08:48:16
-Start: 08:48:16
+Start: 20:50:44
+Start: 20:50:44
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3577,8 +3639,8 @@ Start: 08:48:16
 
 --- Round 36 -----------------------------------------------
 --- Round 36 -----------------------------------------------
-Start: 08:48:46
-Start: 08:48:46
+Start: 20:51:14
+Start: 20:51:14
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3679,8 +3741,8 @@ Start: 08:48:46
 
 --- Round 37 -----------------------------------------------
 --- Round 37 -----------------------------------------------
-Start: 08:49:16
-Start: 08:49:16
+Start: 20:51:44
+Start: 20:51:44
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3781,8 +3843,8 @@ Start: 08:49:16
 
 --- Round 38 -----------------------------------------------
 --- Round 38 -----------------------------------------------
-Start: 08:49:47
-Start: 08:49:47
+Start: 20:52:15
+Start: 20:52:15
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3883,8 +3945,8 @@ Start: 08:49:47
 
 --- Round 39 -----------------------------------------------
 --- Round 39 -----------------------------------------------
-Start: 08:50:17
-Start: 08:50:17
+Start: 20:52:45
+Start: 20:52:45
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -3985,8 +4047,8 @@ Start: 08:50:17
 
 --- Round 40 -----------------------------------------------
 --- Round 40 -----------------------------------------------
-Start: 08:50:47
-Start: 08:50:47
+Start: 20:53:16
+Start: 20:53:16
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4087,8 +4149,8 @@ Start: 08:50:47
 
 --- Round 41 -----------------------------------------------
 --- Round 41 -----------------------------------------------
-Start: 08:51:18
-Start: 08:51:18
+Start: 20:53:46
+Start: 20:53:46
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4189,8 +4251,8 @@ Start: 08:51:18
 
 --- Round 42 -----------------------------------------------
 --- Round 42 -----------------------------------------------
-Start: 08:51:48
-Start: 08:51:48
+Start: 20:54:16
+Start: 20:54:16
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4291,8 +4353,8 @@ Start: 08:51:48
 
 --- Round 43 -----------------------------------------------
 --- Round 43 -----------------------------------------------
-Start: 08:52:19
-Start: 08:52:19
+Start: 20:54:47
+Start: 20:54:47
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4393,8 +4455,8 @@ Start: 08:52:19
 
 --- Round 44 -----------------------------------------------
 --- Round 44 -----------------------------------------------
-Start: 08:52:49
-Start: 08:52:49
+Start: 20:55:17
+Start: 20:55:17
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4495,8 +4557,8 @@ Start: 08:52:49
 
 --- Round 45 -----------------------------------------------
 --- Round 45 -----------------------------------------------
-Start: 08:53:19
-Start: 08:53:19
+Start: 20:55:47
+Start: 20:55:47
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4597,8 +4659,8 @@ Start: 08:53:19
 
 --- Round 46 -----------------------------------------------
 --- Round 46 -----------------------------------------------
-Start: 08:53:50
-Start: 08:53:50
+Start: 20:56:18
+Start: 20:56:18
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4699,8 +4761,8 @@ Start: 08:53:50
 
 --- Round 47 -----------------------------------------------
 --- Round 47 -----------------------------------------------
-Start: 08:54:20
-Start: 08:54:20
+Start: 20:56:48
+Start: 20:56:48
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4801,8 +4863,8 @@ Start: 08:54:20
 
 --- Round 48 -----------------------------------------------
 --- Round 48 -----------------------------------------------
-Start: 08:54:50
-Start: 08:54:50
+Start: 20:57:18
+Start: 20:57:18
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -4903,8 +4965,8 @@ Start: 08:54:50
 
 --- Round 49 -----------------------------------------------
 --- Round 49 -----------------------------------------------
-Start: 08:55:21
-Start: 08:55:21
+Start: 20:57:49
+Start: 20:57:49
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -5005,8 +5067,8 @@ Start: 08:55:21
 
 --- Round 50 -----------------------------------------------
 --- Round 50 -----------------------------------------------
-Start: 08:55:51
-Start: 08:55:51
+Start: 20:58:19
+Start: 20:58:19
 ========================================
   multi_display_artworks Test Round
 ========================================
@@ -5107,8 +5169,8 @@ Start: 08:55:51
 
 ========================================
 ========================================
-  Test Loop Ended: Thu Apr 23 08:56:21 AM KST 2026
-  Test Loop Ended: Thu Apr 23 08:56:21 AM KST 2026
+  Test Loop Ended: Sun May 31 08:58:49 PM KST 2026
+  Test Loop Ended: Sun May 31 08:58:49 PM KST 2026
   Rounds completed: 50
   Rounds completed: 50
 ========================================

@@ -324,6 +324,7 @@ def create_app():
     from metamuseum.views import ar_companion_views
     from metamuseum.views import llm_layout
     from metamuseum.views import whisper_views
+    from metamuseum.views import gesture_mark_views
     from metamuseum import auth
     app.register_blueprint(main_views.bp)
     app.register_blueprint(auth.bp)
@@ -332,6 +333,7 @@ def create_app():
     app.register_blueprint(ar_companion_views.bp)
     app.register_blueprint(llm_layout.bp)
     app.register_blueprint(whisper_views.bp)
+    app.register_blueprint(gesture_mark_views.bp)
 
     # Initialize SocketIO for AR companion (phone→Vision Pro relay)
     from metamuseum.core.ar_proxy import init_socketio
@@ -340,6 +342,10 @@ def create_app():
     # Also init position sync using the same SocketIO instance
     from metamuseum.core.position_sync import init_socketio as init_pos_sync
     init_pos_sync(app, existing_sio=sio)
+
+    # Init gesture mark SocketIO handlers
+    from metamuseum.views.gesture_mark_views import init_gesture_mark_socketio
+    init_gesture_mark_socketio(sio)
        
     # for admin page
     admin = Admin(app, name='MetaMuseum-admin', url='/kwanri')

@@ -1,3 +1,8 @@
+> ⚠️ **DEPRECATED** — This GitLab repo is no longer maintained.
+> **This project has moved to GitHub:** https://github.com/sebaram/multi_display_artworks
+>
+> ---
+
 # multi_display_artworks
 **Demo:** https://meta.juyounglee.net
 

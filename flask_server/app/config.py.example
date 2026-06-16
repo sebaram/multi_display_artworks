@@ -13,6 +13,8 @@ MONGODB_URI = os.environ.get('MONGODB_URI', '')
 MONGODB_HOST = os.environ.get('MONGODB_HOST', 'localhost')
 MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
 MONGODB_DB = os.environ.get('MONGODB_DB', 'metamuseum')
+# In-memory DB for tests / seed scripts — set env MONGODB_MOCK=true
+MONGODB_USE_MOCK = os.environ.get('MONGODB_MOCK', 'false').lower() == 'true'
 
 
 # ─── Flask ───────────────────────────────────────────────────────────────────

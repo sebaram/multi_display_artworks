@@ -7,6 +7,7 @@ eventlet>=0.35.0  # async mode for Flask-SocketIO
 # MongoDB
 pymongo>=4.6.0,<5.0
 mongoengine>=0.28.0
+flask-mongoengine>=1.0.0  # required by flask_admin.contrib.mongoengine
 mongomock>=4.0.0  # for dev/testing only (USE_MOCK=true)
 
 # Flask extensions

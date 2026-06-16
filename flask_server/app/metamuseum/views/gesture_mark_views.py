@@ -79,7 +79,6 @@ def broadcast_touchpoint(data):
 def broadcast_gesture_result(result_str):
     """Push a recognized gesture result to all subscribers."""
     global _gesture_result
-    global _gesture_result
     with _lock:
         _gesture_result = result_str
         data = {'datatype': 'gesture_result', 'result_str': result_str,

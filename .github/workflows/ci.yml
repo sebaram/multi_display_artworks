@@ -1,0 +1,32 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build app image
+        run: docker compose -f docker-compose.yml build app
+      - name: Build complete
+        run: echo "Build complete — skipping registry push (no CI_REGISTRY credentials set)"
+
+  # Deploy job — runs on self-hosted runner with Docker access
+  # Uncomment and configure runner when ready for CI/CD
+  #
+  # deploy:
+  #   name: Deploy to production
+  #   runs-on: [self-hosted, jy-testing]
+  #   needs: build
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Deploy with Docker Compose
+  #       run: |
+  #         docker compose pull
+  #         docker compose up -d --build

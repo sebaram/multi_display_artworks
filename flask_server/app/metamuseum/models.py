@@ -32,7 +32,7 @@ class User(UserMixin, Document):
 
 class LLMConfig(Document):
     """LLM provider configuration — supports MiniMax, OpenAI, OpenRouter, etc."""
-    _id = 'llm_config'  # singleton
+    # Singleton: only one active config enforced by is_active=True query
 
     provider = StringField(required=True, choices=['minimax', 'openai', 'openrouter', 'anthropic'])
     api_base = StringField(required=True)  # e.g. https://api.minimax.io/v1
@@ -72,7 +72,6 @@ class LLMConfig(Document):
         cls.objects.update(set__is_active=False)
         # Create new
         config = cls(
-            _id='llm_config',
             provider=provider,
             api_base=api_base,
             api_key=api_key,
@@ -87,7 +86,7 @@ class LLMConfig(Document):
 
 class WhisperConfig(Document):
     """Whisper API configuration for voice transcription."""
-    _id = 'whisper_config'
+    # Singleton: only one config expected (get_active returns first)
 
     provider = StringField(required=True, choices=['openai', 'minimax', 'local'])
     api_base = StringField(required=True)  # e.g. https://api.openai.com/v1
@@ -120,7 +119,6 @@ class WhisperConfig(Document):
             existing.save()
         else:
             existing = cls(
-                _id='whisper_config',
                 provider=provider,
                 api_base=api_base,
                 api_key=api_key,

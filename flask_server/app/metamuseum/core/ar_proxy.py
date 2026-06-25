@@ -7,7 +7,9 @@ from flask import request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 _SOCKETIO_ASYNC_MODE = (
-    'gevent' if importlib.util.find_spec('gevent') is not None else 'threading'
+    'eventlet' if importlib.util.find_spec('eventlet') is not None
+    else 'gevent' if importlib.util.find_spec('gevent') is not None
+    else 'threading'
 )
 
 # Global socketio instance (initialized in __init__.py)

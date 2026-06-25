@@ -14,7 +14,9 @@ from collections import defaultdict
 from flask import request
 
 _SOCKETIO_ASYNC_MODE = (
-    'gevent' if importlib.util.find_spec('gevent') is not None else 'threading'
+    'eventlet' if importlib.util.find_spec('eventlet') is not None
+    else 'gevent' if importlib.util.find_spec('gevent') is not None
+    else 'threading'
 )
 
 # Global socketio instance (also exported as `socketio` for convenience)

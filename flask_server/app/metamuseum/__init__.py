@@ -20,6 +20,7 @@ from . import models
 
 from flask import redirect, url_for, request 
 from flask_login import login_required, current_user
+from flask_admin import AdminIndexView
 from flask_admin.contrib.mongoengine import ModelView
 
 # class AuthModelView(ModelView):
@@ -47,6 +48,13 @@ class MyModelView(ModelView):
         return not current_user.is_anonymous and current_user.is_admin()
     def inaccessible_callback(self, name, **kwargs):
         # redirect to login page if user doesn't have access
+        return redirect(url_for('auth.signin', next=request.url))
+
+
+class SecureAdminIndexView(AdminIndexView):
+    def is_accessible(self):
+        return not current_user.is_anonymous and current_user.is_admin()
+    def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.signin', next=request.url))
 
 
@@ -370,7 +378,8 @@ def create_app():
     init_gesture_mark_socketio(sio)
        
     # for admin page
-    admin = Admin(app, name='MetaMuseum-admin', url='/kwanri')
+    admin = Admin(app, name='MetaMuseum-admin', url='/kwanri',
+                  index_view=SecureAdminIndexView(url='/kwanri', endpoint='admin'))
     from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat, GLTFmodel, Webpage, LocationPreset, Marker, RoomEffect
     admin.add_view(RoomView(Room))
     admin.add_view(WallView(Wall))

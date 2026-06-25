@@ -51,9 +51,9 @@ def request_loader(request):
     # DO NOT ever store passwords in plaintext and always compare password
     # hashes using constant-time comparison!
     
-    user.is_authenticated = check_password_hash(user.password, request.form['password'])
-
-    return user
+    if check_password_hash(user.password, request.form.get('password', '')):
+        return user
+    return None
 
 @bp.route('/signin', methods=['GET', 'POST'])
 def signin():
@@ -72,8 +72,7 @@ def signin():
         send_verification_email(requested_user)
         return redirect(signin_url)
 
-    requested_user.is_authenticated = check_password_hash (requested_user.password, form.password.data)
-    if requested_user.is_authenticated:
+    if check_password_hash(requested_user.password, form.password.data):
         login_user(requested_user)
         next_page = request.args.get('next')  # Get the next URL parameter
         if not is_safe_url(next_page):

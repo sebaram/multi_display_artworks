@@ -3,6 +3,10 @@
 import tempfile
 import os
 import logging
+import json
+import uuid
+import urllib.request
+import urllib.error
 from flask import Blueprint, request, jsonify
 from metamuseum.models import WhisperConfig
 
@@ -93,24 +97,55 @@ def whisper_config_endpoint():
 
 def call_whisper(config, audio_path):
     """Call Whisper API (OpenAI-compatible endpoint)."""
-    import requests
-
     url = f"{config.api_base.rstrip('/')}/audio/transcriptions"
+    boundary = uuid.uuid4().hex
 
     with open(audio_path, 'rb') as f:
-        files = {'file': ('audio.webm', f, 'audio/webm')}
-        data = {'model': config.model}
-        if config.language:
-            data['language'] = config.language
+        audio_bytes = f.read()
 
-        resp = requests.post(
-            url,
-            files=files,
-            data=data,
-            headers={'Authorization': f"Bearer {config.api_key}"},
-            timeout=30
-        )
+    # Build multipart/form-data body manually (stdlib has no multipart helper)
+    crlf = b'\r\n'
+    parts = []
 
-    resp.raise_for_status()
-    result = resp.json()
-    return result.get('text', '').strip()
+    def add_field(name, value):
+        parts.append(f'--{boundary}{crlf.decode()}'.encode())
+        parts.append(f'Content-Disposition: form-data; name="{name}"{crlf.decode() * 2}'.encode())
+        parts.append(f'{value}{crlf.decode()}'.encode())
+
+    add_field('model', config.model)
+    if config.language:
+        add_field('language', config.language)
+
+    parts.append(f'--{boundary}{crlf.decode()}'.encode())
+    parts.append(f'Content-Disposition: form-data; name="file"; filename="audio.webm"{crlf.decode()}'.encode())
+    parts.append(f'Content-Type: audio/webm{crlf.decode() * 2}'.encode())
+    parts.append(audio_bytes)
+    parts.append(crlf)
+    parts.append(f'--{boundary}--{crlf.decode()}'.encode())
+
+    body = b''.join(parts)
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            'Authorization': f'Bearer {config.api_key}',
+            'Content-Type': f'multipart/form-data; boundary={boundary}',
+        },
+        method='POST',
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+        return result.get('text', '').strip()
+    except urllib.error.HTTPError as e:
+        err_body = ''
+        try:
+            err_body = e.read().decode('utf-8', 'ignore')[:300]
+        except Exception:
+            pass
+        logger.error(f'Whisper HTTP error {e.code}: {err_body}')
+        return None
+    except Exception as e:
+        logger.error(f'Whisper call failed: {e}')
+        return None

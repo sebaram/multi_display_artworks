@@ -2,6 +2,8 @@
 """LLM-powered auto-layout for arranging artworks in a room."""
 import json
 import logging
+import urllib.request
+import urllib.error
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
 from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat
@@ -67,10 +69,10 @@ def auto_layout():
     for w in walls:
         wall_list.append({
             'name': w.name,
-            'position': f'{w.position_x} {w.position_y} {w.position_z}',
+            'position': w.position,
             'width': getattr(w, 'width', 3.0),
             'height': getattr(w, 'height', 2.0),
-            'rotation': f'{getattr(w, "rotation_x", 0)} {getattr(w, "rotation_y", 0)} {getattr(w, "rotation_z", 0)}'
+            'rotation': w.rotation
         })
 
     # Gather images and gaussian splats
@@ -335,7 +337,6 @@ def clear_effects():
 
 def call_llm(system_prompt, user_prompt):
     """Call LLM using active config from MongoDB (supports any OpenAI-compatible provider)."""
-    import requests
     from metamuseum.models import LLMConfig
 
     config = LLMConfig.get_active()
@@ -349,26 +350,30 @@ def call_llm(system_prompt, user_prompt):
     if not api_key:
         return None, 'LLM API key not configured'
 
+    content = ''
     try:
-        resp = requests.post(
-            f'{api_base.rstrip("/")}/chat/completions',
+        url = f'{api_base.rstrip("/")}/chat/completions'
+        payload = json.dumps({
+            'model': model,
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            'temperature': config.temperature,
+            'max_tokens': config.max_tokens
+        }).encode('utf-8')
+        req = urllib.request.Request(
+            url,
+            data=payload,
             headers={
                 'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            json={
-                'model': model,
-                'messages': [
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                'temperature': config.temperature,
-                'max_tokens': config.max_tokens
-            },
-            timeout=60
+            method='POST',
         )
-        resp.raise_for_status()
-        data = resp.json()
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            response_text = resp.read().decode('utf-8')
+        data = json.loads(response_text)
         content = data['choices'][0]['message']['content'].strip()
 
         # Strip markdown code blocks if present
@@ -382,6 +387,14 @@ def call_llm(system_prompt, user_prompt):
         explanation = result.get('explanation', '')
         return items, explanation
 
+    except urllib.error.HTTPError as e:
+        body = ''
+        try:
+            body = e.read().decode('utf-8', 'ignore')[:300]
+        except Exception:
+            pass
+        logger.error(f'LLM HTTP error {e.code}: {body}')
+        return None, f'LLM HTTP {e.code}: {body}'
     except json.JSONDecodeError as e:
         logger.error(f'LLM returned invalid JSON: {e}\nContent: {content[:500]}')
         return None, f'LLM returned invalid JSON: {e}'

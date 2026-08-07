@@ -1,0 +1,119 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Never let two deploys race for the same container.
+concurrency:
+  group: metamuseum-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t metamuseum:ci ./flask_server
+
+      - name: Smoke test against a mock database
+        # config.py honours MONGODB_MOCK, and mongomock is in requirements, so
+        # the app can boot with no real MongoDB. This catches import errors,
+        # missing dependencies and a broken app factory before we touch prod.
+        run: |
+          docker run -d --name ci_smoke -p 5000:5000 \
+            -e MONGODB_MOCK=true \
+            -e SECRET_KEY=ci -e SECURITY_PASSWORD_SALT=ci \
+            metamuseum:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5000/health || true)
+            if [ "$code" = "200" ]; then
+              echo "app booted and /health is green"
+              docker rm -f ci_smoke >/dev/null
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::app did not become healthy within 60s"
+          docker logs ci_smoke
+          docker rm -f ci_smoke >/dev/null
+          exit 1
+
+  deploy:
+    name: Deploy to production
+    needs: build
+    runs-on: [self-hosted, jy-server]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check host data root
+        # Secrets and DB-referenced media live on the host. Without them the
+        # container starts but serves a broken site, so fail loudly instead.
+        run: |
+          missing=0
+          for p in /var/www/metamuseum/data/metamuseum.env \
+                   /var/www/metamuseum/data/static_splat \
+                   /var/www/metamuseum/data/static_image \
+                   /var/www/metamuseum/data/static_gltf/matisse_dance.glb; do
+            if [ ! -e "$p" ]; then
+              echo "::error::missing $p"
+              missing=1
+            fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo "::error::run scripts/init_host_data.sh on the host first"
+            exit 1
+          fi
+
+      - name: Tag current image for rollback
+        run: |
+          if docker image inspect metamuseum:latest >/dev/null 2>&1; then
+            docker tag metamuseum:latest metamuseum:rollback
+            echo "tagged current image as :rollback"
+          else
+            echo "no existing image — first deploy"
+          fi
+
+      - name: Build and start
+        run: docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+
+      - name: Smoke test
+        run: |
+          ok=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:51736/health || true)
+            if [ "$code" = "200" ]; then ok=1; echo "healthy after $((i * 2))s"; break; fi
+            sleep 2
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::error::/health did not return 200 within 60s"
+            docker compose -f docker-compose.prod.yml logs --tail=50 app
+            exit 1
+          fi
+          # /health only proves the DB connection; check a real page renders too.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:51736/ || true)
+          if [ "$code" != "200" ]; then
+            echo "::error::index page returned $code"
+            docker compose -f docker-compose.prod.yml logs --tail=50 app
+            exit 1
+          fi
+          echo "index page OK"
+
+      - name: Roll back
+        if: failure()
+        run: |
+          if docker image inspect metamuseum:rollback >/dev/null 2>&1; then
+            echo "::warning::deploy failed — rolling back to previous image"
+            docker tag metamuseum:rollback metamuseum:latest
+            docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans
+          else
+            echo "::error::no rollback image available"
+          fi
+
+      - name: Prune dangling images
+        if: success()
+        run: docker image prune -f

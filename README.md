@@ -151,6 +151,49 @@ python seed_and_serve.py
 
 Requires **MongoDB** running. See `config.py` for MongoDB URI and secret key configuration.
 
+For a self-contained dev stack (app + its own MongoDB):
+
+```bash
+docker compose up -d --build       # docker-compose.yml — dev only, empty DB
+```
+
+---
+
+## Deployment
+
+Pushing to `master` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
+the image is built and smoke-tested against a mock database on a GitHub
+runner, then a **self-hosted runner** on the web server rebuilds and restarts
+the container. If `/health` or `/` fails within 60s the previous image is
+restored automatically.
+
+> **`docker-compose.yml` is the dev stack and brings up its own empty
+> `mongo:7`. Production uses `docker-compose.prod.yml`**, which attaches to the
+> long-lived `mongo_container` holding the real data. Do not deploy with the
+> dev file.
+
+Application code is baked into the image. Only secrets and the media that
+MongoDB references by path are mounted from the host:
+
+| Host path | Mounted at | Why |
+|---|---|---|
+| `data/metamuseum.env` | (env vars) | `config.py` reads all secrets from the environment |
+| `data/static_splat/` | `…/static/splat` | `GaussianSplat 'hail_splat'` → `static/splat/hail.splat` |
+| `data/static_image/` | `…/static/image` | `Image 'matisse_danceI'` → `static/image/dance_i.jpg` |
+| `data/static_gltf/*.glb` | `…/static/gltf/*.glb` | `GLTFmodel 'dance'` → `static/gltf/matisse_dance.glb` |
+| `data/streams/` | `/app/streams` | runtime scratch for HLS segments |
+
+### First-time host setup
+
+```bash
+bash scripts/init_host_data.sh              # stages /var/www/metamuseum/data
+$EDITOR /var/www/metamuseum/data/metamuseum.env   # fill in real secrets
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Apache reverse-proxies `meta.juyounglee.net` → `127.0.0.1:51736`, which maps to
+port **5000** in the container (SocketIO/eventlet, see `flask_server/start.sh`).
+
 ---
 
 ## API Endpoints
@@ -180,7 +223,8 @@ Requires **MongoDB** running. See `config.py` for MongoDB URI and secret key con
 | Variable | Description |
 |----------|-------------|
 | `SECRET_KEY` | Flask secret key |
-| `MONGO_URI` | MongoDB connection string |
+| `MONGODB_URI` | MongoDB connection string (takes precedence over `MONGODB_HOST`/`PORT`/`DB`) |
+| `MONGODB_MOCK` | `true` runs against an in-memory mongomock DB — used by CI |
 | `MAIL_*` | SMTP邮件配置 |
 | `MINIMAX_API_KEY` | MiniMax API key (legacy, DB config preferred) |
 

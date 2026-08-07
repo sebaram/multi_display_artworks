@@ -1,0 +1,65 @@
+# Production deployment for meta.juyounglee.net
+#
+# Deliberately separate from docker-compose.yml. That file is the
+# self-contained dev stack and brings up its own empty mongo:7; production
+# must instead attach to the long-lived mongo_container that holds the real
+# data, so the two must never be confused.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Host data root (see scripts/init_host_data.sh):
+#   /var/www/metamuseum/data/
+
+name: metamuseum
+
+services:
+  app:
+    build:
+      context: ./flask_server
+      dockerfile: Dockerfile
+    image: metamuseum:latest
+    container_name: metamuseum_container
+    restart: unless-stopped
+
+    # Apache reverse-proxies meta.juyounglee.net -> 127.0.0.1:51736.
+    # The image serves SocketIO/eventlet on 5000 (see flask_server/start.sh);
+    # the previous uwsgi+nginx image listened on 80.
+    ports:
+      - "127.0.0.1:51736:5000"
+
+    # Secrets live on the host only. config.py reads everything from the
+    # environment and ships with empty defaults, so this file is required.
+    env_file:
+      - /var/www/metamuseum/data/metamuseum.env
+
+    volumes:
+      # Referenced from MongoDB documents, not from code, so they must exist
+      # at these exact paths:
+      #   GaussianSplat 'hail_splat' -> static/splat/hail.splat
+      #   Image 'matisse_danceI'     -> static/image/dance_i.jpg
+      - /var/www/metamuseum/data/static_splat:/app/metamuseum/static/splat
+      - /var/www/metamuseum/data/static_image:/app/metamuseum/static/image
+      # Large .glb models, mounted as individual files so the repo's
+      # static/gltf/shiba/ avatar is not shadowed by the mount.
+      # GLTFmodel 'dance' -> static/gltf/matisse_dance.glb
+      - /var/www/metamuseum/data/static_gltf/matisse_dance.glb:/app/metamuseum/static/gltf/matisse_dance.glb:ro
+      - /var/www/metamuseum/data/static_gltf/wheel.glb:/app/metamuseum/static/gltf/wheel.glb:ro
+      # Runtime scratch for streaming
+      - /var/www/metamuseum/data/streams:/app/streams
+
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=5).status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    networks:
+      - tlxmongo
+
+networks:
+  # Pre-existing network carrying mongo_container, which holds the live
+  # metamuseum database. External so a deploy can never recreate it.
+  tlxmongo:
+    name: tlx-mongo_default
+    external: true

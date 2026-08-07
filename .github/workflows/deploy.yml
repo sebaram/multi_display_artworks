@@ -114,6 +114,10 @@ jobs:
             echo "::error::no rollback image available"
           fi
 
-      - name: Prune dangling images
+      - name: Prune dangling images and cap build cache
         if: success()
-        run: docker image prune -f
+        run: |
+          docker image prune -f
+          # Every deploy builds an image, so BuildKit's cache grows without
+          # bound — it had reached 14 GB before this cap was added.
+          docker builder prune -f --max-used-space 5GB

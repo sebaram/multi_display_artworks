@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const templateUrl = new URL('../../app/metamuseum/templates/room_aframe.html', import.meta.url);
+const bootstrapUrl = new URL('../../app/metamuseum/static/js/room/bootstrap.js', import.meta.url);
+const locationFeaturesUrl = new URL('../../app/metamuseum/static/js/location-features.js', import.meta.url);
 
 test('room template boots the session-bound profile module without query identity', async () => {
   const template = await readFile(templateUrl, 'utf8');
@@ -27,4 +29,22 @@ test('room socket uses the profile controller contract', async () => {
   assert.match(template, /userData\.color/);
   assert.match(template, /posSocket\.on\('profile_updated'/);
   assert.doesNotMatch(template, /initGuestName\(/);
+});
+
+test('room bootstrap owns map and mobile guidance while named preset teleport remains', async () => {
+  const [template, bootstrap, locationFeatures] = await Promise.all([
+    readFile(templateUrl, 'utf8'),
+    readFile(bootstrapUrl, 'utf8'),
+    readFile(locationFeaturesUrl, 'utf8'),
+  ]);
+
+  assert.match(template, /"presets":\s*{{\s*presets\s*\|\s*tojson\s*}}/);
+  assert.match(template, /"boundary":\s*{{\s*boundary\s*\|\s*tojson\s*}}/);
+  assert.match(template, /"wallList":\s*{{\s*wall_list\s*\|\s*tojson\s*}}/);
+  assert.match(bootstrap, /mountMinimap\(/);
+  assert.match(bootstrap, /mountMobileGuidance\(/);
+  assert.doesNotMatch(locationFeatures, /setInterval\(drawMinimap/);
+  assert.doesNotMatch(locationFeatures, /initMiniMap\(/);
+  assert.match(locationFeatures, /id="preset-select"/);
+  assert.match(locationFeatures, /teleportTo\(selected, boundary\)/);
 });

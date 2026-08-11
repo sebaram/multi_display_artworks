@@ -50,7 +50,11 @@
       {
         "visitorId": {{ visitor_id | tojson }},
         "avatarCatalog": {{ avatar_catalog | tojson }},
-        "roomId": {{ room_id | tojson }}
+        "roomId": {{ room_id | tojson }},
+        "presets": {{ presets | tojson }},
+        "boundary": {{ boundary | tojson }},
+        "wallList": {{ wall_list | tojson }},
+        "roomControlsEnabled": {{ 'false' if is_ar_marker or is_ar_companion else 'true' }}
       }
     </script>
     <script type="module" src="{{url_for('static', filename='js/room/bootstrap.js')}}"></script>
@@ -469,13 +473,12 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         // Enable drag after scene loads
         setTimeout(enableDrag, 1000);
 
-        // Init location features (presets, boundary, mini-map)
-        const presets = {{ presets | tojson }};
-        const boundary = {{ boundary | tojson }};
-        const wallList = {{ wall_list | tojson }};
+        // Init named preset teleport controls. Map controls mount from room/bootstrap.js.
+        const presets = roomBootstrap.presets;
+        const boundary = roomBootstrap.boundary;
         const isAdmin = {{ 'true' if drag_enabled else 'false' }};
         if (boundary && !arMode && !arCompanion) {
-          initLocationFeatures(presets, boundary, roomId, isAdmin, wallList);
+          initLocationFeatures(presets, boundary, roomId, isAdmin);
         }
 
         // Admin-only: AI arrange + effects buttons

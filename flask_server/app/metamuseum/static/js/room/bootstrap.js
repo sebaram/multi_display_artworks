@@ -2,6 +2,8 @@ import { AVATAR_CATALOG } from './avatar-catalog.js';
 import { createAvatarEntity } from './avatar-renderer.js';
 import { mountProfilePanel } from './profile-panel.js';
 import { loadProfile, saveProfile } from './profile-store.js';
+import { mountMinimap } from './minimap.js';
+import { mountMobileGuidance } from './mobile-guidance.js';
 
 function allowedCatalog(avatarIds) {
   return Object.fromEntries(
@@ -71,12 +73,41 @@ export function bootstrapRoomProfile({ bootstrapData, document, storage }) {
   };
 }
 
+export function mountRoomControls({ bootstrapData, document, window }) {
+  if (!bootstrapData.roomControlsEnabled) return { destroy() {} };
+
+  const minimap = mountMinimap({
+    presets: bootstrapData.presets,
+    boundary: bootstrapData.boundary,
+    wallList: bootstrapData.wallList,
+    getCamera: () => document.getElementById('camera'),
+    document,
+    requestAnimationFrame: window.requestAnimationFrame.bind(window),
+    cancelAnimationFrame: window.cancelAnimationFrame.bind(window),
+  });
+  const mobileGuidance = mountMobileGuidance({
+    document,
+    matchMedia: window.matchMedia.bind(window),
+  });
+
+  return {
+    minimap,
+    mobileGuidance,
+    destroy() {
+      minimap.destroy();
+      mobileGuidance.destroy();
+    },
+  };
+}
+
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  const bootstrapData = readRoomBootstrap(document);
   const controller = bootstrapRoomProfile({
-    bootstrapData: readRoomBootstrap(document),
+    bootstrapData,
     document,
     storage: window.localStorage,
   });
+  window.roomControls = mountRoomControls({ bootstrapData, document, window });
   window.roomProfileController = controller;
   window.dispatchEvent(new CustomEvent('room-profile-ready', { detail: controller }));
 }

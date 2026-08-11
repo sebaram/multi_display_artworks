@@ -11,7 +11,9 @@ Events:
 """
 import importlib.util
 from collections import defaultdict
-from flask import request
+from flask import request, session
+
+from metamuseum.core.visitor_profile import normalize_profile
 
 _SOCKETIO_ASYNC_MODE = (
     'eventlet' if importlib.util.find_spec('eventlet') is not None
@@ -23,12 +25,27 @@ _SOCKETIO_ASYNC_MODE = (
 socketio_instance = None
 socketio = None  # alias used by other modules
 
-# room_users: { room_id: { sid: { userId, avatar, position, rotation, leftHand, rightHand, handTracking } } }
+# room_users: { room_id: { sid: { userId, displayName, avatarId, color, position, rotation, hands... } } }
 room_users = defaultdict(dict)
 
 
 # room_voice_enabled: { room_id: bool } — server-authoritative voice state
 room_voice_enabled = defaultdict(lambda: False)
+
+
+def _public_presence(user):
+    """Serialize presence without leaking transport-only identifiers."""
+    return {
+        'userId': user['userId'],
+        'displayName': user['displayName'],
+        'avatarId': user['avatarId'],
+        'color': user['color'],
+        'position': user['position'],
+        'rotation': user['rotation'],
+        'leftHand': user['leftHand'],
+        'rightHand': user['rightHand'],
+        'handTracking': user['handTracking'],
+    }
 
 
 def init_socketio(app, existing_sio=None):
@@ -74,18 +91,18 @@ def _register_sync_handlers(sio):
 
     @sio.on('join_position_room')
     def on_join(data):
+        data = data or {}
         room_id = data.get('room_id')
-        userId = data.get('userId')
-        avatar = data.get('avatar', 'shiba')
+        visitor_id = session.get('visitor_id')
 
-        if not room_id or not userId:
+        if not room_id or not visitor_id:
             return
 
+        profile = normalize_profile(data.get('profile'))
         join_room(room_id)
         room_users[room_id][request.sid] = {
-            'userId': userId,
-            'avatar': avatar,
-            'displayName': data.get('displayName', userId),
+            'userId': visitor_id,
+            **profile,
             'position': data.get('position', '0 1.6 0'),
             'rotation': data.get('rotation', '0 0 0'),
             'leftHand': None,
@@ -95,8 +112,8 @@ def _register_sync_handlers(sio):
 
         # Send current room state to the new joiner
         existing_users = [
-            {**u, 'sid': sid}
-            for sid, u in room_users[room_id].items()
+            _public_presence(user)
+            for sid, user in room_users[room_id].items()
             if sid != request.sid
         ]
         sio.emit('room_state', {
@@ -106,9 +123,8 @@ def _register_sync_handlers(sio):
 
         # Notify others that a new user joined
         sio.emit('user_joined', {
-            'userId': userId,
-            'avatar': avatar,
-            'displayName': data.get('displayName', userId),
+            'userId': visitor_id,
+            **profile,
             'room_id': room_id
         }, room=room_id, skip_sid=request.sid)
 
@@ -130,6 +146,7 @@ def _register_sync_handlers(sio):
     @sio.on('position_update')
     def on_position_update(data):
         """Receive position update from a client, broadcast to others in room."""
+        data = data or {}
         room_id = data.get('room_id')
         if not room_id or room_id not in room_users:
             return
@@ -149,8 +166,9 @@ def _register_sync_handlers(sio):
         # Broadcast to all OTHER clients in the room
         broadcast_data = {
             'userId': user['userId'],
-            'avatar': user['avatar'],
-            'displayName': user.get('displayName', user['userId']),
+            'displayName': user['displayName'],
+            'avatarId': user['avatarId'],
+            'color': user['color'],
             'position': user['position'],
             'rotation': user['rotation'],
             'leftHand': user['leftHand'],
@@ -160,6 +178,22 @@ def _register_sync_handlers(sio):
         }
         sio.emit('position_update', broadcast_data, room=room_id, skip_sid=request.sid)
 
+    @sio.on('profile_update')
+    def on_profile_update(data):
+        """Update only the sender's normalized public profile fields."""
+        data = data or {}
+        room_id = data.get('room_id')
+        if not room_id or request.sid not in room_users.get(room_id, {}):
+            return
+
+        profile = normalize_profile(data.get('profile'))
+        room_users[room_id][request.sid].update(profile)
+        sio.emit('profile_updated', {
+            'userId': room_users[room_id][request.sid]['userId'],
+            **profile,
+            'room_id': room_id,
+        }, room=room_id, skip_sid=request.sid)
+
     @sio.on('request_room_state')
     def on_request_state(data):
         """Re-send full room state to requesting client."""
@@ -168,8 +202,8 @@ def _register_sync_handlers(sio):
             return
 
         existing_users = [
-            {**u, 'sid': sid}
-            for sid, u in room_users[room_id].items()
+            _public_presence(user)
+            for sid, user in room_users[room_id].items()
             if sid != request.sid
         ]
         sio.emit('room_state', {
@@ -287,7 +321,9 @@ def get_position_rooms():
         room_id: {
             sid: {
                 'userId': u['userId'],
-                'avatar': u['avatar'],
+                'displayName': u['displayName'],
+                'avatarId': u['avatarId'],
+                'color': u['color'],
                 'position': u['position'],
                 'rotation': u['rotation'],
                 'leftHand': u['leftHand'],

@@ -20,14 +20,14 @@ test('room template boots the session-bound profile module without query identit
 
 test('room socket uses the profile controller contract', async () => {
   const template = await readFile(templateUrl, 'utf8');
-  const positionPayload = template.match(/posSocket\.emit\('position_update',\s*\{([\s\S]*?)\}\);/u)?.[1];
+  const positionPayload = template.match(/roomSocketClient\.emit\('position_update',\s*\{([\s\S]*?)\}\);/u)?.[1];
 
-  assert.match(template, /roomProfileController\.joinPayload\(\)/);
   assert.ok(positionPayload, 'position_update payload should exist');
   assert.doesNotMatch(positionPayload, /userId|avatar|profile/);
   assert.match(template, /userData\.avatarId/);
   assert.match(template, /userData\.color/);
-  assert.match(template, /posSocket\.on\('profile_updated'/);
+  assert.match(template, /roomLegacySocketAdapter/);
+  assert.doesNotMatch(template, /\bposSocket(?:Connected)?\b/u);
   assert.doesNotMatch(template, /initGuestName\(/);
 });
 

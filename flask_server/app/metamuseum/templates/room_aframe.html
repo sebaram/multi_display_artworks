@@ -54,7 +54,8 @@
         "presets": {{ presets | tojson }},
         "boundary": {{ boundary | tojson }},
         "wallList": {{ wall_list | tojson }},
-        "roomControlsEnabled": {{ 'false' if is_ar_marker or is_ar_companion else 'true' }}
+        "roomControlsEnabled": {{ 'false' if is_ar_marker or is_ar_companion else 'true' }},
+        "isAdmin": {{ 'true' if drag_enabled else 'false' }}
       }
     </script>
     <script type="module" src="{{url_for('static', filename='js/room/bootstrap.js')}}"></script>
@@ -64,12 +65,12 @@
       const roomId = roomBootstrap.roomId;
       window.roomId = roomId;
       let roomProfileController = null;
+      let roomSocketClient = null;
       let handTrackingEnabled = false;
       let xrSession = null;
 
       window.addEventListener('room-profile-ready', (event) => {
         roomProfileController = event.detail;
-        initPositionSocket();
       });
 
       // Enable drag on all draggable elements (admin only)
@@ -254,8 +255,8 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         const position = cameraEl.getAttribute('position');
         const rotation = cameraEl.getAttribute('rotation');
 
-        if (!posSocket || !posSocketConnected) return;
-        posSocket.emit('position_update', {
+        if (!roomSocketClient) return;
+        roomSocketClient.emit('position_update', {
           room_id: roomId,
           position,
           rotation,
@@ -376,65 +377,26 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         });
       }
 
-      // ─── Socket.IO Position Sync ───────────────────────────────────────
-      let posSocket = null;
-      let posSocketConnected = false;
-
-      function initPositionSocket() {
-        if (posSocket) return;
-
-        const proto = location.protocol === 'https:' ? 'https:' : 'http:';
-        posSocket = io(`${proto}//${location.host}`, {
-          transports: ['websocket', 'polling'],
-          reconnection: true
-        });
-        roomProfileController.setSocket(posSocket);
-
-        posSocket.on('connect', () => {
-          console.log('[PosSync] Connected:', posSocket.id);
-          posSocketConnected = true;
-          posSocket.emit('join_position_room', roomProfileController.joinPayload());
-
-          // Request current voice state from server (authoritative)
-          posSocket.emit('voice.get_state', { room_id: roomId });
-        });
-
-        posSocket.on('disconnect', () => {
-          console.log('[PosSync] Disconnected');
-          posSocketConnected = false;
-        });
-
-        // Full room state on join (other existing users)
-        posSocket.on('room_state', (data) => {
-          console.log('[PosSync] Room state:', data.users.length, 'users');
-          updateOtherUsersCameras(data.users);
-        });
-
-        // New user joined
-        posSocket.on('user_joined', (data) => {
-          console.log('[PosSync] User joined:', data.userId);
-          // Will be handled by position_update or add directly
-        });
-
-        // User left — remove their avatar
-        posSocket.on('user_left', (data) => {
-          console.log('[PosSync] User left:', data.userId);
-          const el = document.getElementById(`camera-${data.userId}`);
-          if (el) el.parentNode.removeChild(el);
-        });
-
-        // Real-time position update from another user
-        posSocket.on('position_update', (data) => {
-          if (data.userId === myUserId) return;
-          updateOtherUsersCameras([data]);
-        });
-
-        posSocket.on('profile_updated', (data) => {
-          if (data.userId === myUserId) return;
-          const cameraEl = document.getElementById(`camera-${data.userId}`);
-          if (cameraEl) updateRemoteProfile(cameraEl, data);
-        });
-      }
+      // Temporary compatibility adapter. Task 4 moves these inline scene
+      // callbacks into modules; the socket itself is owned by bootstrap.js.
+      window.roomLegacySocketAdapter = {
+        initialize(socketClient) {
+          roomSocketClient = socketClient;
+          window.RoomEffects?.init(roomId, socketClient);
+          window.AvatarExpressions?.init(socketClient);
+          window.initVoiceChat?.(roomId, myUserId, roomBootstrap.isAdmin, socketClient);
+        },
+        renderUsers(users) {
+          updateOtherUsersCameras(users);
+        },
+        handleSocketEvent(eventName, data) {
+          window.RoomEffects?.handleSocketEvent(eventName, data);
+          if (eventName === 'expression') {
+            window.AvatarExpressions?.handleSocketEvent(data);
+          }
+          window.VoiceChat?.handleSocketEvent(eventName, data);
+        }
+      };
 
       // Alias for hand tracking (backward compat)
       function sendCameraData(leftHand = null, rightHand = null) {
@@ -476,7 +438,7 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         // Init named preset teleport controls. Map controls mount from room/bootstrap.js.
         const presets = roomBootstrap.presets;
         const boundary = roomBootstrap.boundary;
-        const isAdmin = {{ 'true' if drag_enabled else 'false' }};
+        const isAdmin = roomBootstrap.isAdmin;
         if (boundary && !arMode && !arCompanion) {
           initLocationFeatures(presets, boundary, roomId, isAdmin);
         }
@@ -485,29 +447,6 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         if (isAdmin) {
           addLLMLayoutButton();
           addLLMEffectsButton();
-        }
-
-        // Initialize room effects renderer
-        if (posSocket) {
-          posSocket.on('connect', function() {
-            if (typeof RoomEffects !== 'undefined') {
-              RoomEffects.init(roomId);
-            }
-          });
-        }
-
-        // Face expression detection (desktop browsers)
-        initAvatarExpressions();
-
-        // Voice chat init (socket must be connected)
-        if (posSocket) {
-          posSocket.on('connect', function() {
-            initVoiceChat(roomId, myUserId, isAdmin);
-          });
-          // If already connected
-          if (posSocketConnected) {
-            initVoiceChat(roomId, myUserId, isAdmin);
-          }
         }
 
         const supported = await checkHandTrackingSupport();

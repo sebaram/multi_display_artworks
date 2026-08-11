@@ -27,24 +27,18 @@ var VoiceChat = {
   roomId: null,
   userId: null,
   isAdmin: false,
+  socketClient: null,
   transcriber: null,     // MediaRecorder for Whisper
   lastTranscriptTime: 0
 };
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
 
-function initVoiceChat(roomId, userId, isAdmin) {
+function initVoiceChat(roomId, userId, isAdmin, socketClient) {
   VoiceChat.roomId = roomId;
   VoiceChat.userId = userId;
   VoiceChat.isAdmin = isAdmin;
-
-  // Request authoritative voice state from server
-  if (posSocket && posSocketConnected) {
-    posSocket.emit('voice.get_state', { room_id: roomId });
-  }
-
-  // Listen for signaling events
-  setupVoiceSignaling();
+  VoiceChat.socketClient = socketClient;
 
   // Add voice UI button
   addVoiceUI();
@@ -52,61 +46,41 @@ function initVoiceChat(roomId, userId, isAdmin) {
 
 // ─── Signaling via Socket.IO ──────────────────────────────────────────────────
 
-function setupVoiceSignaling() {
-  if (!posSocket) return;
-
-  posSocket.on('voice_admin_toggle', function(data) {
-    VoiceChat.enabled = data.enabled;
-    updateVoiceButton();
-    if (!VoiceChat.enabled && VoiceChat.active) {
-      leaveVoice();
+function handleVoiceSocketEvent(eventName, data) {
+  switch (eventName) {
+    case 'voice_admin_toggle':
+      VoiceChat.enabled = data.enabled;
+      updateVoiceButton();
+      if (!VoiceChat.enabled && VoiceChat.active) leaveVoice();
+      showVoiceNotification(data.enabled ? '🔊 Voice chat enabled by admin' : '🔇 Voice chat disabled');
+      break;
+    case 'voice.offer':
+      if (data.target === VoiceChat.userId) handleVoiceOffer(data);
+      break;
+    case 'voice.answer':
+      if (data.target === VoiceChat.userId) handleVoiceAnswer(data);
+      break;
+    case 'voice.ice':
+      if (data.target === VoiceChat.userId) handleVoiceICE(data);
+      break;
+    case 'voice.join':
+      if (data.userId !== VoiceChat.userId && VoiceChat.active && !VoiceChat.muted) {
+        createVoiceOffer(data.userId);
+      }
+      break;
+    case 'voice.leave':
+    case 'user_left':
+      removeVoicePeer(data.userId);
+      break;
+    case 'voice.mute': {
+      var audioEl = document.getElementById('voice-audio-' + data.userId);
+      if (audioEl) audioEl.muted = data.muted;
+      break;
     }
-    showVoiceNotification(data.enabled ? '🔊 Voice chat enabled by admin' : '🔇 Voice chat disabled');
-  });
-
-  posSocket.on('voice.offer', function(data) {
-    if (data.target !== VoiceChat.userId) return;
-    handleVoiceOffer(data);
-  });
-
-  posSocket.on('voice.answer', function(data) {
-    if (data.target !== VoiceChat.userId) return;
-    handleVoiceAnswer(data);
-  });
-
-  posSocket.on('voice.ice', function(data) {
-    if (data.target !== VoiceChat.userId) return;
-    handleVoiceICE(data);
-  });
-
-  posSocket.on('voice.join', function(data) {
-    if (data.userId === VoiceChat.userId) return;
-    // New user joined voice — create offer for them
-    if (VoiceChat.active && !VoiceChat.muted) {
-      createVoiceOffer(data.userId);
-    }
-  });
-
-  posSocket.on('voice.leave', function(data) {
-    removeVoicePeer(data.userId);
-  });
-
-  posSocket.on('voice.mute', function(data) {
-    // Update peer audio state
-    var audioEl = document.getElementById('voice-audio-' + data.userId);
-    if (audioEl) {
-      audioEl.muted = data.muted;
-    }
-  });
-
-  posSocket.on('voice.transcript', function(data) {
-    if (data.userId === VoiceChat.userId) return;
-    showTranscriptBubble(data.userId, data.text);
-  });
-
-  posSocket.on('user_left', function(data) {
-    removeVoicePeer(data.userId);
-  });
+    case 'voice.transcript':
+      if (data.userId !== VoiceChat.userId) showTranscriptBubble(data.userId, data.text);
+      break;
+  }
 }
 
 // ─── RTCPeerConnection ─────────────────────────────────────────────────────────
@@ -143,7 +117,7 @@ async function createVoiceOffer(peerId) {
 
     pc.onicecandidate = function(event) {
       if (event.candidate) {
-        posSocket.emit('voice.ice', {
+        VoiceChat.socketClient.emit('voice.ice', {
           room_id: VoiceChat.roomId,
           from: VoiceChat.userId,
           target: peerId,
@@ -155,7 +129,7 @@ async function createVoiceOffer(peerId) {
     var offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    posSocket.emit('voice.offer', {
+    VoiceChat.socketClient.emit('voice.offer', {
       room_id: VoiceChat.roomId,
       from: VoiceChat.userId,
       target: peerId,
@@ -185,7 +159,7 @@ async function handleVoiceOffer(data) {
 
     pc.onicecandidate = function(event) {
       if (event.candidate) {
-        posSocket.emit('voice.ice', {
+        VoiceChat.socketClient.emit('voice.ice', {
           room_id: VoiceChat.roomId,
           from: VoiceChat.userId,
           target: data.from,
@@ -198,7 +172,7 @@ async function handleVoiceOffer(data) {
     var answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    posSocket.emit('voice.answer', {
+    VoiceChat.socketClient.emit('voice.answer', {
       room_id: VoiceChat.roomId,
       from: VoiceChat.userId,
       target: data.from,
@@ -278,7 +252,7 @@ async function joinVoice() {
     startWhisperTranscription();
 
     // Notify room
-    posSocket.emit('voice.join', {
+    VoiceChat.socketClient.emit('voice.join', {
       room_id: VoiceChat.roomId,
       userId: VoiceChat.userId
     });
@@ -309,12 +283,10 @@ function leaveVoice() {
   });
 
   // Notify room
-  if (posSocket && posSocketConnected) {
-    posSocket.emit('voice.leave', {
-      room_id: VoiceChat.roomId,
-      userId: VoiceChat.userId
-    });
-  }
+  VoiceChat.socketClient.emit('voice.leave', {
+    room_id: VoiceChat.roomId,
+    userId: VoiceChat.userId
+  });
 
   VoiceChat.active = false;
   VoiceChat.muted = true;
@@ -330,13 +302,11 @@ function toggleMute() {
     VoiceChat.localStream.getAudioTracks()[0].enabled = !VoiceChat.muted;
   }
 
-  if (posSocket && posSocketConnected) {
-    posSocket.emit('voice.mute', {
-      room_id: VoiceChat.roomId,
-      userId: VoiceChat.userId,
-      muted: VoiceChat.muted
-    });
-  }
+  VoiceChat.socketClient.emit('voice.mute', {
+    room_id: VoiceChat.roomId,
+    userId: VoiceChat.userId,
+    muted: VoiceChat.muted
+  });
 
   updateVoiceButton();
 }
@@ -346,7 +316,7 @@ function toggleMute() {
 function toggleVoiceAdmin() {
   if (!VoiceChat.isAdmin) return;
   // Toggle always goes through server (server is authoritative)
-  posSocket.emit('voice.admin_toggle', {
+  VoiceChat.socketClient.emit('voice.admin_toggle', {
     room_id: VoiceChat.roomId,
     enabled: !VoiceChat.enabled
   });
@@ -434,14 +404,12 @@ async function sendToWhisper(blob) {
     if (!text) return;
 
     // Broadcast transcript to all users in room
-    if (posSocket && posSocketConnected) {
-      posSocket.emit('voice.transcript', {
-        room_id: VoiceChat.roomId,
-        userId: VoiceChat.userId,
-        text: text,
-        language: data.language || 'auto'
-      });
-    }
+    VoiceChat.socketClient.emit('voice.transcript', {
+      room_id: VoiceChat.roomId,
+      userId: VoiceChat.userId,
+      text: text,
+      language: data.language || 'auto'
+    });
 
     // Show own transcript locally
     showTranscriptBubble(VoiceChat.userId, text);
@@ -588,4 +556,5 @@ function showVoiceIndicator(peerId, speaking) {
 }
 
 window.initVoiceChat = initVoiceChat;
+VoiceChat.handleSocketEvent = handleVoiceSocketEvent;
 window.VoiceChat = VoiceChat;

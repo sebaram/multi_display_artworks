@@ -131,12 +131,16 @@ test('saved profile stays closed on entry and Save emits only when connected', (
     }),
   });
   const emitted = [];
-  const socket = {
+  const socketClient = {
     connected: false,
-    emit: (eventName, payload) => emitted.push([eventName, payload]),
+    emit(eventName, payload) {
+      if (!this.connected) return false;
+      emitted.push([eventName, payload]);
+      return true;
+    },
   };
   const controller = bootstrapRoomProfile({ bootstrapData, document, storage });
-  controller.setSocket(socket);
+  controller.setSocketClient(socketClient);
   const dialog = find(document.body, (element) => element.tagName === 'dialog');
 
   assert.equal(dialog.open, false);
@@ -149,7 +153,7 @@ test('saved profile stays closed on entry and Save emits only when connected', (
   assert.deepEqual(emitted, []);
   assert.equal(JSON.parse(storage.values.get(storageKey)).displayName, 'Updated Visitor');
 
-  socket.connected = true;
+  socketClient.connected = true;
   find(document.body, (element) => element.textContent === 'Edit').dispatchEvent({ type: 'click' });
   find(document.body, (element) => element.attributes.id === 'profile-display-name').value = 'Online Visitor';
   find(document.body, (element) => element.textContent === 'Save').dispatchEvent({ type: 'click' });

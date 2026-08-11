@@ -10,27 +10,18 @@
   var activeAmbient = null;
 
   window.RoomEffects = {
-    init: function(roomId) {
+    init: function(roomId, socketClient) {
       this.roomId = roomId;
-      setupSocketListeners();
+      this.socketClient = socketClient;
       // Fetch current active effects from server
       fetchActiveEffects();
+    },
+    handleSocketEvent: function(eventName, data) {
+      if (data.room_id !== this.roomId) return;
+      if (eventName === 'room_effects') renderEffects(data.effects);
+      if (eventName === 'room_effects_cleared') clearAllEffects();
     }
   };
-
-  function setupSocketListeners() {
-    if (!posSocket) return;
-
-    posSocket.on('room_effects', function(data) {
-      if (data.room_id !== RoomEffects.roomId) return;
-      renderEffects(data.effects);
-    });
-
-    posSocket.on('room_effects_cleared', function(data) {
-      if (data.room_id !== RoomEffects.roomId) return;
-      clearAllEffects();
-    });
-  }
 
   function fetchActiveEffects() {
     // Server pushes active effects on join via room_state

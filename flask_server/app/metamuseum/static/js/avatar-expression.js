@@ -12,6 +12,7 @@ let faceApiLoaded = false;
 let faceApiModelsLoaded = false;
 let expressionInterval = null;
 let lastSmileTime = 0;
+let expressionSocketClient = null;
 
 const FACE_API_MODELS_BASE = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
@@ -122,13 +123,11 @@ function showAvatarExpression(emoji, duration = 3000) {
   }, duration);
 
   // Broadcast expression to other users via socket
-  if (posSocket && posSocketConnected) {
-    posSocket.emit('expression', {
-      room_id: roomId,
-      userId: myUserId,
-      expression: emoji
-    });
-  }
+  expressionSocketClient?.emit('expression', {
+    room_id: roomId,
+    userId: myUserId,
+    expression: emoji
+  });
 }
 
 // Handle hand-raise wave detection (called from hand tracking)
@@ -139,13 +138,9 @@ function onHandRaiseDetected(side) {
 
 // ─── Receive and display others' expressions ─────────────────────────────────
 
-function initExpressionReceiver() {
-  if (!posSocket) return;
-
-  posSocket.on('expression', (data) => {
-    if (data.userId === myUserId) return;
-    showExpressionForUser(data.userId, data.expression);
-  });
+function handleAvatarExpressionSocketEvent(data) {
+  if (data.userId === myUserId) return;
+  showExpressionForUser(data.userId, data.expression);
 }
 
 function showExpressionForUser(userId, emoji) {
@@ -171,14 +166,17 @@ function showExpressionForUser(userId, emoji) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-function initAvatarExpressions() {
+function initAvatarExpressions(socketClient) {
+  expressionSocketClient = socketClient;
+
   // Start face detection (desktop browsers with camera)
   loadFaceAPI();
-
-  // Init receiver for others' expressions
-  initExpressionReceiver();
 }
 
 window.initAvatarExpressions = initAvatarExpressions;
+window.AvatarExpressions = {
+  init: initAvatarExpressions,
+  handleSocketEvent: handleAvatarExpressionSocketEvent
+};
 window.showAvatarExpression = showAvatarExpression;
 window.onHandRaiseDetected = onHandRaiseDetected;

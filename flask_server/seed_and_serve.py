@@ -24,7 +24,7 @@ def seed():
         password=generate_password_hash("admin123"),
         phone="01000000000",
         affiliation="MetaMuseum",
-        user_type="admin",
+        user_type=["admin"],
         email_verified=True
     )
     admin.save()
@@ -57,8 +57,7 @@ def seed():
     
     splat1 = GaussianSplat(name="luma_seal_splat", description="Luma seal 3D scan", wall=wall2,
         position="0 0.5 0", position_x=0, position_y=0.5,
-        splat_url="https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/luma-seal.splat",
-        scale="1 1 1", rotation="0 0 0")
+        splat_url="https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/luma-seal.splat")
     splat1.save()
     wall2.splats = [splat1]
     wall2.save()
@@ -70,7 +69,7 @@ def seed():
     gltf1 = GLTFmodel(name="dance_model", description="Dance animation model", wall=wall3,
         position="0 0 0", position_x=0, position_y=0, position_z=0.5,
         gltf_url="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DanceRevolution/glTF-Binary/DanceRevolution.glb",
-        scale="0.5 0.5 0.5", default_rotation="0 90 0", rotation="0 0 0")
+        scale_x=0.5, scale_y=0.5, scale_z=0.5, default_rotation="0 90 0")
     gltf1.save()
     wall3.gltfs = [gltf1]
     wall3.save()
@@ -116,7 +115,7 @@ def seed():
     splat2 = GaussianSplat(name="polycam_seal", description="Polycam scanned seal", wall=wall5,
         position="0 0.5 0", position_x=0, position_y=0.5,
         splat_url="https://huggingface.co/quadjr/aframe-gaussian-splatting/resolve/main/polycam-seal.splat",
-        scale="1.5 1.5 1.5", rotation="0 0 0")
+        scale_x=1.5, scale_y=1.5, scale_z=1.5)
     splat2.save()
     wall5.splats = [splat2]
     wall5.save()

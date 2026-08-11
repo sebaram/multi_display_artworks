@@ -9,8 +9,8 @@ services:
       - "5000:5000"
     environment:
       # Flask
-      - SECRET_KEY=your-secret-key-here
-      - SECURITY_PASSWORD_SALT=your-salt-here
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - SECURITY_PASSWORD_SALT=${SECURITY_PASSWORD_SALT:?SECURITY_PASSWORD_SALT is required}
       # MongoDB
       - MONGODB_URI=mongodb://mongo:27017/metamuseum
       # Email

@@ -12,8 +12,17 @@ MONGODB_DB = os.environ.get('MONGODB_DB', 'metamuseum')
 # ─── Flask ───────────────────────────────────────────────────────────────────
 DEFAULT_TITLE = "MetaMuseum"
 BASE_DIR = os.getcwd()
-SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
-SECURITY_PASSWORD_SALT = os.environ.get('SECURITY_PASSWORD_SALT', 'change-me-in-production')
+
+
+def _required_env(name):
+    value = os.environ.get(name, '').strip()
+    if not value:
+        raise RuntimeError(f'{name} must be set')
+    return value
+
+
+SECRET_KEY = _required_env('SECRET_KEY')
+SECURITY_PASSWORD_SALT = _required_env('SECURITY_PASSWORD_SALT')
 FLASK_ADMIN_SWATCH = os.environ.get('FLASK_ADMIN_SWATCH', 'cerulean')
 
 # ─── Email ───────────────────────────────────────────────────────────────────

@@ -142,14 +142,17 @@ multi_display_artworks/
 ```bash
 cd flask_server
 pip install -r requirements.txt
+export SECRET_KEY='replace-with-a-random-secret-key'
+export SECURITY_PASSWORD_SALT='replace-with-a-random-password-salt'
 export MONGODB_URI=mongodb://localhost:27017/metamuseum
 python seed_and_serve.py --serve
 ```
 
-Requires a running **real MongoDB** server. `MONGODB_URI` is the preferred
-connection setting; alternatively configure `MONGODB_HOST`, `MONGODB_PORT`, and
-`MONGODB_DB`. To run the integration suite locally, use a separate test
-database:
+Requires non-empty `SECRET_KEY` and `SECURITY_PASSWORD_SALT` values (use unique
+random values and keep them out of version control), plus a running **real
+MongoDB** server. `MONGODB_URI` is the preferred connection setting;
+alternatively configure `MONGODB_HOST`, `MONGODB_PORT`, and `MONGODB_DB`. To run
+the integration suite locally, use a separate test database:
 
 ```bash
 MONGODB_URI=mongodb://localhost:27017/metamuseum_test \
@@ -160,6 +163,8 @@ pytest tests -v
 For a self-contained dev stack (app + its own MongoDB):
 
 ```bash
+export SECRET_KEY='replace-with-a-random-secret-key'
+export SECURITY_PASSWORD_SALT='replace-with-a-random-password-salt'
 docker compose up -d --build       # docker-compose.yml — dev only, empty DB
 ```
 
@@ -237,7 +242,8 @@ port **5000** in the container (SocketIO/eventlet, see `flask_server/start.sh`).
 
 | Variable | Description |
 |----------|-------------|
-| `SECRET_KEY` | Flask secret key |
+| `SECRET_KEY` | Required non-empty Flask session-signing key |
+| `SECURITY_PASSWORD_SALT` | Required non-empty salt for password and confirmation tokens |
 | `MONGODB_URI` | Preferred MongoDB connection string (takes precedence over `MONGODB_HOST` and `MONGODB_PORT`) |
 | `MONGODB_HOST` | MongoDB host when `MONGODB_URI` is not set (default: `localhost`) |
 | `MONGODB_PORT` | MongoDB port when `MONGODB_URI` is not set (default: `27017`) |

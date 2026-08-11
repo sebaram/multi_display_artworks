@@ -13,6 +13,11 @@ for path in (SERVER_DIR, APP_DIR):
     if path not in sys.path:
         sys.path.insert(0, path)
 
+# Explicitly configure signing material for the test process before create_app
+# imports the application configuration.
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("SECURITY_PASSWORD_SALT", "test-password-salt")
+
 
 def _mongodb_uri() -> str:
     uri = os.environ.get("MONGODB_URI", "").strip()

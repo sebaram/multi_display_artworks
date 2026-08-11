@@ -76,7 +76,7 @@ export function bootstrapRoomProfile({ bootstrapData, document, storage }) {
 export function mountRoomControls({ bootstrapData, document, window }) {
   if (!bootstrapData.roomControlsEnabled) return { destroy() {} };
 
-  const minimap = mountMinimap({
+  const minimap = bootstrapData.boundary == null ? null : mountMinimap({
     presets: bootstrapData.presets,
     boundary: bootstrapData.boundary,
     wallList: bootstrapData.wallList,
@@ -94,7 +94,7 @@ export function mountRoomControls({ bootstrapData, document, window }) {
     minimap,
     mobileGuidance,
     destroy() {
-      minimap.destroy();
+      minimap?.destroy();
       mobileGuidance.destroy();
     },
   };

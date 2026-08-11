@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { mountRoomControls } from '../../app/metamuseum/static/js/room/bootstrap.js';
 import { mountMinimap } from '../../app/metamuseum/static/js/room/minimap.js';
 import {
   isMobilePointer,
@@ -329,6 +330,39 @@ test('movement guidance reacts to both media queries and cleans up', () => {
   assert.equal(visibleText(document).match(/Hold and drag to move/g)?.length, 1);
 
   guidance.destroy();
+  assert.doesNotMatch(visibleText(document), /Hold and drag to move/);
+  assert.equal(coarse.listenerCount, 0);
+  assert.equal(mobileWidth.listenerCount, 0);
+});
+
+test('room controls keep mobile guidance when the minimap boundary is unavailable', () => {
+  const document = createDocument();
+  document.getElementById = () => null;
+  const coarse = createMediaQuery(true);
+  const mobileWidth = createMediaQuery(true);
+  const queries = {
+    '(pointer: coarse)': coarse,
+    '(max-width: 767px)': mobileWidth,
+  };
+  const controls = mountRoomControls({
+    bootstrapData: {
+      roomControlsEnabled: true,
+      boundary: null,
+      presets: [],
+      wallList: [],
+    },
+    document,
+    window: {
+      matchMedia: (query) => queries[query],
+      requestAnimationFrame() {},
+      cancelAnimationFrame() {},
+    },
+  });
+
+  assert.equal(controls.minimap, null);
+  assert.match(visibleText(document), /Hold and drag to move/);
+
+  controls.destroy();
   assert.doesNotMatch(visibleText(document), /Hold and drag to move/);
   assert.equal(coarse.listenerCount, 0);
   assert.equal(mobileWidth.listenerCount, 0);

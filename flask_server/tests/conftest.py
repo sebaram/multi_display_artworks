@@ -15,7 +15,7 @@ if APP_DIR not in sys.path:
 def _mongodb_uri() -> str:
     uri = os.environ.get("MONGODB_URI", "").strip()
     if not uri:
-        pytest.fail("MONGODB_URI is required; tests never use mongomock")
+        pytest.fail("MONGODB_URI is required for integration tests")
     return uri
 
 
@@ -28,7 +28,6 @@ def app():
 
     os.environ["MONGODB_URI"] = uri
     os.environ["MONGODB_DB"] = db_name
-    os.environ.pop("MONGODB_MOCK", None)
 
     from metamuseum import create_app
 

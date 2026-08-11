@@ -94,6 +94,7 @@ def test_admin_help_does_not_advertise_avatar_queries_or_map_teleports():
     assert "프로필 편집기" in template
     assert "확장된 개요" in template
     assert "카메라 이동 없이" in template
+    assert "기본 프리셋으로 텔레포트" not in template
 
 
 def test_normalize_profile_rejects_unknown_avatar_and_bad_color():

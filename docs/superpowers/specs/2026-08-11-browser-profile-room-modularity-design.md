@@ -43,7 +43,7 @@ login or user account. Flask-Login users continue to be used only for
 authentication and administrative authorization.
 
 The first visit opens a profile dialog. Subsequent visits display a compact
-top-right profile panel with the selected name, avatar swatch, and an Edit
+top-left profile panel with the selected name, avatar swatch, and an Edit
 button. Validation is client-side and mirrored at the real-time boundary:
 
 - display name: 3–20 allowed characters;

@@ -18,15 +18,16 @@ Uses qrcode-generator library from cdnjs (7KB, no dependencies).
   document.head.appendChild(script);
 })();
 
-function showShareQR() {
-  var roomId = new URLSearchParams(window.location.search).get('room_id');
-  if (!roomId) return;
+function buildShareRoomUrl(pageLocation) {
+  var roomId = new URLSearchParams(pageLocation.search).get('room_id');
+  if (!roomId) return null;
+  var proto = pageLocation.protocol === 'https:' ? 'https:' : 'http:';
+  return proto + '//' + pageLocation.host + '/room?room_id=' + encodeURIComponent(roomId);
+}
 
-  // Build full room URL
-  var proto = location.protocol === 'https:' ? 'https:' : 'http:';
-  var host = location.host;
-  var avatar = new URLSearchParams(window.location.search).get('avatar') || 'shiba';
-  var roomUrl = proto + '//' + host + '/room?room_id=' + roomId + '&avatar=' + avatar;
+function showShareQR() {
+  var roomUrl = buildShareRoomUrl(window.location);
+  if (!roomUrl) return;
 
   // Generate QR code as canvas
   var qr = qrcode(0, 'M');
@@ -127,3 +128,4 @@ function addShareButton() {
 window.showShareQR = showShareQR;
 window.closeShareQR = closeShareQR;
 window.addShareButton = addShareButton;
+window.buildShareRoomUrl = buildShareRoomUrl;

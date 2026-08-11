@@ -101,7 +101,7 @@ multi_display_artworks/
 ### 👥 Multi-User
 - **Position sync** — Socket.IO broadcasts camera pos/rot to all users in room
 - **Browser visitor profile** — a signed Flask browser-session identity is paired with a name, catalog avatar, and color stored only in that browser’s site data; it is not an account and does not restore across devices. Clearing this site’s data resets the profile.
-- **Profile editing** — the first room visit opens the profile editor; later visits use the top-right profile panel. Saving a name, catalog avatar, or color updates that visitor’s remote presence for other people currently in the room.
+- **Profile editing** — the first room visit opens the profile editor; later visits use the top-left profile panel. Saving a name, catalog avatar, or color updates that visitor’s remote presence for other people currently in the room.
 - **Avatar catalog and attribution** — visitors can select only the built-in `Shiba`, `Robot`, `Rigged Simple`, or `None` entries; URL parameters such as `?avatar=` do not select an avatar. `Rigged Simple` is by Cesium under CC BY 4.0; its complete attribution is in [`flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md`](flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md).
 - **Avatar expressions** — face-api.js smile detection → emoji bubble above avatar
 

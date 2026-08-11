@@ -6,16 +6,32 @@ import os
 from pathlib import Path
 from metamuseum.core.streaming import (
     start_rtsp_to_hls, stop_stream, get_stream_url,
-    save_mediarecorder_chunk, active_ffmpeg, STREAM_DIR
+    save_mediarecorder_chunk, active_ffmpeg, STREAM_DIR, validate_stream_id
 )
+from metamuseum.core.authorization import admin_required
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('stream', __name__, url_prefix='/stream')
 
 
+def _validate_route_stream_id(stream_id):
+    try:
+        return validate_stream_id(stream_id)
+    except ValueError:
+        return None
+
+
+def _invalid_stream_id_response():
+    return jsonify({'error': 'Invalid stream_id'}), 400
+
+
 @bp.route('/push/<stream_id>', methods=['POST'])
+@admin_required
 def push_chunk(stream_id):
     """Receive MediaRecorder chunks from browser (phone camera streaming)."""
+    if _validate_route_stream_id(stream_id) is None:
+        return _invalid_stream_id_response()
+
     if 'chunk' not in request.files:
         return 'chunk required', 400
 
@@ -32,11 +48,15 @@ def push_chunk(stream_id):
 
 
 @bp.route('/start-rtsp', methods=['POST'])
+@admin_required
 def start_rtsp():
     """Start RTSP→HLS conversion for an IP camera stream."""
-    data = request.json
+    data = request.get_json(silent=True) or {}
     stream_id = data.get('stream_id', 'cam1')
     rtsp_url = data.get('rtsp_url')
+
+    if _validate_route_stream_id(stream_id) is None:
+        return _invalid_stream_id_response()
 
     if not rtsp_url:
         return jsonify({'error': 'rtsp_url required'}), 400
@@ -51,8 +71,12 @@ def start_rtsp():
 
 
 @bp.route('/stop/<stream_id>', methods=['POST'])
+@admin_required
 def stop_stream_endpoint(stream_id):
     """Stop an active stream."""
+    if _validate_route_stream_id(stream_id) is None:
+        return _invalid_stream_id_response()
+
     try:
         stop_stream(stream_id)
         return jsonify({'status': 'stopped'})
@@ -64,6 +88,9 @@ def stop_stream_endpoint(stream_id):
 @bp.route('/playlist/<stream_id>', methods=['GET'])
 def get_playlist(stream_id):
     """Serve HLS playlist file."""
+    if _validate_route_stream_id(stream_id) is None:
+        return _invalid_stream_id_response()
+
     playlist_path = STREAM_DIR / stream_id / 'playlist.m3u8'
     if not playlist_path.exists():
         return 'Stream not found', 404
@@ -79,6 +106,12 @@ def get_playlist(stream_id):
 @bp.route('/segment/<stream_id>/<segment>', methods=['GET'])
 def get_segment(stream_id, segment):
     """Serve HLS segment file."""
+    if _validate_route_stream_id(stream_id) is None:
+        return _invalid_stream_id_response()
+
+    if Path(segment).name != segment or not segment.endswith('.ts'):
+        return jsonify({'error': 'Invalid segment'}), 400
+
     segment_path = STREAM_DIR / stream_id / segment
     if not segment_path.exists():
         return 'Segment not found', 404

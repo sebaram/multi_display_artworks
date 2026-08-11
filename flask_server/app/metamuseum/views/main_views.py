@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from metamuseum.core.pyAframe import Box, Sphere, Cylinder, Plane, Sky
 from metamuseum.core.ratelimit import rate_limiter
+from metamuseum.core.authorization import admin_required
 from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat, GLTFmodel, Webpage, LocationPreset
 from metamuseum.elements.user import OnlineUser
 
@@ -270,6 +271,7 @@ def wall_element():
 
 
 @bp.route("/element/<element_id>/<element_type>", methods=['PATCH'])
+@admin_required
 def update_element(element_id, element_type):
     """Update element position and optional parameters (for drag-to-move, cutout editing)"""
     try:

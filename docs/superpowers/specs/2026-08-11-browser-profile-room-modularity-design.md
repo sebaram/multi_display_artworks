@@ -24,21 +24,23 @@ must preserve those interfaces while changing only internal organization.
 
 ## Visitor profile
 
-On the first room visit, the browser creates a UUID-like `visitorId` and a
-profile in `localStorage`. The profile contains:
+On the first room visit, Flask issues an opaque `visitorId` in its signed,
+persistent session cookie. The browser stores the associated profile in
+`localStorage`. The profile contains:
 
 ```json
 {
   "visitorId": "opaque stable browser identifier",
   "displayName": "Visitor name",
-  "avatarId": "robot | shiba | human | none",
+  "avatarId": "robot | shiba | rigged-simple | none",
   "color": "#RRGGBB"
 }
 ```
 
 No visitor profile data is stored in MongoDB. Clearing browser site data resets
-the profile; this is intentional. Flask-Login users continue to be used only
-for authentication and administrative authorization.
+the profile; this is intentional. The signed session identifier is browser-only
+state, not a login or a user account. Flask-Login users continue to be used
+only for authentication and administrative authorization.
 
 The first visit opens a profile dialog. Subsequent visits display a compact
 top-right profile panel with the selected name, avatar swatch, and an Edit
@@ -48,18 +50,19 @@ button. Validation is client-side and mirrored at the real-time boundary:
 - avatar: an entry in the application-owned catalog only;
 - color: normalized six-digit hex color only.
 
-The Socket.IO server binds a presence identity to the socket connection and
-does not trust a later client-supplied `userId`. It accepts validated profile
-attributes and broadcasts the normalized presence state. A client may only
-update its own connected presence.
+The Socket.IO server reads the signed session identifier and binds it to the
+socket connection. It does not trust any client-supplied `userId`. It accepts
+validated profile attributes and broadcasts the normalized presence state. A
+client may only update its own connected presence.
 
 ## Avatar catalog and assets
 
 The client receives a small, versioned avatar catalog from the room bootstrap
 data. The initial catalog has the current `shiba`, a configurable primitive
-`robot`, `none`, and only additional glTF assets that are committed with a
-license and attribution record. The renderer receives an `AvatarProfile` and
-owns how each entry is built:
+`robot`, the CC-BY-4.0 Khronos Sample Assets `Rigged Simple` model with its
+required Cesium attribution, `none`, and only additional glTF assets that are
+committed with a license and attribution record. The renderer receives an
+`AvatarProfile` and owns how each entry is built:
 
 - primitive avatars apply the selected color directly to their materials;
 - glTF avatars apply color only to approved material targets or use a color

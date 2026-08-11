@@ -20,28 +20,54 @@ jobs:
       - name: Build image
         run: docker build -t metamuseum:ci ./flask_server
 
-      - name: Smoke test against a mock database
-        # config.py honours MONGODB_MOCK, and mongomock is in requirements, so
-        # the app can boot with no real MongoDB. This catches import errors,
-        # missing dependencies and a broken app factory before we touch prod.
+      - name: Start real MongoDB test environment
         run: |
-          docker run -d --name ci_smoke -p 5000:5000 \
-            -e MONGODB_MOCK=true \
+          docker network create metamuseum_ci
+          docker run -d --name ci_mongo --network metamuseum_ci \
+            --network-alias mongo mongo:7
+          for i in $(seq 1 30); do
+            if docker exec ci_mongo mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -qx '1'; then
+              echo "MongoDB is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::MongoDB did not become ready within 60s"
+          docker logs ci_mongo
+          exit 1
+
+      - name: Smoke test app against MongoDB
+        run: |
+          docker run -d --name ci_smoke --network metamuseum_ci \
+            -e MONGODB_URI=mongodb://mongo:27017/metamuseum \
             -e SECRET_KEY=ci -e SECURITY_PASSWORD_SALT=ci \
             metamuseum:ci
           for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5000/health || true)
-            if [ "$code" = "200" ]; then
+            if docker exec ci_smoke curl -fsS http://127.0.0.1:5000/health; then
               echo "app booted and /health is green"
-              docker rm -f ci_smoke >/dev/null
               exit 0
             fi
             sleep 2
           done
           echo "::error::app did not become healthy within 60s"
           docker logs ci_smoke
-          docker rm -f ci_smoke >/dev/null
           exit 1
+
+      - name: Run integration tests against MongoDB
+        run: |
+          docker run --rm --network metamuseum_ci \
+            -e MONGODB_URI=mongodb://mongo:27017/metamuseum_test \
+            -e MONGODB_DB=metamuseum_test \
+            -e SECRET_KEY=ci -e SECURITY_PASSWORD_SALT=ci \
+            -v "$GITHUB_WORKSPACE/flask_server:/app" -w /app \
+            python:3.12-slim \
+            sh -c 'pip install --no-cache-dir -r requirements-dev.txt && pytest tests -v'
+
+      - name: Clean up CI containers
+        if: always()
+        run: |
+          docker rm -f ci_smoke ci_mongo 2>/dev/null || true
+          docker network rm metamuseum_ci 2>/dev/null || true
 
   deploy:
     name: Deploy to production

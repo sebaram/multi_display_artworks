@@ -1,8 +1,3 @@
-> ⚠️ **DEPRECATED** — This GitLab repo is no longer maintained.
-> **This project has moved to GitHub:** https://github.com/sebaram/multi_display_artworks
->
-> ---
-
 # multi_display_artworks
 **Demo:** https://meta.juyounglee.net
 
@@ -50,10 +45,10 @@ multi_display_artworks/
 │           │   └── user.py          # Camera position tracking
 │           │
 │           ├── views/            # Route handlers + Flask-Admin
-│           │   ├── main_views.py     # /, /wall/<id>, /room/<id>, /admin
+│           │   ├── main_views.py     # /, /wall?wall_id=…, /room?room_id=…
 │           │   ├── llm_layout.py     # /api/auto-layout, /api/apply-layout (MiniMax)
 │           │   ├── whisper_views.py  # /api/transcribe (Whisper STT)
-│           │   ├── stream_views.py   # /api/stream-manifest, /api/upload-segment
+│           │   ├── stream_views.py   # /stream/* HLS and stream-control routes
 │           │   ├── marker_views.py   # AR marker CRUD + marker tracking
 │           │   └── ar_companion_views.py  # /room?ar=companion (Vision Pro)
 │           │
@@ -110,6 +105,7 @@ multi_display_artworks/
 - **Avatar expressions** — face-api.js smile detection → emoji bubble above avatar
 
 ### 🔐 Admin Features
+- **Admin authentication** — sign in at `/signin`; only the existing administrator account can change gallery elements or control streams
 - **Drag-to-move** — admin can drag any element (auth required, commit on mouseup)
 - **Transform panel** — scale/rotate 6-field editor per element
 - **QR Room Share** — generates local QR code (qrcode-generator library), no external API
@@ -146,10 +142,20 @@ multi_display_artworks/
 ```bash
 cd flask_server
 pip install -r requirements.txt
+export MONGODB_URI=mongodb://localhost:27017/metamuseum
 python seed_and_serve.py
 ```
 
-Requires **MongoDB** running. See `config.py` for MongoDB URI and secret key configuration.
+Requires a running **real MongoDB** server. `MONGODB_URI` is the preferred
+connection setting; alternatively configure `MONGODB_HOST`, `MONGODB_PORT`, and
+`MONGODB_DB`. To run the integration suite locally, use a separate test
+database:
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/metamuseum_test \
+MONGODB_DB=metamuseum_test \
+pytest tests -v
+```
 
 For a self-contained dev stack (app + its own MongoDB):
 
@@ -162,10 +168,11 @@ docker compose up -d --build       # docker-compose.yml — dev only, empty DB
 ## Deployment
 
 Pushing to `master` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
-the image is built and smoke-tested against a mock database on a GitHub
-runner, then a **self-hosted runner** on the web server rebuilds and restarts
-the container. If `/health` or `/` fails within 60s the previous image is
-restored automatically.
+the image is built and tested against an ephemeral `mongo:7` container on a
+private Docker network. CI verifies `/health` and runs the pytest integration
+suite against `metamuseum_test`; a **self-hosted runner** on the web server then
+rebuilds and restarts the production container. If `/health` or `/` fails within
+60s the previous image is restored automatically.
 
 > **`docker-compose.yml` is the dev stack and brings up its own empty
 > `mongo:7`. Production uses `docker-compose.prod.yml`**, which attaches to the
@@ -201,20 +208,28 @@ port **5000** in the container (SocketIO/eventlet, see `flask_server/start.sh`).
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | Home — room list |
-| GET | `/wall/<id>` | Wall detail page |
-| GET | `/room/<id>` | Full 3D room (A-Frame) |
-| GET | `/room/<id>?ar=companion` | Vision Pro companion AR view |
-| GET | `/room/<id>?ar=marker` | AR marker detection mode |
-| GET | `/admin` | Flask-Admin (CRUD all models) |
+| GET | `/health` | Application and MongoDB health check |
+| GET | `/wall?wall_id=<id>` | Wall detail page |
+| GET | `/room?room_id=<id>` | Full 3D room (A-Frame) |
+| GET | `/room?room_id=<id>&ar=companion` | Vision Pro companion AR view |
+| GET | `/room?room_id=<id>&ar=marker` | AR marker detection mode |
+| GET, POST | `/signin` | Existing-account sign in |
+| GET | `/logout` | Sign out |
+| GET | `/kwanri` | Flask-Admin (administrator account required) |
+| PATCH | `/element/<element_id>/<element_type>` | Update an element (administrator account required) |
 | POST | `/api/auto-layout` | LLM auto-arrange elements |
 | POST | `/api/apply-layout` | Apply LLM layout to DB |
 | POST | `/api/transcribe` | Whisper audio → text |
 | GET | `/api/whisper-config` | Get Whisper config |
 | PUT | `/api/whisper-config` | Update Whisper config (admin) |
-| GET | `/api/stream-manifest/<room_id>` | Get HLS stream URL |
-| POST | `/api/upload-segment` | Upload HLS segment |
-| GET | `/camera-data/<room_id>` | Get user camera positions |
-| POST | `/camera-data/<room_id>` | Save camera position |
+| POST | `/stream/push/<stream_id>` | Upload a phone-camera media segment (administrator account required) |
+| POST | `/stream/start-rtsp` | Start RTSP-to-HLS conversion (administrator account required) |
+| POST | `/stream/stop/<stream_id>` | Stop a stream (administrator account required) |
+| GET | `/stream/playlist/<stream_id>` | Serve an HLS playlist |
+| GET | `/stream/segment/<stream_id>/<segment>` | Serve an HLS segment |
+| GET | `/stream/list` | List available streams |
+| POST | `/camera-data` | Save camera position |
+| GET | `/get-cameras` | Get recent camera positions |
 
 ---
 
@@ -223,8 +238,10 @@ port **5000** in the container (SocketIO/eventlet, see `flask_server/start.sh`).
 | Variable | Description |
 |----------|-------------|
 | `SECRET_KEY` | Flask secret key |
-| `MONGODB_URI` | MongoDB connection string (takes precedence over `MONGODB_HOST`/`PORT`/`DB`) |
-| `MONGODB_MOCK` | `true` runs against an in-memory mongomock DB — used by CI |
+| `MONGODB_URI` | Preferred MongoDB connection string (takes precedence over `MONGODB_HOST` and `MONGODB_PORT`) |
+| `MONGODB_HOST` | MongoDB host when `MONGODB_URI` is not set (default: `localhost`) |
+| `MONGODB_PORT` | MongoDB port when `MONGODB_URI` is not set (default: `27017`) |
+| `MONGODB_DB` | MongoDB database name (default: `metamuseum`; tests require `metamuseum_test`) |
 | `MAIL_*` | SMTP邮件配置 |
 | `MINIMAX_API_KEY` | MiniMax API key (legacy, DB config preferred) |
 
@@ -267,7 +284,7 @@ port **5000** in the container (SocketIO/eventlet, see `flask_server/start.sh`).
 | 3D Rendering | A-Frame 1.6.0 |
 | Gaussian Splatting | aframe-gaussian-splatting |
 | AR | AR.js 3.4.7 |
-| Backend | Flask + Flask-SocketIO (gevent) |
+| Backend | Flask + Flask-SocketIO (eventlet) |
 | Database | MongoDB (PyMongo) |
 | Admin | Flask-Admin |
 | Real-time | Socket.IO |

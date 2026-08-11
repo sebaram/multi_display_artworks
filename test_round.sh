@@ -4,9 +4,7 @@
 
 set -o pipefail
 
-APP_URL="http://localhost:5000"
-GITLAB_TOKEN="glpat-c3xgODwkyd_4rX9yZwTFx286MQp1OjJtCA.01.0y1fptif9"
-PROJECT_ID="79"
+APP_URL="${APP_URL:-http://localhost:5000}"
 ISSUES=()
 
 pass() { echo "  ✅ $1"; }
@@ -25,7 +23,7 @@ else
     fail "Container" "metamuseum_app not running"
 fi
 
-HEALTH=$(curl -sf http://localhost:5000/health 2>/dev/null)
+HEALTH=$(curl -sf "$APP_URL/health" 2>/dev/null)
 if echo "$HEALTH" | grep -q '"status":"ok"'; then
     pass "Health endpoint ok"
 else
@@ -35,7 +33,7 @@ fi
 # ---- 2. Main Page ----
 echo ""
 echo "2. Main Page"
-MAIN=$(curl -sf http://localhost:5000/ 2>/dev/null)
+MAIN=$(curl -sf "$APP_URL/" 2>/dev/null)
 if echo "$MAIN" | grep -q "MetaMuseum"; then
     pass "Main page loads"
     ROOM_COUNT=$(echo "$MAIN" | grep -c "Room:")
@@ -64,7 +62,7 @@ ROOM_OK=0
 ROOM_SKIP=0
 for rid in $ROOM_IDS; do
     # Skip IDs that return "not found"
-    CHECK=$(curl -sf "http://localhost:5000/room?room_id=${rid}" 2>/dev/null)
+    CHECK=$(curl -sf "$APP_URL/room?room_id=${rid}" 2>/dev/null)
     if [ -z "$CHECK" ]; then
         ((ROOM_SKIP++))
         continue
@@ -84,14 +82,14 @@ echo "  ℹ️  $ROOM_OK rooms accessible ($ROOM_SKIP skipped as stale)"
 echo ""
 echo "5. Image URLs"
 # Find room with images (art_gallery)
-ART_RID=$(curl -sf http://localhost:5000/ 2>/dev/null | grep -oP 'room_id=[a-f0-9]+' | sort -u | sed 's/room_id=//' | grep -v "69e1f270b056cb591923cbb2" | while read rid; do
-    HTML=$(curl -sf "http://localhost:5000/room?room_id=${rid}" 2>/dev/null)
+ART_RID=$(curl -sf "$APP_URL/" 2>/dev/null | grep -oP 'room_id=[a-f0-9]+' | sort -u | sed 's/room_id=//' | grep -v "69e1f270b056cb591923cbb2" | while read rid; do
+    HTML=$(curl -sf "$APP_URL/room?room_id=${rid}" 2>/dev/null)
     if echo "$HTML" | grep -q "fastly.picsum.photos"; then echo "$rid"; fi
 done | head -1)
 if [ -z "$ART_RID" ]; then
     fail "Images" "No room with images found"
 else
-    GALLERY_HTML=$(curl -sf "http://localhost:5000/room?room_id=${ART_RID}" 2>/dev/null)
+    GALLERY_HTML=$(curl -sf "$APP_URL/room?room_id=${ART_RID}" 2>/dev/null)
     IMGS=$(echo "$GALLERY_HTML" | grep -oP 'src="https://fastly.picsum.photos[^"]*"')
     IMG_OK=0
     for img in $IMGS; do
@@ -110,7 +108,7 @@ echo ""
 echo "6. A-Frame Scene Elements"
 # Use first VALID (non-stale) room for scene checks
 FIRST_RID=$(echo "$ROOM_IDS" | grep -v "69e1f270b056cb591923cbb2" | head -1)
-ROOM_HTML=$(curl -sf "http://localhost:5000/room?room_id=${FIRST_RID}" 2>/dev/null)
+ROOM_HTML=$(curl -sf "$APP_URL/room?room_id=${FIRST_RID}" 2>/dev/null)
 if echo "$ROOM_HTML" | grep -q "a-scene"; then
     pass "A-Frame scene present"
 else
@@ -137,7 +135,7 @@ fi
 # ---- 7. Mobile View ----
 echo ""
 echo "7. Mobile View"
-MOBILE_HTML=$(curl -sf -A "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15" "http://localhost:5000/" 2>/dev/null)
+MOBILE_HTML=$(curl -sf -A "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15" "$APP_URL/" 2>/dev/null)
 if echo "$MOBILE_HTML" | grep -q "MetaMuseum"; then
     pass "Mobile main page"
 else
@@ -148,7 +146,7 @@ fi
 echo ""
 echo "8. JS Critical Patterns"
 # Reuse FIRST_RID from section 6
-ROOM_HTML=$(curl -sf "http://localhost:5000/room?room_id=${FIRST_RID}" 2>/dev/null || echo "")
+ROOM_HTML=$(curl -sf "$APP_URL/room?room_id=${FIRST_RID}" 2>/dev/null || echo "")
 # Check window.roomId is set
 if echo "$ROOM_HTML" | grep -q "window.roomId"; then
     pass "window.roomId set"
@@ -166,7 +164,7 @@ fi
 # ---- 9. Admin Panel ----
 echo ""
 echo "9. Admin Panel"
-ADMIN=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:5000/kwanri 2>/dev/null)
+ADMIN=$(curl -sf -o /dev/null -w "%{http_code}" "$APP_URL/kwanri" 2>/dev/null)
 if [ "$ADMIN" = "200" ] || [ "$ADMIN" = "302" ] || [ "$ADMIN" = "308" ]; then
     pass "Admin panel accessible"
 else
@@ -178,7 +176,7 @@ echo ""
 echo "10. Wall Page"
 WALL_ID=$(echo "$MAIN" | grep -oP 'wall_id=[a-f0-9]+' | head -1 | sed 's/wall_id=//')
 if [ -n "$WALL_ID" ]; then
-    WALL_HTML=$(curl -sf "http://localhost:5000/wall?wall_id=${WALL_ID}" 2>/dev/null)
+    WALL_HTML=$(curl -sf "$APP_URL/wall?wall_id=${WALL_ID}" 2>/dev/null)
     if echo "$WALL_HTML" | grep -q "a-scene\|a-box"; then
         pass "Wall page renders"
     else

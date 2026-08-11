@@ -16,4 +16,3 @@ Flask-Admin>=1.6.0
 Flask-Mail>=0.10.0
 bleach>=5.0.0
 flask-limiter>=3.5.0
-mongita>=1.0.0

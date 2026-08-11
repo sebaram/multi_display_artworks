@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from metamuseum.core.pyAframe import Box, Sphere, Cylinder, Plane, Sky
 from metamuseum.core.ratelimit import rate_limiter
 from metamuseum.core.authorization import admin_required
+from metamuseum.core.visitor_profile import AVATAR_IDS, get_or_create_visitor_id
 from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat, GLTFmodel, Webpage, LocationPreset
 from metamuseum.elements.user import OnlineUser
 
@@ -50,9 +51,7 @@ def room():
         if not this_room:
             return "Room not found", 404
         aframe_list = [this_room.to_aframe()]
-        avatar = request.args.get('avatar', 'shiba')
-        if avatar not in ('shiba', 'robot', 'none'):
-            avatar = 'shiba'
+        visitor_id = get_or_create_visitor_id(session)
         drag_enabled = current_user.is_authenticated and current_user.is_admin()
         ar_mode = request.args.get('ar')  # 'marker' or 'companion'
         is_ar_marker = ar_mode == 'marker'
@@ -107,7 +106,8 @@ def room():
             })
 
         return render_template('room_aframe.html',
-                             aframe_list=aframe_list, camera_d=3, avatar=avatar,
+                             aframe_list=aframe_list, camera_d=3, avatar='shiba',
+                             visitor_id=visitor_id, avatar_catalog=sorted(AVATAR_IDS),
                              drag_enabled=drag_enabled, presets=preset_list,
                              spawn_preset=selected, boundary=boundary,
                              is_ar_marker=is_ar_marker, is_ar_companion=is_ar_companion,

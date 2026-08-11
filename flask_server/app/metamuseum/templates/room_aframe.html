@@ -5,7 +5,6 @@
     <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
     <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
     <script src="{{url_for('static', filename='js/location-features.js')}}"></script>
-  <script src="{{url_for('static', filename='js/guest-name.js')}}"></script>
   <script src="{{url_for('static', filename='js/share-qr.js')}}"></script>
   <script src="{{url_for('static', filename='js/llm-layout.js')}}"></script>
   <script src="{{url_for('static', filename='js/room-effects.js')}}"></script>
@@ -24,9 +23,7 @@
   <body>
     <a-scene joystick
            {% if is_ar_marker %}embedded arjs="sourceType: webcam; debugUIEnabled: false;" xr-mode-ui="enabled: false"{% elif is_ar_companion %}xr-mode-ui="enabled: false"{% else %}xr-mode-ui="enabled: false" cursor="rayOrigin: mouse"{% endif %}>
-      <a-assets>
-          <a-asset-item id="avatarModel" src="{{url_for('static', filename='gltf/shiba/scene.gltf')}}"></a-asset-item>
-      </a-assets>
+      <a-assets></a-assets>
 
       {% if is_ar_marker %}
       {# AR mode: no default sky, will show camera feed #}
@@ -49,11 +46,27 @@
 
     </a-scene>
 
+    <script id="room-bootstrap" type="application/json">
+      {
+        "visitorId": {{ visitor_id | tojson }},
+        "avatarCatalog": {{ avatar_catalog | tojson }},
+        "roomId": {{ room_id | tojson }}
+      }
+    </script>
+    <script type="module" src="{{url_for('static', filename='js/room/bootstrap.js')}}"></script>
     <script>
-      const myUserId = Math.random().toString(36).substring(7);
-      const avatarType = "{{ avatar }}";
+      const roomBootstrap = JSON.parse(document.getElementById('room-bootstrap').textContent);
+      const myUserId = roomBootstrap.visitorId;
+      const roomId = roomBootstrap.roomId;
+      window.roomId = roomId;
+      let roomProfileController = null;
       let handTrackingEnabled = false;
       let xrSession = null;
+
+      window.addEventListener('room-profile-ready', (event) => {
+        roomProfileController = event.detail;
+        initPositionSocket();
+      });
 
       // Enable drag on all draggable elements (admin only)
       function enableDrag() {
@@ -203,83 +216,6 @@
         trackHands();
       }
 
-      function createAvatarEntity(avatarType) {
-        if (avatarType === 'none') return null;
-
-        if (avatarType === 'robot') {
-          let wrapper = document.createElement('a-entity');
-          wrapper.setAttribute('position', '0 -1 0');
-          wrapper.setAttribute('rotation', '0 180 0');
-
-          let body = document.createElement('a-box');
-          body.setAttribute('color', '#4a9eff');
-          body.setAttribute('width', '0.4');
-          body.setAttribute('height', '0.6');
-          body.setAttribute('depth', '0.2');
-          body.setAttribute('position', '0 0 0');
-          wrapper.appendChild(body);
-
-          let head = document.createElement('a-sphere');
-          head.setAttribute('color', '#4a9eff');
-          head.setAttribute('radius', '0.15');
-          head.setAttribute('position', '0 0.45 0');
-          wrapper.appendChild(head);
-
-          let leftEye = document.createElement('a-sphere');
-          leftEye.setAttribute('color', '#ffffff');
-          leftEye.setAttribute('radius', '0.04');
-          leftEye.setAttribute('position', '-0.06 0.48 -0.12');
-          wrapper.appendChild(leftEye);
-
-          let rightEye = document.createElement('a-sphere');
-          rightEye.setAttribute('color', '#ffffff');
-          rightEye.setAttribute('radius', '0.04');
-          rightEye.setAttribute('position', '0.06 0.48 -0.12');
-          wrapper.appendChild(rightEye);
-
-          let leftArm = document.createElement('a-box');
-          leftArm.setAttribute('color', '#3a8adf');
-          leftArm.setAttribute('width', '0.1');
-          leftArm.setAttribute('height', '0.4');
-          leftArm.setAttribute('depth', '0.1');
-          leftArm.setAttribute('position', '-0.3 -0.1 0');
-          wrapper.appendChild(leftArm);
-
-          let rightArm = document.createElement('a-box');
-          rightArm.setAttribute('color', '#3a8adf');
-          rightArm.setAttribute('width', '0.1');
-          rightArm.setAttribute('height', '0.4');
-          rightArm.setAttribute('depth', '0.1');
-          rightArm.setAttribute('position', '0.3 -0.1 0');
-          wrapper.appendChild(rightArm);
-
-          let leftLeg = document.createElement('a-box');
-          leftLeg.setAttribute('color', '#3a8adf');
-          leftLeg.setAttribute('width', '0.12');
-          leftLeg.setAttribute('height', '0.4');
-          leftLeg.setAttribute('depth', '0.12');
-          leftLeg.setAttribute('position', '-0.12 -0.5 0');
-          wrapper.appendChild(leftLeg);
-
-          let rightLeg = document.createElement('a-box');
-          rightLeg.setAttribute('color', '#3a8adf');
-          rightLeg.setAttribute('width', '0.12');
-          rightLeg.setAttribute('height', '0.4');
-          rightLeg.setAttribute('depth', '0.12');
-          rightLeg.setAttribute('position', '0.12 -0.5 0');
-          wrapper.appendChild(rightLeg);
-
-          return wrapper;
-        }
-
-        let avatar = document.createElement('a-entity');
-        avatar.setAttribute('gltf-model', '#avatarModel');
-        avatar.setAttribute('rotation', '0 180 0');
-        avatar.setAttribute('position', '0 -1 0');
-        avatar.setAttribute('scale', '0.5 0.5 0.5');
-        return avatar;
-      }
-
       function createHandVisualization(handData, isLeft) {
         if (!handData) return null;
         
@@ -317,8 +253,6 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         if (!posSocket || !posSocketConnected) return;
         posSocket.emit('position_update', {
           room_id: roomId,
-          userId: myUserId,
-          avatar: avatarType,
           position,
           rotation,
           leftHand,
@@ -334,6 +268,26 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
         if (now - lastPosSend < 100) return;
         lastPosSend = now;
         sendCameraDataViaSocket(leftHand, rightHand);
+      }
+
+      function updateRemoteProfile(cameraEl, userData) {
+        const avatarId = userData.avatarId || 'shiba';
+        const color = userData.color || '#4CAF50';
+        const profileKey = `${avatarId}:${color}`;
+
+        if (cameraEl.getAttribute('data-profile-key') !== profileKey) {
+          const existingAvatar = cameraEl.querySelector('.remote-avatar');
+          if (existingAvatar) existingAvatar.remove();
+          const avatar = roomProfileController.createAvatarEntity({ avatarId, color });
+          if (avatar) cameraEl.appendChild(avatar);
+          cameraEl.setAttribute('data-profile-key', profileKey);
+        }
+
+        const nameTag = cameraEl.querySelector('.display-name');
+        if (nameTag) {
+          nameTag.setAttribute('value', userData.displayName || userData.userId);
+          nameTag.setAttribute('color', color);
+        }
       }
 
       function updateOtherUsersCameras(data) {
@@ -354,16 +308,11 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
           const userId = userData.userId;
           if (userId === myUserId) return;
 
-          const otherAvatarType = userData.avatar || 'shiba';
-
           let cameraEl = document.getElementById(`camera-${userId}`);
           if (!cameraEl) {
             cameraEl = document.createElement('a-entity');
             cameraEl.setAttribute('id', `camera-${userId}`);
             cameraEl.setAttribute('rotation', '0 180 0');
-
-            let avatar = createAvatarEntity(otherAvatarType);
-            if (avatar) cameraEl.appendChild(avatar);
 
             let idText = document.createElement('a-text');
             idText.setAttribute('class', 'display-name');
@@ -377,6 +326,7 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
 
             document.querySelector('a-scene').appendChild(cameraEl);
           }
+          updateRemoteProfile(cameraEl, userData);
           cameraEl.setAttribute('position', userData.position);
           cameraEl.setAttribute('rotation', userData.rotation);
 
@@ -434,15 +384,12 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
           transports: ['websocket', 'polling'],
           reconnection: true
         });
+        roomProfileController.setSocket(posSocket);
 
         posSocket.on('connect', () => {
           console.log('[PosSync] Connected:', posSocket.id);
           posSocketConnected = true;
-          posSocket.emit('join_position_room', {
-            room_id: roomId,
-            userId: myUserId,
-            avatar: avatarType
-          });
+          posSocket.emit('join_position_room', roomProfileController.joinPayload());
 
           // Request current voice state from server (authoritative)
           posSocket.emit('voice.get_state', { room_id: roomId });
@@ -477,15 +424,18 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
           if (data.userId === myUserId) return;
           updateOtherUsersCameras([data]);
         });
+
+        posSocket.on('profile_updated', (data) => {
+          if (data.userId === myUserId) return;
+          const cameraEl = document.getElementById(`camera-${data.userId}`);
+          if (cameraEl) updateRemoteProfile(cameraEl, data);
+        });
       }
 
       // Alias for hand tracking (backward compat)
       function sendCameraData(leftHand = null, rightHand = null) {
         throttledSendPosition(leftHand, rightHand);
       }
-
-      // Start socket sync immediately (before scene loads)
-      initPositionSocket();
 
       // Replace polling setIntervals — send position via socket at 10fps
       setInterval(() => {
@@ -500,13 +450,8 @@ function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
       }
 
       document.addEventListener('DOMContentLoaded', async () => {
-        // roomId must be global — used by functions outside DOMContentLoaded scope
-        window.roomId = new URLSearchParams(window.location.search).get('room_id');
         const arMode = {{ 'true' if is_ar_marker else 'false' }};
         const arCompanion = {{ 'true' if is_ar_companion else 'false' }};
-
-        // Guest name prompt (before entering)
-        initGuestName(roomId);
 
         // Share QR button (all users)
         addShareButton();

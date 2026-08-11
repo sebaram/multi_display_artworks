@@ -5,35 +5,31 @@
     <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
     <script src="{{url_for('static', filename='js/drag-component.js')}}"></script>
     <script src="{{url_for('static', filename='js/location-features.js')}}"></script>
-  <script src="{{url_for('static', filename='js/share-qr.js')}}"></script>
-  <script src="{{url_for('static', filename='js/llm-layout.js')}}"></script>
-  <script src="{{url_for('static', filename='js/room-effects.js')}}"></script>
-  <script src="{{url_for('static', filename='js/avatar-expression.js')}}"></script>
-  <script src="{{url_for('static', filename='js/voice-chat.js')}}"></script>
+    <script src="{{url_for('static', filename='js/llm-layout.js')}}"></script>
+    <script src="{{url_for('static', filename='js/room-effects.js')}}"></script>
+    <script src="{{url_for('static', filename='js/avatar-expression.js')}}"></script>
+    <script src="{{url_for('static', filename='js/voice-chat.js')}}"></script>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 
-  {% if is_ar_marker %}
+    {% if is_ar_marker %}
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
     <script src="{{url_for('static', filename='js/marker-ar.js')}}"></script>
-  {% elif is_ar_companion %}
+    {% elif is_ar_companion %}
     <script src="{{url_for('static', filename='js/ar-receiver.js')}}"></script>
-  {% endif %}
-
+    {% endif %}
   </head>
   <body>
     <a-scene joystick
-           {% if is_ar_marker %}embedded arjs="sourceType: webcam; debugUIEnabled: false;" xr-mode-ui="enabled: false"{% elif is_ar_companion %}xr-mode-ui="enabled: false"{% else %}xr-mode-ui="enabled: false" cursor="rayOrigin: mouse"{% endif %}>
+      {% if is_ar_marker %}embedded arjs="sourceType: webcam; debugUIEnabled: false;" xr-mode-ui="enabled: false"{% elif is_ar_companion %}xr-mode-ui="enabled: false"{% else %}xr-mode-ui="enabled: false" cursor="rayOrigin: mouse"{% endif %}>
       <a-assets></a-assets>
 
-      {% if is_ar_marker %}
-      {# AR mode: no default sky, will show camera feed #}
-      {% else %}
+      {% if not is_ar_marker %}
       <a-sky color="#1a1a2e"></a-sky>
       {% endif %}
 
       <a-camera id="camera" {% if spawn_preset %}position="{{ spawn_preset['position'] }}" rotation="{{ spawn_preset['rotation'] }}"{% endif %} {% if not is_ar_marker and not is_ar_companion %}boundary-clamp="minX: {{ boundary.min_x }}; maxX: {{ boundary.max_x }}; minY: {{ boundary.min_y }}; maxY: {{ boundary.max_y }}; minZ: {{ boundary.min_z }}; maxZ: {{ boundary.max_z }}"{% endif %}></a-camera>
 
-      {# Default Hiro marker in AR marker mode #}
       {% if is_ar_marker %}
       <a-marker preset="hiro" id="default-hiro-marker">
         <a-entity visible="false"></a-entity>
@@ -43,7 +39,6 @@
       {% for one_ele in aframe_list %}
         {{ one_ele|safe }}
       {% endfor %}
-
     </a-scene>
 
     <script id="room-bootstrap" type="application/json">
@@ -55,416 +50,11 @@
         "boundary": {{ boundary | tojson }},
         "wallList": {{ wall_list | tojson }},
         "roomControlsEnabled": {{ 'false' if is_ar_marker or is_ar_companion else 'true' }},
-        "isAdmin": {{ 'true' if drag_enabled else 'false' }}
+        "isAdmin": {{ 'true' if drag_enabled else 'false' }},
+        "isArMarker": {{ 'true' if is_ar_marker else 'false' }},
+        "isArCompanion": {{ 'true' if is_ar_companion else 'false' }}
       }
     </script>
     <script type="module" src="{{url_for('static', filename='js/room/bootstrap.js')}}"></script>
-    <script>
-      const roomBootstrap = JSON.parse(document.getElementById('room-bootstrap').textContent);
-      const myUserId = roomBootstrap.visitorId;
-      const roomId = roomBootstrap.roomId;
-      window.roomId = roomId;
-      let roomProfileController = null;
-      let roomSocketClient = null;
-      let handTrackingEnabled = false;
-      let xrSession = null;
-
-      window.addEventListener('room-profile-ready', (event) => {
-        roomProfileController = event.detail;
-      });
-
-      // Enable drag on all draggable elements (admin only)
-      function enableDrag() {
-        if (!{{ 'true' if drag_enabled else 'false' }}) return;
-        document.querySelectorAll('[data-element-id]').forEach(el => {
-          const elementId = el.getAttribute('data-element-id');
-          const elementType = el.getAttribute('data-element-type');
-          if (elementId && elementType) {
-            el.setAttribute('drag-element', `elementId: ${elementId}, elementType: ${elementType}`);
-            el.setAttribute('class', 'clickable');
-          }
-        });
-        // Show admin indicator + transform panel toggle + AR button
-        if (!document.getElementById('admin-indicator')) {
-          const indicator = document.createElement('div');
-          indicator.id = 'admin-indicator';
-          indicator.innerHTML = '<span style="cursor:pointer;" onclick="toggleTransformPanel()">✋ Transform (Admin)</span>';
-          indicator.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(76,175,80,0.9);color:white;padding:6px 12px;border-radius:4px;font-size:12px;z-index:9999;';
-          document.body.appendChild(indicator);
-
-          // AR Passthrough button
-          const arBtn = document.createElement('button');
-          arBtn.id = 'ar-passthrough-btn';
-          arBtn.textContent = '🥽 AR Passthrough';
-          arBtn.style.cssText = 'position:fixed;top:10px;right:190px;padding:6px 12px;background:rgba(33,150,243,0.9);color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;z-index:9999;';
-          arBtn.onclick = enableARPassthrough;
-          document.body.appendChild(arBtn);
-
-          // Transform control panel
-          const panel = document.createElement('div');
-          panel.id = 'transform-panel';
-          panel.style.cssText = 'position:fixed;bottom:20px;left:20px;z-index:9997;display:none;';
-          panel.innerHTML = `
-          <div style="background:rgba(0,0,0,0.92);color:white;padding:15px;border-radius:8px;font-size:12px;width:280px;">
-            <div style="font-weight:bold;margin-bottom:10px;">✏️ Transform Controls</div>
-            <div style="margin-bottom:6px;"><label>Position X: <span id="tf-pos-x-val">0.00</span></label><br>
-            <input type="range" id="tf-pos-x" min="-5" max="5" step="0.01" value="0" style="width:100%"></div>
-            <div style="margin-bottom:6px;"><label>Position Y: <span id="tf-pos-y-val">0.00</span></label><br>
-            <input type="range" id="tf-pos-y" min="-5" max="5" step="0.01" value="0" style="width:100%"></div>
-            <div style="margin-bottom:6px;"><label>Scale X: <span id="tf-scale-x-val">1.00</span></label><br>
-            <input type="range" id="tf-scale-x" min="0.1" max="5" step="0.01" value="1" style="width:100%"></div>
-            <div style="margin-bottom:6px;"><label>Scale Y: <span id="tf-scale-y-val">1.00</span></label><br>
-            <input type="range" id="tf-scale-y" min="0.1" max="5" step="0.01" value="1" style="width:100%"></div>
-            <div style="margin-bottom:6px;"><label>Scale Z: <span id="tf-scale-z-val">1.00</span></label><br>
-            <input type="range" id="tf-scale-z" min="0.1" max="5" step="0.01" value="1" style="width:100%"></div>
-            <div style="margin-bottom:6px;"><label>Rotate X: <span id="tf-rot-x-val">0°</span></label><br>
-            <input type="range" id="tf-rot-x" min="-180" max="180" step="1" value="0" style="width:100%"></div>
-            <div style="margin-bottom:6px;"><label>Rotate Y: <span id="tf-rot-y-val">0°</span></label><br>
-            <input type="range" id="tf-rot-y" min="-180" max="180" step="1" value="0" style="width:100%"></div>
-            <div style="margin-bottom:6px;"><label>Rotate Z: <span id="tf-rot-z-val">0°</span></label><br>
-            <input type="range" id="tf-rot-z" min="-180" max="180" step="1" value="0" style="width:100%"></div>
-            <div style="display:flex;gap:8px;margin-top:10px;">
-              <button id="tf-reset" style="flex:1;padding:6px;background:#666;color:white;border:none;border-radius:4px;cursor:pointer;">Reset</button>
-              <button id="tf-apply" style="flex:1;padding:6px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;">Apply</button>
-            </div>
-            <div id="tf-status" style="text-align:center;margin-top:6px;font-size:11px;height:16px;"></div>
-          </div>`;
-          document.body.appendChild(panel);
-          setTimeout(initTransformControls, 1500);
-        }
-      }
-
-      function toggleTransformPanel() {
-        const panel = document.getElementById('transform-panel');
-        if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-      }
-
-      // Check WebXR hand tracking support
-      async function checkHandTrackingSupport() {
-        if (!navigator.xr) return false;
-        try {
-          const supported = await navigator.xr.isSessionSupported('immersive-vr');
-          return supported;
-        } catch(e) {
-          return false;
-        }
-      }
-
-      async function enableHandTracking() {
-        if (!navigator.xr) return false;
-        try {
-          xrSession = await navigator.xr.requestSession('immersive-vr', {
-            optionalFeatures: ['hand-tracking', 'local-floor']
-          });
-          
-          xrSession.addEventListener('end', () => {
-            handTrackingEnabled = false;
-            document.getElementById('hand-tracking-btn').style.background = '#666';
-          });
-
-          const handSources = await xrSession.requestHandSources();
-          setupHandTracking(handSources);
-          handTrackingEnabled = true;
-          document.getElementById('hand-tracking-btn').style.background = '#4CAF50';
-          return true;
-        } catch(e) {
-          console.error('Hand tracking error:', e);
-          return false;
-        }
-      }
-
-      function setupHandTracking(handSources) {
-        let lastSendTime = 0;
-        const sendInterval = 100;
-
-        function trackHands() {
-          if (!handTrackingEnabled || !xrSession) return;
-          
-          const now = Date.now();
-          if (now - lastSendTime < sendInterval) {
-            requestAnimationFrame(trackHands);
-            return;
-          }
-          lastSendTime = now;
-
-          let leftHandData = null;
-          let rightHandData = null;
-
-          handSources.forEach(source => {
-            if (source.hand && source.handedness !== 'none') {
-              const hand = source.hand;
-              const isLeft = source.handedness === 'left';
-              
-              const getJoint = (name) => {
-                const joint = hand.get(name);
-                return joint ? {
-                  position: [joint.position.x, joint.position.y, joint.position.z],
-                  rotation: [joint.rotation.x, joint.rotation.y, joint.rotation.z]
-                } : null;
-              };
-
-              const handData = {
-                wrist: getJoint('wrist'),
-                thumbTip: getJoint('thumb-tip'),
-                indexTip: getJoint('index-tip'),
-                middleTip: getJoint('middle-tip')
-              };
-
-              if (isLeft) leftHandData = handData;
-              else rightHandData = handData;
-            }
-          });
-
-          sendCameraData(leftHandData, rightHandData);
-          requestAnimationFrame(trackHands);
-        }
-        trackHands();
-      }
-
-      function createHandVisualization(handData, isLeft) {
-        if (!handData) return null;
-        
-        let hand = document.createElement('a-entity');
-        hand.setAttribute('class', `hand-${isLeft ? 'left' : 'right'}`);
-        
-        let palm = document.createElement('a-box');
-        palm.setAttribute('color', '#00ff88');
-        palm.setAttribute('width', '0.08');
-        palm.setAttribute('height', '0.1');
-        palm.setAttribute('depth', '0.02');
-        if (handData.wrist && handData.wrist.position) {
-          palm.setAttribute('position', `${handData.wrist.position[0]} ${handData.wrist.position[1]} ${handData.wrist.position[2]}`);
-        }
-        hand.appendChild(palm);
-
-        ['thumbTip', 'indexTip', 'middleTip'].forEach((joint, i) => {
-          if (handData[joint] && handData[joint].position) {
-            let finger = document.createElement('a-sphere');
-            finger.setAttribute('color', '#00ff88');
-            finger.setAttribute('radius', '0.02');
-            finger.setAttribute('position', `${handData[joint].position[0]} ${handData[joint].position[1]} ${handData[joint].position[2]}`);
-            hand.appendChild(finger);
-          }
-        });
-
-        return hand;
-      }
-
-function sendCameraDataViaSocket(leftHand = null, rightHand = null) {
-        const cameraEl = document.getElementById('camera');
-        const position = cameraEl.getAttribute('position');
-        const rotation = cameraEl.getAttribute('rotation');
-
-        if (!roomSocketClient) return;
-        roomSocketClient.emit('position_update', {
-          room_id: roomId,
-          position,
-          rotation,
-          leftHand,
-          rightHand,
-          handTracking: handTrackingEnabled
-        });
-      }
-
-      // Throttled position sender — 10fps instead of 5fps HTTP polling
-      let lastPosSend = 0;
-      function throttledSendPosition(leftHand = null, rightHand = null) {
-        const now = Date.now();
-        if (now - lastPosSend < 100) return;
-        lastPosSend = now;
-        sendCameraDataViaSocket(leftHand, rightHand);
-      }
-
-      function updateRemoteProfile(cameraEl, userData) {
-        const avatarId = userData.avatarId || 'shiba';
-        const color = userData.color || '#4CAF50';
-        const profileKey = `${avatarId}:${color}`;
-
-        if (cameraEl.getAttribute('data-profile-key') !== profileKey) {
-          const existingAvatar = cameraEl.querySelector('.remote-avatar');
-          if (existingAvatar) existingAvatar.remove();
-          const avatar = roomProfileController.createAvatarEntity({ avatarId, color });
-          if (avatar) cameraEl.appendChild(avatar);
-          cameraEl.setAttribute('data-profile-key', profileKey);
-        }
-
-        const nameTag = cameraEl.querySelector('.display-name');
-        if (nameTag) {
-          nameTag.setAttribute('value', userData.displayName || userData.userId);
-          nameTag.setAttribute('color', color);
-        }
-      }
-
-      function updateOtherUsersCameras(data) {
-        let cameraIdList = [];
-        let handIdList = [];
-        
-        document.querySelectorAll('a-entity[id^="camera-"]').forEach(el => {
-          cameraIdList.push(el.id);
-        });
-        document.querySelectorAll('a-entity[class^="hand-"]').forEach(el => {
-          handIdList.push(el.id);
-        });
-
-        // data is an array of user objects (from room_state or individual updates)
-        const users = Array.isArray(data) ? data : Object.values(data);
-
-        users.forEach(userData => {
-          const userId = userData.userId;
-          if (userId === myUserId) return;
-
-          let cameraEl = document.getElementById(`camera-${userId}`);
-          if (!cameraEl) {
-            cameraEl = document.createElement('a-entity');
-            cameraEl.setAttribute('id', `camera-${userId}`);
-            cameraEl.setAttribute('rotation', '0 180 0');
-
-            let idText = document.createElement('a-text');
-            idText.setAttribute('class', 'display-name');
-            idText.setAttribute('value', userData.displayName || userId);
-            idText.setAttribute('position', '0 0 0');
-            idText.setAttribute('scale', '1 1 1');
-            idText.setAttribute('rotation', '0 180 0');
-            idText.setAttribute('color', '#4CAF50');
-            idText.setAttribute('align', 'center');
-            cameraEl.appendChild(idText);
-
-            document.querySelector('a-scene').appendChild(cameraEl);
-          }
-          updateRemoteProfile(cameraEl, userData);
-          cameraEl.setAttribute('position', userData.position);
-          cameraEl.setAttribute('rotation', userData.rotation);
-
-          if (userData.handTracking && userData.handTracking.enabled) {
-            const leftHandData = userData.leftHand;
-            const rightHandData = userData.rightHand;
-
-            ['left', 'right'].forEach((side, i) => {
-              const handData = i === 0 ? leftHandData : rightHandData;
-              const handId = `hand-${side}-${userId}`;
-              
-              let handEl = document.getElementById(handId);
-              if (!handData) {
-                if (handEl) { handEl.parentNode.removeChild(handEl); }
-                return;
-              }
-
-              if (!handEl) {
-                handEl = createHandVisualization(handData, side === 'left');
-                if (handEl) {
-                  handEl.setAttribute('id', handId);
-                  cameraEl.appendChild(handEl);
-                }
-              } else {
-                if (handData.wrist && handData.wrist.position) {
-                  handEl.setAttribute('position', `${handData.wrist.position[0]} ${handData.wrist.position[1]} ${handData.wrist.position[2]}`);
-                }
-              }
-              handIdList = handIdList.filter(id => id !== handId);
-            });
-          }
-
-          cameraIdList = cameraIdList.filter(id => id !== `camera-${userId}`);
-        });
-
-        cameraIdList.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.parentNode.removeChild(el);
-        });
-        handIdList.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.parentNode.removeChild(el);
-        });
-      }
-
-      // Temporary compatibility adapter. Task 4 moves these inline scene
-      // callbacks into modules; the socket itself is owned by bootstrap.js.
-      window.roomLegacySocketAdapter = {
-        initialize(socketClient) {
-          roomSocketClient = socketClient;
-          window.RoomEffects?.init(roomId, socketClient);
-          window.AvatarExpressions?.init(socketClient);
-          window.initVoiceChat?.(roomId, myUserId, roomBootstrap.isAdmin, socketClient);
-        },
-        renderUsers(users) {
-          updateOtherUsersCameras(users);
-        },
-        handleSocketEvent(eventName, data) {
-          window.RoomEffects?.handleSocketEvent(eventName, data);
-          if (eventName === 'expression') {
-            window.AvatarExpressions?.handleSocketEvent(data);
-          }
-          window.VoiceChat?.handleSocketEvent(eventName, data);
-        }
-      };
-
-      // Alias for hand tracking (backward compat)
-      function sendCameraData(leftHand = null, rightHand = null) {
-        throttledSendPosition(leftHand, rightHand);
-      }
-
-      // Replace polling setIntervals — send position via socket at 10fps
-      setInterval(() => {
-        if (!handTrackingEnabled) {
-          throttledSendPosition();
-        }
-      }, 100);
-
-      // Hand tracking sends via socket
-      function onHandTrackingUpdate(leftHandData, rightHandData) {
-        throttledSendPosition(leftHandData, rightHandData);
-      }
-
-      document.addEventListener('DOMContentLoaded', async () => {
-        const arMode = {{ 'true' if is_ar_marker else 'false' }};
-        const arCompanion = {{ 'true' if is_ar_companion else 'false' }};
-
-        // Share QR button (all users)
-        addShareButton();
-
-        // Init AR marker mode if ?ar=marker
-        if (arMode) {
-          bootstrapARMode(roomId, null);
-        }
-
-        // Init AR companion receiver if ?ar=companion (Vision Pro)
-        if (arCompanion) {
-          bootstrapARReceiverMode(roomId);
-        }
-
-        // Enable drag after scene loads
-        setTimeout(enableDrag, 1000);
-
-        // Init named preset teleport controls. Map controls mount from room/bootstrap.js.
-        const presets = roomBootstrap.presets;
-        const boundary = roomBootstrap.boundary;
-        const isAdmin = roomBootstrap.isAdmin;
-        if (boundary && !arMode && !arCompanion) {
-          initLocationFeatures(presets, boundary, roomId, isAdmin);
-        }
-
-        // Admin-only: AI arrange + effects buttons
-        if (isAdmin) {
-          addLLMLayoutButton();
-          addLLMEffectsButton();
-        }
-
-        const supported = await checkHandTrackingSupport();
-        if (supported) {
-          const btn = document.createElement('button');
-          btn.id = 'hand-tracking-btn';
-          btn.textContent = '🤚 Hand Tracking';
-          btn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 20px;background:#666;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;z-index:9999;';
-          btn.onclick = enableHandTracking;
-          document.body.appendChild(btn);
-        }
-      });
-
-      // Also enable drag after scene loaded
-      document.querySelector('a-scene').addEventListener('loaded', () => {
-        setTimeout(enableDrag, 500);
-      });
-
-    </script>
   </body>
 </html>

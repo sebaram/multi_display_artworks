@@ -6,6 +6,11 @@ import { mountMinimap } from './minimap.js';
 import { mountMobileGuidance } from './mobile-guidance.js';
 import { createRoomState } from './core/room-state.js';
 import { createSocketClient } from './core/socket-client.js';
+import { createSceneRenderer } from './rendering/scene.js';
+import { mountTeleportControls } from './interaction/teleport.js';
+import { mountAdminTransforms } from './interaction/admin-transforms.js';
+import { mountHandTracking } from './interaction/hand-tracking.js';
+import { mountShare } from './ui/share.js';
 
 const FORWARDED_SOCKET_EVENTS = [
   'expression',
@@ -175,6 +180,31 @@ export function mountRoomControls({ bootstrapData, document, window }) {
   };
 }
 
+export function createRoomConsumers({
+  sceneRenderer,
+  roomId,
+  visitorId,
+  isAdmin,
+  effects,
+  expressions,
+  initializeVoice,
+  voice,
+}) {
+  return {
+    initialize(socketClient) {
+      effects?.init(roomId, socketClient);
+      expressions?.init(socketClient, roomId, visitorId);
+      initializeVoice?.(roomId, visitorId, isAdmin, socketClient);
+    },
+    renderUsers: sceneRenderer.renderUsers,
+    handleSocketEvent(eventName, data) {
+      effects?.handleSocketEvent(eventName, data);
+      if (eventName === 'expression') expressions?.handleSocketEvent(data);
+      voice?.handleSocketEvent?.(eventName, data);
+    },
+  };
+}
+
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const bootstrapData = readRoomBootstrap(document);
   const controller = bootstrapRoomProfile({
@@ -186,9 +216,23 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.roomProfileController = controller;
   window.dispatchEvent(new CustomEvent('room-profile-ready', { detail: controller }));
 
-  // Temporary bridge for the inline scene code. Task 4 moves these callbacks
-  // into modules; until then the socket and state still remain module-owned.
-  const consumers = window.roomLegacySocketAdapter ?? {};
+  const sceneRenderer = createSceneRenderer({
+    document,
+    scene: document.querySelector('a-scene'),
+    selfId: bootstrapData.visitorId,
+    createAvatarEntity: controller.createAvatarEntity,
+  });
+  const initializeVoice = window.initVoiceChat;
+  const consumers = createRoomConsumers({
+    sceneRenderer,
+    roomId: bootstrapData.roomId,
+    visitorId: bootstrapData.visitorId,
+    isAdmin: bootstrapData.isAdmin,
+    effects: window.RoomEffects,
+    expressions: window.AvatarExpressions,
+    initializeVoice,
+    voice: window.VoiceChat,
+  });
   const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
   const realtime = bootstrapRoomRealtime({
     bootstrapData,
@@ -197,5 +241,63 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     socketUrl: `${proto}//${window.location.host}`,
     consumers,
   });
-  window.addEventListener('beforeunload', realtime.destroy, { once: true });
+  const roomFeatures = [
+    sceneRenderer,
+    mountShare({
+      document,
+      location: window.location,
+      roomId: bootstrapData.roomId,
+      navigator: window.navigator,
+      qrcode: window.qrcode,
+      setTimeout: window.setTimeout.bind(window),
+    }),
+    mountHandTracking({
+      document,
+      navigator: window.navigator,
+      socketClient: realtime.socketClient,
+      roomId: bootstrapData.roomId,
+      setInterval: window.setInterval.bind(window),
+      clearInterval: window.clearInterval.bind(window),
+      requestAnimationFrame: window.requestAnimationFrame.bind(window),
+      now: Date.now,
+      console: window.console,
+    }),
+  ];
+
+  if (bootstrapData.roomControlsEnabled) {
+    roomFeatures.push(mountTeleportControls({
+      presets: bootstrapData.presets,
+      boundary: bootstrapData.boundary,
+      roomId: bootstrapData.roomId,
+      isAdmin: bootstrapData.isAdmin,
+      camera: document.getElementById('camera'),
+      document,
+      fetch: window.fetch.bind(window),
+      prompt: window.prompt.bind(window),
+      alert: window.alert.bind(window),
+      reload: () => window.location.reload(),
+    }));
+  }
+
+  if (bootstrapData.isAdmin) {
+    roomFeatures.push(mountAdminTransforms({
+      document,
+      navigator: window.navigator,
+      fetch: window.fetch.bind(window),
+      alert: window.alert.bind(window),
+      setTimeout: window.setTimeout.bind(window),
+    }));
+    window.addLLMLayoutButton?.();
+    window.addLLMEffectsButton?.();
+  }
+
+  if (bootstrapData.isArMarker) window.bootstrapARMode?.(bootstrapData.roomId, null);
+  if (bootstrapData.isArCompanion) window.bootstrapARReceiverMode?.(bootstrapData.roomId);
+
+  window.addEventListener('beforeunload', () => {
+    roomFeatures.forEach((feature) => feature.destroy?.());
+    window.roomControls.destroy();
+    controller.destroy();
+    realtime.destroy();
+  }, { once: true });
 }

@@ -13,6 +13,8 @@ let faceApiModelsLoaded = false;
 let expressionInterval = null;
 let lastSmileTime = 0;
 let expressionSocketClient = null;
+let expressionRoomId = null;
+let expressionUserId = null;
 
 const FACE_API_MODELS_BASE = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
@@ -102,7 +104,7 @@ async function startExpressionDetection() {
 // Show expression emoji bubble above own avatar
 function showAvatarExpression(emoji, duration = 3000) {
   // Find own camera element
-  const myCamera = document.getElementById(`camera-${myUserId}`);
+  const myCamera = document.getElementById(`camera-${expressionUserId}`);
   if (!myCamera) return;
 
   // Create or update expression bubble
@@ -124,8 +126,8 @@ function showAvatarExpression(emoji, duration = 3000) {
 
   // Broadcast expression to other users via socket
   expressionSocketClient?.emit('expression', {
-    room_id: roomId,
-    userId: myUserId,
+    room_id: expressionRoomId,
+    userId: expressionUserId,
     expression: emoji
   });
 }
@@ -139,7 +141,7 @@ function onHandRaiseDetected(side) {
 // ─── Receive and display others' expressions ─────────────────────────────────
 
 function handleAvatarExpressionSocketEvent(data) {
-  if (data.userId === myUserId) return;
+  if (data.userId === expressionUserId) return;
   showExpressionForUser(data.userId, data.expression);
 }
 
@@ -166,8 +168,10 @@ function showExpressionForUser(userId, emoji) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-function initAvatarExpressions(socketClient) {
+function initAvatarExpressions(socketClient, roomId, userId) {
   expressionSocketClient = socketClient;
+  expressionRoomId = roomId;
+  expressionUserId = userId;
 
   // Start face detection (desktop browsers with camera)
   loadFaceAPI();

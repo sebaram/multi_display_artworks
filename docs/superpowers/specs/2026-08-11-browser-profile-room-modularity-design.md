@@ -24,23 +24,23 @@ must preserve those interfaces while changing only internal organization.
 
 ## Visitor profile
 
-On the first room visit, Flask issues an opaque `visitorId` in its signed,
-persistent session cookie. The browser stores the associated profile in
-`localStorage`. The profile contains:
+On the first room visit, Flask issues an opaque `visitorId` in its signed
+browser session cookie. The browser stores the associated profile in
+`localStorage`; the stored profile fields are:
 
 ```json
 {
-  "visitorId": "opaque stable browser identifier",
   "displayName": "Visitor name",
   "avatarId": "robot | shiba | rigged-simple | none",
   "color": "#RRGGBB"
 }
 ```
 
-No visitor profile data is stored in MongoDB. Clearing browser site data resets
-the profile; this is intentional. The signed session identifier is browser-only
-state, not a login or a user account. Flask-Login users continue to be used
-only for authentication and administrative authorization.
+No visitor profile data is stored in MongoDB. Clearing this browser's site data
+resets the profile and the signed browser session identity; this is intentional.
+The visitor identity and profile do not restore across devices. They are not a
+login or user account. Flask-Login users continue to be used only for
+authentication and administrative authorization.
 
 The first visit opens a profile dialog. Subsequent visits display a compact
 top-right profile panel with the selected name, avatar swatch, and an Edit
@@ -58,11 +58,14 @@ client may only update its own connected presence.
 ## Avatar catalog and assets
 
 The client receives a small, versioned avatar catalog from the room bootstrap
-data. The initial catalog has the current `shiba`, a configurable primitive
-`robot`, the CC-BY-4.0 Khronos Sample Assets `Rigged Simple` model with its
-required Cesium attribution, `none`, and only additional glTF assets that are
-committed with a license and attribution record. The renderer receives an
-`AvatarProfile` and owns how each entry is built:
+data. The initial catalog contains only `shiba`, a configurable primitive
+`robot`, the CC-BY-4.0 `Rigged Simple` model, and `none`; it does not accept
+avatar selection through a `?avatar=` query parameter or arbitrary URLs. The
+`Rigged Simple` model's Cesium attribution and licence are recorded beside the
+asset in `flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md`.
+Only additional glTF assets committed with a license and attribution record may
+be added. The renderer receives an `AvatarProfile` and owns how each entry is
+built:
 
 - primitive avatars apply the selected color directly to their materials;
 - glTF avatars apply color only to approved material targets or use a color
@@ -86,10 +89,11 @@ control.
 
 ### Mobile guidance
 
-The phrase “Hold and drag to move” appears only on coarse-pointer, narrow
-viewport devices. It is implemented as a responsive hint and is never rendered
-for desktop mouse/keyboard visitors. Administrative element transform dragging
-remains independently admin-gated and is not enabled for ordinary visitors.
+The phrase “Hold and drag to move” appears only when **both** media queries
+match: `(pointer: coarse)` and `(max-width: 767px)`. It is implemented as a
+responsive hint and is never rendered for desktop mouse/keyboard visitors.
+Administrative element transform dragging remains independently admin-gated and
+is not enabled for ordinary visitors.
 
 ## Modularity target
 

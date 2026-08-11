@@ -66,11 +66,11 @@ multi_display_artworks/
 │           │   └── splat_example.html
 │           │
 │           └── static/
-│               ├── gltf/shiba/   # Default avatar GLTF + license
+│               ├── gltf/         # Curated avatar assets; each asset keeps its license/attribution beside it
 │               └── js/           # Client-side functionality
 │                   ├── drag-component.js       # Admin drag-to-move (auth-gated)
-│                   ├── location-features.js   # Teleport dropdown, boundary clamp, mini-map
-│                   ├── guest-name.js           # Name prompt, Socket.IO displayName
+│                   ├── location-features.js   # Teleport dropdown and boundary clamp
+│                   ├── room/                   # Browser profile, avatar catalog, expandable map, mobile guidance
 │                   ├── share-qr.js             # QR code generation (local, no external API)
 │                   ├── llm-layout.js           # LLM auto-layout UI (curator panel)
 │                   ├── marker-ar.js            # AR.js marker detection + overlay
@@ -100,8 +100,9 @@ multi_display_artworks/
 
 ### 👥 Multi-User
 - **Position sync** — Socket.IO broadcasts camera pos/rot to all users in room
-- **Avatar name tags** — green floating name label (GuestName component)
-- **Guest names** — prompted on first visit, stored in SessionStorage, sent via Socket.IO `displayName`
+- **Browser visitor profile** — a signed Flask browser-session identity is paired with a name, catalog avatar, and color stored only in that browser’s site data; it is not an account and does not restore across devices. Clearing this site’s data resets the profile.
+- **Profile editing** — the first room visit opens the profile editor; later visits use the top-right profile panel. Saving a name, catalog avatar, or color updates that visitor’s remote presence for other people currently in the room.
+- **Avatar catalog and attribution** — visitors can select only the built-in `Shiba`, `Robot`, `Rigged Simple`, or `None` entries; URL parameters such as `?avatar=` do not select an avatar. `Rigged Simple` is by Cesium under CC BY 4.0; its complete attribution is in [`flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md`](flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md).
 - **Avatar expressions** — face-api.js smile detection → emoji bubble above avatar
 
 ### 🔐 Admin Features
@@ -133,7 +134,9 @@ multi_display_artworks/
 - **Location presets** — saved positions (name + camera vector) stored in MongoDB
 - **Teleport dropdown** — jump to preset with one click
 - **Boundary clamping** — `boundary-clamp` A-Frame component prevents user from leaving room
-- **Mini-map** — top-down SVG minimap showing user position + walls
+- **Expandable map** — the upper-right compact map opens a larger overview of the room, walls, artworks, presets, and your position. Opening it never changes or teleports the camera; use the named teleport dropdown to move to a preset.
+- **Mobile movement guidance** — “Hold and drag to move” is shown only when both `(pointer: coarse)` and `(max-width: 767px)` match. It is absent for desktop pointer layouts.
+- **Authorization unchanged** — these public visitor controls do not grant administration access; element transforms and stream controls remain restricted to the existing administrator authorization.
 
 ---
 
@@ -262,7 +265,7 @@ port **5000** in the container (SocketIO/eventlet, see `flask_server/start.sh`).
 - [x] Webpage wall element type — iframe via aframe-html-component
 - [x] Cutout option for GaussianSplat — UI in element page (admin)
 - [x] Hand tracking — MediaPipe via avatar-expression.js
-- [x] Avatar customization — guest name + expression emoji
+- [x] Browser visitor profile — browser-only name, catalog avatar, and color with live room presence updates
 - [x] Add some additional marker add-on for each images (QR or synchro) — webpage element
 - [x] Text(relationship) based auto images placement (LLM powered) — llm_layout.py
 - [x] AR walking (joystick) — location-features.js

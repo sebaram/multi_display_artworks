@@ -13,7 +13,7 @@ import importlib.util
 from collections import defaultdict
 from flask import request, session
 
-from metamuseum.core.visitor_profile import normalize_profile
+from metamuseum.core.presence_service import PresenceService
 
 _SOCKETIO_ASYNC_MODE = (
     'eventlet' if importlib.util.find_spec('eventlet') is not None
@@ -25,27 +25,13 @@ _SOCKETIO_ASYNC_MODE = (
 socketio_instance = None
 socketio = None  # alias used by other modules
 
-# room_users: { room_id: { sid: { userId, displayName, avatarId, color, position, rotation, hands... } } }
-room_users = defaultdict(dict)
+# Compatibility alias for code that still inspects the in-memory room mapping.
+presence_service = PresenceService()
+room_users = presence_service.rooms
 
 
 # room_voice_enabled: { room_id: bool } — server-authoritative voice state
 room_voice_enabled = defaultdict(lambda: False)
-
-
-def _public_presence(user):
-    """Serialize presence without leaking transport-only identifiers."""
-    return {
-        'userId': user['userId'],
-        'displayName': user['displayName'],
-        'avatarId': user['avatarId'],
-        'color': user['color'],
-        'position': user['position'],
-        'rotation': user['rotation'],
-        'leftHand': user['leftHand'],
-        'rightHand': user['rightHand'],
-        'handTracking': user['handTracking'],
-    }
 
 
 def init_socketio(app, existing_sio=None):
@@ -80,14 +66,9 @@ def _register_sync_handlers(sio):
             room['vision_pros'].discard(request.sid)
 
         # Remove from all position rooms and notify others
-        for room_id, users in list(room_users.items()):
-            if request.sid in users:
-                user = users.pop(request.sid)
-                sio.emit('user_left', {
-                    'userId': user['userId'],
-                    'room_id': room_id
-                }, room=room_id)
-                print(f'[PositionSync] {user["userId"]} left room {room_id}')
+        for event in presence_service.leave_all(request.sid):
+            sio.emit('user_left', event, room=event['room_id'])
+            print(f'[PositionSync] {event["userId"]} left room {event["room_id"]}')
 
     @sio.on('join_position_room')
     def on_join(data):
@@ -98,24 +79,17 @@ def _register_sync_handlers(sio):
         if not room_id or not visitor_id:
             return
 
-        profile = normalize_profile(data.get('profile'))
         join_room(room_id)
-        room_users[room_id][request.sid] = {
-            'userId': visitor_id,
-            **profile,
-            'position': data.get('position', '0 1.6 0'),
-            'rotation': data.get('rotation', '0 0 0'),
-            'leftHand': None,
-            'rightHand': None,
-            'handTracking': False
-        }
+        presence, existing_users = presence_service.join(
+            room_id,
+            request.sid,
+            visitor_id,
+            data.get('profile'),
+            data.get('position', '0 1.6 0'),
+            data.get('rotation', '0 0 0'),
+        )
 
         # Send current room state to the new joiner
-        existing_users = [
-            _public_presence(user)
-            for sid, user in room_users[room_id].items()
-            if sid != request.sid
-        ]
         sio.emit('room_state', {
             'users': existing_users,
             'room_id': room_id
@@ -123,59 +97,37 @@ def _register_sync_handlers(sio):
 
         # Notify others that a new user joined
         sio.emit('user_joined', {
-            'userId': visitor_id,
-            **profile,
+            'userId': presence['userId'],
+            'displayName': presence['displayName'],
+            'avatarId': presence['avatarId'],
+            'color': presence['color'],
             'room_id': room_id
         }, room=room_id, skip_sid=request.sid)
 
     @sio.on('leave_position_room')
     def on_leave(data):
         room_id = data.get('room_id')
-        if not room_id or room_id not in room_users:
+        if not room_id or not presence_service.has_room(room_id):
             return
 
-        user = room_users[room_id].pop(request.sid, None)
+        event = presence_service.leave(room_id, request.sid)
         leave_room(room_id)
 
-        if user:
-            sio.emit('user_left', {
-                'userId': user['userId'],
-                'room_id': room_id
-            }, room=room_id)
+        if event:
+            sio.emit('user_left', event, room=room_id)
 
     @sio.on('position_update')
     def on_position_update(data):
         """Receive position update from a client, broadcast to others in room."""
         data = data or {}
         room_id = data.get('room_id')
-        if not room_id or room_id not in room_users:
+        broadcast_data = presence_service.update_position(
+            room_id, request.sid, data
+        )
+        if not broadcast_data:
             return
-
-        sid = request.sid
-        if sid not in room_users[room_id]:
-            return
-
-        # Update local state
-        user = room_users[room_id][sid]
-        user['position'] = data.get('position', user['position'])
-        user['rotation'] = data.get('rotation', user['rotation'])
-        user['leftHand'] = data.get('leftHand')
-        user['rightHand'] = data.get('rightHand')
-        user['handTracking'] = data.get('handTracking', user['handTracking'])
 
         # Broadcast to all OTHER clients in the room
-        broadcast_data = {
-            'userId': user['userId'],
-            'displayName': user['displayName'],
-            'avatarId': user['avatarId'],
-            'color': user['color'],
-            'position': user['position'],
-            'rotation': user['rotation'],
-            'leftHand': user['leftHand'],
-            'rightHand': user['rightHand'],
-            'handTracking': user['handTracking'],
-            'room_id': room_id
-        }
         sio.emit('position_update', broadcast_data, room=room_id, skip_sid=request.sid)
 
     @sio.on('profile_update')
@@ -183,29 +135,23 @@ def _register_sync_handlers(sio):
         """Update only the sender's normalized public profile fields."""
         data = data or {}
         room_id = data.get('room_id')
-        if not room_id or request.sid not in room_users.get(room_id, {}):
+        event = presence_service.update_profile(
+            room_id, request.sid, data.get('profile')
+        )
+        if not event:
             return
-
-        profile = normalize_profile(data.get('profile'))
-        room_users[room_id][request.sid].update(profile)
-        sio.emit('profile_updated', {
-            'userId': room_users[room_id][request.sid]['userId'],
-            **profile,
-            'room_id': room_id,
-        }, room=room_id, skip_sid=request.sid)
+        sio.emit('profile_updated', event, room=room_id, skip_sid=request.sid)
 
     @sio.on('request_room_state')
     def on_request_state(data):
         """Re-send full room state to requesting client."""
         room_id = data.get('room_id')
-        if not room_id or room_id not in room_users:
+        if not room_id or not presence_service.has_room(room_id):
             return
 
-        existing_users = [
-            _public_presence(user)
-            for sid, user in room_users[room_id].items()
-            if sid != request.sid
-        ]
+        existing_users = presence_service.public_room_state(
+            room_id, exclude_sid=request.sid
+        )
         sio.emit('room_state', {
             'users': existing_users,
             'room_id': room_id
@@ -216,11 +162,11 @@ def _register_sync_handlers(sio):
     def on_expression(data):
         """Broadcast emoji expression to all other users in room."""
         room_id = data.get('room_id')
-        if not room_id or room_id not in room_users:
+        if not room_id or not presence_service.has_room(room_id):
             return
 
         sio.emit('expression', {
-            'userId': room_users[room_id].get(request.sid, {}).get('userId', '?'),
+            'userId': presence_service.user_id(room_id, request.sid) or '?',
             'expression': data.get('expression', ''),
             'room_id': room_id
         }, room=room_id, skip_sid=request.sid)
@@ -317,7 +263,4 @@ def _register_sync_handlers(sio):
 
 def get_position_rooms():
     """Return serializable dict of current rooms for HTTP fallback."""
-    return {
-        room_id: [_public_presence(user) for user in users.values()]
-        for room_id, users in room_users.items()
-    }
+    return presence_service.public_rooms()

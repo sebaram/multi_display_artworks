@@ -1,5 +1,8 @@
 """Characterization tests for the public room-presence Socket.IO contract."""
 
+from metamuseum.core.presence_service import PresenceService
+from metamuseum.core.visitor_profile import DEFAULT_PROFILE
+
 
 ROOM_ID = "presence-contract-room"
 FIRST_PROFILE = {
@@ -35,6 +38,20 @@ def _only_event_payload(socket, event_name):
     payloads = _event_payloads(socket, event_name)
     assert len(payloads) == 1
     return payloads[0]
+
+
+def test_presence_update_uses_the_joined_identity_not_payload_identity():
+    service = PresenceService()
+    service.join(
+        "room", "sid", "visitor", DEFAULT_PROFILE, "0 1.6 0", "0 0 0"
+    )
+
+    event = service.update_position(
+        "room", "sid", {"userId": "spoof", "position": "1 2 3"}
+    )
+
+    assert event["userId"] == "visitor"
+    assert event["position"] == "1 2 3"
 
 
 def test_presence_events_keep_session_identity_and_public_payloads(app):

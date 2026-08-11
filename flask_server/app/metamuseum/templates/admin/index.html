@@ -75,10 +75,10 @@
       <h2>✨ 기능 가이드 / Feature Guide</h2>
 
       <h3>🎭 Avatar System <span class="badge badge-green">완료</span></h3>
-      <p>URL 파라미터로 아바타 유형 지정:</p>
-      <code>?avatar=shiba</code> (강아지, 기본값)<br>
-      <code>?avatar=robot</code> (로봇)<br>
-      <code>?avatar=none</code> (카메라만)
+      <p>방의 프로필 편집기에서 카탈로그 아바타 선택:</p>
+      <code>Shiba</code> (강아지, 기본값)<br>
+      <code>Robot</code> (로봇)<br>
+      <code>Rigged Simple</code> 또는 <code>None</code> (카메라만)
 
       <h3>✋ Drag & Transform <span class="badge badge-green">완료</span> <span class="badge badge-blue">admin only</span></h3>
       <p>로그인한 관리자만 사용 가능. 3D 오브젝트를 드래그하거나:</p>
@@ -103,7 +103,7 @@
         <li>🟢 점 = 내 위치 + 방향</li>
         <li>🔵 점 = 프리셋 위치</li>
         <li>⭐ (골드) = 기본 프리셋</li>
-        <li>클릭하면 기본 프리셋으로 텔레포트</li>
+        <li>클릭하면 카메라 이동 없이 확장된 개요를 열며, 이동은 프리셋 드롭다운으로 수행</li>
       </ul>
 
       <h3>🚧 Boundary Lock <span class="badge badge-green">완료</span></h3>
@@ -301,7 +301,7 @@
         <tr><th>URL</th><th>설명</th></tr>
         <tr><td><code>/</code></td><td>메인 페이지 (방 목록)</td></tr>
         <tr><td><code>/room?room_id=...</code></td><td>3D 전시실 (ROOM)</td></tr>
-        <tr><td><code>/room?room_id=...&amp;avatar=robot</code></td><td>로봇 아바타</td></tr>
+        <tr><td>방의 프로필 편집기</td><td>카탈로그에서 아바타 선택</td></tr>
         <tr><td><code>/room?room_id=...&amp;preset=...</code></td><td>프리셋 위치에서 시작</td></tr>
         <tr><td><code>/wall?wall_id=...</code></td><td>단일 벽면</td></tr>
         <tr><td><code>/wall?wall_id=...&amp;refresh=30</code></td><td>30초 오토새로고침</td></tr>
@@ -326,10 +326,10 @@
     <div class="help-section">
       <h2>💡 팁 / Tips</h2>
       <ul>
-        <li><strong>미니맵 없애기:</strong> 미니맵은 자동으로 표시되며 클릭으로 기본 위치로 텔레포트</li>
+        <li><strong>미니맵:</strong> 자동으로 표시되며 클릭하면 카메라 이동 없이 확장된 개요를 엽니다</li>
         <li><strong>위치 조정:</strong> 드래그로 대략적 위치 → Transform 패널에서 좌표 직접 입력</li>
         <li><strong>여러 브라우저 테스트:</strong> 시크릿 모드에서 일반 사용자 뷰 확인</li>
-        <li><strong>갤러리 미리보기:</strong> avatar=none으로 3D 씬만 보고 아바타 숨기기</li>
+        <li><strong>갤러리 미리보기:</strong> 프로필 편집기에서 <code>None</code>을 선택해 아바타 숨기기</li>
         <li><strong>RTSP 안 될 때:</strong> IP 카메라가同一 네트워크에 있는지 확인, URL 형식 확인</li>
         <li><strong>카메라 스트리밍 안 될 때:</strong> HTTPS 필요 (cloudflaredunnel은 HTTPS 제공)</li>
       </ul>

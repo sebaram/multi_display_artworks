@@ -1,6 +1,7 @@
 """Integration coverage for browser-scoped visitor profiles."""
 
 from contextlib import contextmanager
+from pathlib import Path
 
 import mongoengine
 import pytest
@@ -76,6 +77,23 @@ def test_room_assigns_one_visitor_id_per_browser_session(client, sample_image):
     assert visitor_id == first_context["visitor_id"] == second_context["visitor_id"]
     assert first_context["avatar_catalog"] == sorted(AVATAR_IDS)
     assert first_context["avatar"] == second_context["avatar"] == "shiba"
+
+
+def test_home_does_not_advertise_avatar_query_selection(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b"?avatar=" not in response.data
+
+
+def test_admin_help_does_not_advertise_avatar_queries_or_map_teleports():
+    template = (Path(__file__).parents[1] / "app" / "metamuseum" / "templates"
+                / "admin" / "index.html").read_text(encoding="utf-8")
+
+    assert "?avatar=" not in template
+    assert "프로필 편집기" in template
+    assert "확장된 개요" in template
+    assert "카메라 이동 없이" in template
 
 
 def test_normalize_profile_rejects_unknown_avatar_and_bad_color():

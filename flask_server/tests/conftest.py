@@ -7,9 +7,11 @@ import mongoengine
 import pytest
 
 
-APP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app"))
-if APP_DIR not in sys.path:
-    sys.path.insert(0, APP_DIR)
+SERVER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+APP_DIR = os.path.join(SERVER_DIR, "app")
+for path in (SERVER_DIR, APP_DIR):
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
 
 def _mongodb_uri() -> str:

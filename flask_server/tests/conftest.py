@@ -31,7 +31,11 @@ def app():
 
     from metamuseum import create_app
 
-    return create_app()
+    flask_app = create_app()
+    connection = mongoengine.connection.get_connection()
+    if not connection.__class__.__module__.startswith("pymongo."):
+        pytest.fail("integration tests require a PyMongo connection")
+    return flask_app
 
 
 @pytest.fixture(autouse=True)
@@ -62,6 +66,24 @@ def admin_client(app):
     client = app.test_client()
     with client.session_transaction() as session:
         session["_user_id"] = admin.get_id()
+        session["_fresh"] = True
+    return client
+
+
+@pytest.fixture
+def user_client(app):
+    from metamuseum.models import User
+
+    user = User(
+        email="user@test.invalid",
+        name="Test User",
+        password="unused-test-password-hash",
+        user_type=[],
+        email_verified=True,
+    ).save()
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["_user_id"] = user.get_id()
         session["_fresh"] = True
     return client
 

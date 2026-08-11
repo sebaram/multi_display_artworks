@@ -17,10 +17,6 @@ export function mountProfilePanel({ profile, catalog, onSave, document = globalT
   const summary = document.createElement('section');
   summary.setAttribute('aria-label', 'Visitor profile');
   setStyles(summary, [
-    'position:fixed',
-    'top:12px',
-    'left:12px',
-    'z-index:9998',
     'display:flex',
     'align-items:center',
     'gap:9px',
@@ -30,6 +26,7 @@ export function mountProfilePanel({ profile, catalog, onSave, document = globalT
     'color:white',
     'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
     'font-size:13px',
+    'pointer-events:auto',
   ].join(';'));
 
   const swatch = document.createElement('span');
@@ -105,7 +102,9 @@ export function mountProfilePanel({ profile, catalog, onSave, document = globalT
     actions,
   );
   dialog.appendChild(form);
-  document.body.append(summary, dialog);
+  const toolbar = document.getElementById?.('room-toolbar') ?? document.body;
+  toolbar.appendChild(summary);
+  document.body.appendChild(dialog);
 
   function updateSummary(nextProfile) {
     currentProfile = { ...nextProfile };

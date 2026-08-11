@@ -1,7 +1,5 @@
 """Pure room-presence state operations."""
 
-from collections import defaultdict
-
 from metamuseum.core.visitor_profile import normalize_profile
 
 
@@ -9,7 +7,7 @@ class PresenceService:
     """Own in-memory presence state keyed by room and Socket.IO session ID."""
 
     def __init__(self):
-        self.rooms = defaultdict(dict)
+        self.rooms = {}
 
     @staticmethod
     def _public_presence(user):
@@ -36,9 +34,21 @@ class PresenceService:
             "rightHand": None,
             "handTracking": False,
         }
-        existing = self.public_room_state(room_id, exclude_sid=sid)
-        self.rooms[room_id][sid] = presence
-        return self._public_presence(presence), existing
+        room = self.rooms.setdefault(room_id, {})
+        displaced_sid = next((
+            active_sid
+            for active_sid, user in room.items()
+            if active_sid != sid and user["userId"] == visitor_id
+        ), None)
+        if displaced_sid:
+            room.pop(displaced_sid)
+        existing = [
+            self._public_presence(user)
+            for active_sid, user in room.items()
+            if active_sid != sid
+        ]
+        room[sid] = presence
+        return self._public_presence(presence), existing, displaced_sid
 
     def update_position(self, room_id, sid, payload):
         user = self.rooms.get(room_id, {}).get(sid)
@@ -66,9 +76,14 @@ class PresenceService:
         }
 
     def leave(self, room_id, sid):
-        user = self.rooms.get(room_id, {}).pop(sid, None)
+        room = self.rooms.get(room_id)
+        if not room:
+            return None
+        user = room.pop(sid, None)
         if not user:
             return None
+        if not room:
+            self.rooms.pop(room_id, None)
         return {"userId": user["userId"], "room_id": room_id}
 
     def leave_all(self, sid):
@@ -84,6 +99,13 @@ class PresenceService:
 
     def user_id(self, room_id, sid):
         return self.rooms.get(room_id, {}).get(sid, {}).get("userId")
+
+    def sid_for_user(self, room_id, visitor_id):
+        return next((
+            sid
+            for sid, user in self.rooms.get(room_id, {}).items()
+            if user["userId"] == visitor_id
+        ), None)
 
     def public_room_state(self, room_id, exclude_sid=None):
         return [

@@ -67,8 +67,23 @@ test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
   assert.deepEqual(initialized, [realtime.socketClient]);
 
   socket.trigger('connect');
+  assert.deepEqual(socket.emitted, [
+    ['join_position_room', profileController.joinPayload()],
+  ]);
+  socket.trigger('room_state', { users: [] });
   socket.trigger('disconnect');
   socket.trigger('connect');
+  assert.deepEqual(socket.emitted, [
+    ['join_position_room', profileController.joinPayload()],
+    ['voice.get_state', { room_id: 'room-a' }],
+    ['join_position_room', profileController.joinPayload()],
+  ]);
+  socket.trigger('room_state', {
+    users: [
+      { userId: 'self', displayName: 'Local', position: '0 1.6 0', rotation: '0 0 0' },
+      { userId: 'other', displayName: 'Other', position: '0 1.6 0', rotation: '0 0 0' },
+    ],
+  });
   assert.deepEqual(socket.emitted, [
     ['join_position_room', profileController.joinPayload()],
     ['voice.get_state', { room_id: 'room-a' }],
@@ -76,17 +91,12 @@ test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
     ['voice.get_state', { room_id: 'room-a' }],
   ]);
 
-  socket.trigger('room_state', {
-    users: [
-      { userId: 'self', displayName: 'Local', position: '0 1.6 0', rotation: '0 0 0' },
-      { userId: 'other', displayName: 'Other', position: '0 1.6 0', rotation: '0 0 0' },
-    ],
-  });
   socket.trigger('position_update', { userId: 'other', position: '1 2 3' });
   socket.trigger('profile_updated', { userId: 'other', displayName: 'Updated' });
   socket.trigger('user_left', { userId: 'other' });
 
   assert.deepEqual(rendered, [
+    [],
     [{ userId: 'other', displayName: 'Other', position: '0 1.6 0', rotation: '0 0 0' }],
     [{ userId: 'other', displayName: 'Other', position: '1 2 3', rotation: '0 0 0' }],
     [{ userId: 'other', displayName: 'Updated', position: '1 2 3', rotation: '0 0 0' }],
@@ -121,6 +131,7 @@ test('room realtime forwards ancillary public socket events unchanged', () => {
     'voice.ice',
     'voice.join',
     'voice.leave',
+    'voice.displaced',
     'voice.mute',
     'voice.transcript',
     'room_effects',

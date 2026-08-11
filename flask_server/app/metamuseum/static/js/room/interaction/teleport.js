@@ -81,7 +81,7 @@ export function mountTeleportControls({
 
   const panel = document.createElement('div');
   panel.id = 'preset-panel';
-  panel.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;display:flex;gap:5px;align-items:center;';
+  panel.style.cssText = 'display:flex;gap:5px;align-items:center;pointer-events:auto;';
 
   const select = document.createElement('select');
   select.id = 'preset-select';
@@ -120,7 +120,8 @@ export function mountTeleportControls({
     panel.appendChild(saveButton);
   }
 
-  document.body.appendChild(panel);
+  const toolbar = document.getElementById?.('room-toolbar') ?? document.body;
+  toolbar.appendChild(panel);
   return {
     destroy() {
       panel.remove();

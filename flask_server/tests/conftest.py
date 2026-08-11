@@ -48,15 +48,32 @@ def app():
 @pytest.fixture(autouse=True)
 def clean_database(app):
     """Keep every test isolated while exercising the same real database."""
+    from metamuseum.core.position_sync import presence_service, room_voice_enabled
+
     connection = mongoengine.connection.get_connection()
     connection.drop_database("metamuseum_test")
+    presence_service.rooms.clear()
+    room_voice_enabled.clear()
     yield
+    presence_service.rooms.clear()
+    room_voice_enabled.clear()
     connection.drop_database("metamuseum_test")
 
 
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture
+def room_id(app):
+    from metamuseum.elements.basic import Room
+
+    room = Room(
+        name=f"socket-room-{os.urandom(6).hex()}",
+        description="Socket integration test room",
+    ).save()
+    return str(room.id)
 
 
 @pytest.fixture

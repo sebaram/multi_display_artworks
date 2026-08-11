@@ -28,6 +28,7 @@ const FORWARDED_SOCKET_EVENTS = [
   'voice.ice',
   'voice.join',
   'voice.leave',
+  'voice.displaced',
   'voice.mute',
   'voice.transcript',
   'room_effects',
@@ -117,12 +118,12 @@ export function bootstrapRoomRealtime({
   const handlers = {
     connect() {
       socketClient.emit('join_position_room', profileController.joinPayload());
-      socketClient.emit('voice.get_state', { room_id: roomId });
     },
     disconnect() {},
     room_state(data) {
       state.applyRoomState(data?.users);
       renderUsers();
+      socketClient.emit('voice.get_state', { room_id: roomId });
     },
     user_joined(data) {
       state.applyJoin(data);

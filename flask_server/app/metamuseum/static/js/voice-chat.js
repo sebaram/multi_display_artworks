@@ -11,6 +11,7 @@ Signaling events (via Socket.IO):
 - voice.answer    → WebRTC answer from callee
 - voice.ice       → ICE candidate exchange
 - voice.leave     → user left voice
+- voice.displaced → this tab was replaced by another tab in the same room
 - voice.mute      → user muted/unmuted
 - voice.admin_toggle → admin enables/disables voice for room
 */
@@ -20,6 +21,7 @@ Signaling events (via Socket.IO):
 var VoiceChat = {
   enabled: false,        // admin must enable
   active: false,         // user joined voice
+  displaced: false,      // a newer tab owns this browser identity in the room
   muted: true,           // microphone muted
   localStream: null,     // microphone stream
   peers: {},             // peerId → RTCPeerConnection
@@ -39,6 +41,7 @@ function initVoiceChat(roomId, userId, isAdmin, socketClient) {
   VoiceChat.userId = userId;
   VoiceChat.isAdmin = isAdmin;
   VoiceChat.socketClient = socketClient;
+  VoiceChat.displaced = false;
 
   // Add voice UI button
   addVoiceUI();
@@ -49,6 +52,7 @@ function initVoiceChat(roomId, userId, isAdmin, socketClient) {
 function handleVoiceSocketEvent(eventName, data) {
   switch (eventName) {
     case 'voice_admin_toggle':
+      VoiceChat.displaced = false;
       VoiceChat.enabled = data.enabled;
       updateVoiceButton();
       if (!VoiceChat.enabled && VoiceChat.active) leaveVoice();
@@ -71,6 +75,13 @@ function handleVoiceSocketEvent(eventName, data) {
     case 'voice.leave':
     case 'user_left':
       removeVoicePeer(data.userId);
+      break;
+    case 'voice.displaced':
+      if (VoiceChat.active) leaveVoice();
+      VoiceChat.displaced = true;
+      VoiceChat.enabled = false;
+      updateVoiceButton();
+      showVoiceNotification('Voice moved to another tab');
       break;
     case 'voice.mute': {
       var audioEl = document.getElementById('voice-audio-' + data.userId);
@@ -236,11 +247,16 @@ function removeVoicePeer(peerId) {
 // ─── Join / Leave Voice ───────────────────────────────────────────────────────
 
 async function joinVoice() {
-  if (VoiceChat.active || !VoiceChat.enabled) return;
+  if (VoiceChat.active || VoiceChat.displaced || !VoiceChat.enabled) return;
 
   try {
     // Get microphone
-    VoiceChat.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    var stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    if (VoiceChat.displaced || !VoiceChat.enabled) {
+      stream.getTracks().forEach(function(track) { track.stop(); });
+      return;
+    }
+    VoiceChat.localStream = stream;
 
     // Mute initially
     VoiceChat.localStream.getAudioTracks()[0].enabled = false;

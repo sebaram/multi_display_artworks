@@ -7,6 +7,8 @@ const bootstrapUrl = new URL('../../app/metamuseum/static/js/room/bootstrap.js',
 const sceneUrl = new URL('../../app/metamuseum/static/js/room/rendering/scene.js', import.meta.url);
 const handTrackingUrl = new URL('../../app/metamuseum/static/js/room/interaction/hand-tracking.js', import.meta.url);
 const teleportUrl = new URL('../../app/metamuseum/static/js/room/interaction/teleport.js', import.meta.url);
+const profileUrl = new URL('../../app/metamuseum/static/js/room/profile-panel.js', import.meta.url);
+const shareUrl = new URL('../../app/metamuseum/static/js/room/ui/share.js', import.meta.url);
 
 test('room template boots the session-bound profile module without query identity', async () => {
   const template = await readFile(templateUrl, 'utf8');
@@ -52,4 +54,25 @@ test('room bootstrap owns map and mobile guidance while named preset teleport re
   assert.match(bootstrap, /mountTeleportControls\(/);
   assert.match(teleport, /id = 'preset-select'/);
   assert.match(teleport, /teleport\(camera, selected, boundary\)/);
+});
+
+test('profile, share, and teleport controls share a non-overlapping flex toolbar in every room mode', async () => {
+  const [template, profile, share, teleport] = await Promise.all([
+    readFile(templateUrl, 'utf8'),
+    readFile(profileUrl, 'utf8'),
+    readFile(shareUrl, 'utf8'),
+    readFile(teleportUrl, 'utf8'),
+  ]);
+
+  assert.match(template, /id="room-toolbar"/u);
+  assert.match(template, /display:flex/u);
+  assert.match(template, /gap:8px/u);
+  assert.match(template, /flex-wrap:wrap/u);
+  assert.doesNotMatch(
+    template,
+    /\{% if not is_ar_marker and not is_ar_companion %\}\s*<div id="room-toolbar"/u,
+  );
+  for (const source of [profile, share, teleport]) {
+    assert.match(source, /getElementById\?\.\('room-toolbar'\)/u);
+  }
 });

@@ -104,9 +104,10 @@ export function mountShare({
   const button = document.createElement('button');
   button.id = 'share-room-btn';
   button.textContent = '🔗 Share';
-  button.style.cssText = 'position:fixed;top:10px;left:10px;padding:6px 14px;background:rgba(0,0,0,0.75);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;font-size:12px;z-index:9999;font-family:-apple-system,sans-serif;';
+  button.style.cssText = 'padding:6px 14px;background:rgba(0,0,0,0.75);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;font-size:12px;font-family:-apple-system,sans-serif;pointer-events:auto;';
   button.addEventListener('click', show);
-  document.body.appendChild(button);
+  const toolbar = document.getElementById?.('room-toolbar') ?? document.body;
+  toolbar.appendChild(button);
 
   return {
     destroy() {

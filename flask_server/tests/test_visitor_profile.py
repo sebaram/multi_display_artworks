@@ -135,12 +135,12 @@ def test_normalize_profile_accepts_mapping_like_payload():
     }
 
 
-def test_socket_uses_signed_session_identity_and_ignores_spoofed_user_id(app, client):
+def test_socket_uses_signed_session_identity_and_ignores_spoofed_user_id(app, client, room_id):
     from metamuseum.core.position_sync import room_users
 
     socket = socket_client(app, client, "server-owned-id")
     socket.emit("join_position_room", {
-        "room_id": "room-a",
+        "room_id": room_id,
         "userId": "attacker-id",
         "profile": {
             "displayName": "Valid Name",
@@ -149,7 +149,7 @@ def test_socket_uses_signed_session_identity_and_ignores_spoofed_user_id(app, cl
         },
     })
 
-    presence = next(iter(room_users["room-a"].values()))
+    presence = next(iter(room_users[room_id].values()))
     assert presence["userId"] == "server-owned-id"
     assert presence["displayName"] == "Valid Name"
     assert presence["avatarId"] == "robot"
@@ -157,25 +157,25 @@ def test_socket_uses_signed_session_identity_and_ignores_spoofed_user_id(app, cl
     socket.disconnect()
 
 
-def test_socket_without_signed_visitor_id_does_not_join(app, client):
+def test_socket_without_signed_visitor_id_does_not_join(app, client, room_id):
     from metamuseum.core.position_sync import room_users
 
     socket = socket_client(app, client)
     socket.emit("join_position_room", {
-        "room_id": "room-without-session",
+        "room_id": room_id,
         "userId": "client-owned-id",
         "profile": {},
     })
 
-    assert not room_users["room-without-session"]
+    assert room_id not in room_users
     socket.disconnect()
 
 
-def test_room_state_contains_public_profiles_without_socket_sid(app):
+def test_room_state_contains_public_profiles_without_socket_sid(app, room_id):
     first_client = app.test_client()
     first_socket = socket_client(app, first_client, "visitor-one")
     first_socket.emit("join_position_room", {
-        "room_id": "shared-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "First Visitor",
             "avatarId": "robot",
@@ -187,7 +187,7 @@ def test_room_state_contains_public_profiles_without_socket_sid(app):
     second_client = app.test_client()
     second_socket = socket_client(app, second_client, "visitor-two")
     second_socket.emit("join_position_room", {
-        "room_id": "shared-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "Second Visitor",
             "avatarId": "shiba",
@@ -212,13 +212,13 @@ def test_room_state_contains_public_profiles_without_socket_sid(app):
     second_socket.disconnect()
 
 
-def test_legacy_position_rooms_contains_only_public_presence_data(app):
+def test_legacy_position_rooms_contains_only_public_presence_data(app, room_id):
     from metamuseum.core.position_sync import get_position_rooms
 
     first_client = app.test_client()
     first_socket = socket_client(app, first_client, "visitor-one")
     first_socket.emit("join_position_room", {
-        "room_id": "legacy-http-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "First Visitor",
             "avatarId": "robot",
@@ -229,7 +229,7 @@ def test_legacy_position_rooms_contains_only_public_presence_data(app):
     second_client = app.test_client()
     second_socket = socket_client(app, second_client, "visitor-two")
     second_socket.emit("join_position_room", {
-        "room_id": "legacy-http-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "Second Visitor",
             "avatarId": "shiba",
@@ -238,7 +238,7 @@ def test_legacy_position_rooms_contains_only_public_presence_data(app):
     })
 
     assert get_position_rooms() == {
-        "legacy-http-room": [{
+        room_id: [{
             "userId": "visitor-one",
             "displayName": "First Visitor",
             "avatarId": "robot",
@@ -264,13 +264,13 @@ def test_legacy_position_rooms_contains_only_public_presence_data(app):
     second_socket.disconnect()
 
 
-def test_profile_update_normalizes_only_the_connected_presence(app):
+def test_profile_update_normalizes_only_the_connected_presence(app, room_id):
     from metamuseum.core.position_sync import room_users
 
     first_client = app.test_client()
     first_socket = socket_client(app, first_client, "visitor-one")
     first_socket.emit("join_position_room", {
-        "room_id": "profile-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "First Visitor",
             "avatarId": "robot",
@@ -282,7 +282,7 @@ def test_profile_update_normalizes_only_the_connected_presence(app):
     second_client = app.test_client()
     second_socket = socket_client(app, second_client, "visitor-two")
     second_socket.emit("join_position_room", {
-        "room_id": "profile-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "Second Visitor",
             "avatarId": "shiba",
@@ -293,7 +293,7 @@ def test_profile_update_normalizes_only_the_connected_presence(app):
     second_socket.get_received()
 
     first_socket.emit("profile_update", {
-        "room_id": "profile-room",
+        "room_id": room_id,
         "userId": "visitor-two",
         "profile": {
             "displayName": "x",
@@ -303,7 +303,7 @@ def test_profile_update_normalizes_only_the_connected_presence(app):
         "position": "99 99 99",
     })
 
-    presences = {presence["userId"]: presence for presence in room_users["profile-room"].values()}
+    presences = {presence["userId"]: presence for presence in room_users[room_id].values()}
     assert presences["visitor-one"] == {
         "userId": "visitor-one",
         "displayName": "Visitor",
@@ -321,19 +321,19 @@ def test_profile_update_normalizes_only_the_connected_presence(app):
         "displayName": "Visitor",
         "avatarId": "shiba",
         "color": "#4CAF50",
-        "room_id": "profile-room",
+        "room_id": room_id,
     }]
     first_socket.disconnect()
     second_socket.disconnect()
 
 
-def test_position_update_cannot_overwrite_identity_or_profile(app):
+def test_position_update_cannot_overwrite_identity_or_profile(app, room_id):
     from metamuseum.core.position_sync import room_users
 
     first_client = app.test_client()
     first_socket = socket_client(app, first_client, "visitor-one")
     first_socket.emit("join_position_room", {
-        "room_id": "position-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "First Visitor",
             "avatarId": "robot",
@@ -344,14 +344,14 @@ def test_position_update_cannot_overwrite_identity_or_profile(app):
     second_client = app.test_client()
     second_socket = socket_client(app, second_client, "visitor-two")
     second_socket.emit("join_position_room", {
-        "room_id": "position-room",
+        "room_id": room_id,
         "profile": {},
     })
     first_socket.get_received()
     second_socket.get_received()
 
     first_socket.emit("position_update", {
-        "room_id": "position-room",
+        "room_id": room_id,
         "userId": "visitor-two",
         "displayName": "Impersonated Visitor",
         "avatarId": "none",
@@ -369,7 +369,7 @@ def test_position_update_cannot_overwrite_identity_or_profile(app):
     })
 
     first_presence = next(
-        presence for presence in room_users["position-room"].values()
+        presence for presence in room_users[room_id].values()
         if presence["userId"] == "visitor-one"
     )
     assert first_presence["userId"] == "visitor-one"
@@ -387,13 +387,13 @@ def test_position_update_cannot_overwrite_identity_or_profile(app):
         "leftHand": {"position": "7 8 9"},
         "rightHand": {"position": "10 11 12"},
         "handTracking": True,
-        "room_id": "position-room",
+        "room_id": room_id,
     }]
     first_socket.disconnect()
     second_socket.disconnect()
 
 
-def test_guest_socket_presence_does_not_write_to_mongodb(app, client):
+def test_guest_socket_presence_does_not_write_to_mongodb(app, client, room_id):
     database = mongoengine.connection.get_db()
     database["presence_snapshot"].insert_one({
         "marker": "must-not-change",
@@ -403,7 +403,7 @@ def test_guest_socket_presence_does_not_write_to_mongodb(app, client):
     socket = socket_client(app, client, "mongo-free-visitor")
 
     socket.emit("join_position_room", {
-        "room_id": "mongo-free-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "Mongo Free",
             "avatarId": "robot",
@@ -411,7 +411,7 @@ def test_guest_socket_presence_does_not_write_to_mongodb(app, client):
         },
     })
     socket.emit("profile_update", {
-        "room_id": "mongo-free-room",
+        "room_id": room_id,
         "profile": {
             "displayName": "Still Mongo Free",
             "avatarId": "shiba",
@@ -419,7 +419,7 @@ def test_guest_socket_presence_does_not_write_to_mongodb(app, client):
         },
     })
     socket.emit("position_update", {
-        "room_id": "mongo-free-room",
+        "room_id": room_id,
         "position": "1 2 3",
     })
 

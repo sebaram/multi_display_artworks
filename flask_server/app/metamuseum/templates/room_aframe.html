@@ -32,6 +32,8 @@
       {% endfor %}
     </a-scene>
 
+    <div id="room-toolbar" style="position:fixed;top:12px;left:12px;right:12px;z-index:9999;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;pointer-events:none;"></div>
+
     <script id="room-bootstrap" type="application/json">
       {
         "visitorId": {{ visitor_id | tojson }},

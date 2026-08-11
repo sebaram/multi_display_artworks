@@ -12,6 +12,7 @@ Events:
 import importlib.util
 from collections import defaultdict
 from flask import request, session
+from mongoengine import ValidationError
 
 from metamuseum.core.presence_service import PresenceService
 
@@ -32,6 +33,28 @@ room_users = presence_service.rooms
 
 # room_voice_enabled: { room_id: bool } — server-authoritative voice state
 room_voice_enabled = defaultdict(lambda: False)
+
+
+def _room_exists(room_id):
+    if not isinstance(room_id, str) or not room_id:
+        return False
+    from metamuseum.elements.basic import Room
+
+    try:
+        return Room.objects(_id=room_id).first() is not None
+    except (ValidationError, TypeError, ValueError):
+        return False
+
+
+def _session_is_admin():
+    """Resolve the existing Flask-Login session identity for socket events."""
+    from metamuseum.models import User
+
+    user_id = session.get('_user_id')
+    if not user_id:
+        return False
+    user = User.objects(email=user_id).first()
+    return bool(user and user.is_admin())
 
 
 def init_socketio(app, existing_sio=None):
@@ -57,6 +80,25 @@ def init_socketio(app, existing_sio=None):
 def _register_sync_handlers(sio):
     from flask_socketio import join_room, leave_room
 
+    def voice_identity(data):
+        if not isinstance(data, dict):
+            return None
+        room_id = data.get('room_id')
+        user_id = presence_service.user_id(room_id, request.sid)
+        if not room_id or not user_id:
+            return None
+        return room_id, user_id
+
+    def voice_target(data):
+        if not isinstance(data, dict):
+            return None
+        room_id = data.get('room_id')
+        target_id = data.get('target')
+        target_sid = presence_service.sid_for_user(room_id, target_id)
+        if not target_id or not target_sid:
+            return None
+        return target_id, target_sid
+
     @sio.on('disconnect')
     def on_disconnect():
         # Clean up AR rooms (ar_proxy shares this SocketIO instance)
@@ -76,11 +118,11 @@ def _register_sync_handlers(sio):
         room_id = data.get('room_id')
         visitor_id = session.get('visitor_id')
 
-        if not room_id or not visitor_id:
+        if not visitor_id or not _room_exists(room_id):
             return
 
         join_room(room_id)
-        presence, existing_users = presence_service.join(
+        presence, existing_users, displaced_sid = presence_service.join(
             room_id,
             request.sid,
             visitor_id,
@@ -88,6 +130,13 @@ def _register_sync_handlers(sio):
             data.get('position', '0 1.6 0'),
             data.get('rotation', '0 0 0'),
         )
+        if displaced_sid:
+            leave_room(room_id, sid=displaced_sid)
+            sio.emit('voice.displaced', {'room_id': room_id}, room=displaced_sid)
+            sio.emit('voice.leave', {
+                'room_id': room_id,
+                'userId': visitor_id,
+            }, room=room_id, skip_sid=request.sid)
 
         # Send current room state to the new joiner
         sio.emit('room_state', {
@@ -103,6 +152,13 @@ def _register_sync_handlers(sio):
             'color': presence['color'],
             'room_id': room_id
         }, room=room_id, skip_sid=request.sid)
+        if displaced_sid:
+            sio.emit(
+                'position_update',
+                dict(presence, room_id=room_id),
+                room=room_id,
+                skip_sid=request.sid,
+            )
 
     @sio.on('leave_position_room')
     def on_leave(data):
@@ -174,9 +230,10 @@ def _register_sync_handlers(sio):
     @sio.on('voice.admin_toggle')
     def on_voice_admin_toggle(data):
         """Admin enables/disables voice chat for a room. Server-authoritative."""
-        room_id = data.get('room_id')
-        if not room_id:
+        identity = voice_identity(data)
+        if not identity or not _session_is_admin():
             return
+        room_id, _ = identity
 
         # Update server-side authoritative state
         enabled = bool(data.get('enabled', False))
@@ -191,9 +248,10 @@ def _register_sync_handlers(sio):
     @sio.on('voice.get_state')
     def on_voice_get_state(data):
         """Client requests current voice state (on join/reconnect)."""
-        room_id = data.get('room_id')
-        if not room_id:
+        identity = voice_identity(data)
+        if not identity:
             return
+        room_id, _ = identity
         sio.emit('voice_admin_toggle', {
             'enabled': room_voice_enabled.get(room_id, False),
             'room_id': room_id
@@ -202,61 +260,103 @@ def _register_sync_handlers(sio):
     @sio.on('voice.offer')
     def on_voice_offer(data):
         """Relay WebRTC offer to target peer."""
-        target = data.get('target')
-        room_id = data.get('room_id')
-        if not target or not room_id:
+        target = voice_target(data)
+        identity = voice_identity(data)
+        if not target or not identity:
             return
-        sio.emit('voice.offer', data, room=room_id)
+        room_id, user_id = identity
+        target_id, target_sid = target
+        sio.emit('voice.offer', {
+            'room_id': room_id,
+            'from': user_id,
+            'target': target_id,
+            'sdp': data.get('sdp'),
+            'type': data.get('type'),
+        }, room=target_sid)
 
     @sio.on('voice.answer')
     def on_voice_answer(data):
         """Relay WebRTC answer to target peer."""
-        target = data.get('target')
-        room_id = data.get('room_id')
-        if not target or not room_id:
+        target = voice_target(data)
+        identity = voice_identity(data)
+        if not target or not identity:
             return
-        sio.emit('voice.answer', data, room=room_id)
+        room_id, user_id = identity
+        target_id, target_sid = target
+        sio.emit('voice.answer', {
+            'room_id': room_id,
+            'from': user_id,
+            'target': target_id,
+            'sdp': data.get('sdp'),
+            'type': data.get('type'),
+        }, room=target_sid)
 
     @sio.on('voice.ice')
     def on_voice_ice(data):
         """Relay ICE candidate to target peer."""
-        target = data.get('target')
-        room_id = data.get('room_id')
-        if not target or not room_id:
+        target = voice_target(data)
+        identity = voice_identity(data)
+        if not target or not identity:
             return
-        sio.emit('voice.ice', data, room=room_id)
+        room_id, user_id = identity
+        target_id, target_sid = target
+        sio.emit('voice.ice', {
+            'room_id': room_id,
+            'from': user_id,
+            'target': target_id,
+            'candidate': data.get('candidate'),
+        }, room=target_sid)
 
     @sio.on('voice.join')
     def on_voice_join(data):
         """Relay voice join to all others in room."""
-        room_id = data.get('room_id')
-        if not room_id:
+        identity = voice_identity(data)
+        if not identity:
             return
-        sio.emit('voice.join', data, room=room_id, skip_sid=request.sid)
+        room_id, user_id = identity
+        sio.emit('voice.join', {
+            'room_id': room_id,
+            'userId': user_id,
+        }, room=room_id, skip_sid=request.sid)
 
     @sio.on('voice.leave')
     def on_voice_leave(data):
         """Relay voice leave to all others in room."""
-        room_id = data.get('room_id')
-        if not room_id:
+        identity = voice_identity(data)
+        if not identity:
             return
-        sio.emit('voice.leave', data, room=room_id, skip_sid=request.sid)
+        room_id, user_id = identity
+        sio.emit('voice.leave', {
+            'room_id': room_id,
+            'userId': user_id,
+        }, room=room_id, skip_sid=request.sid)
 
     @sio.on('voice.mute')
     def on_voice_mute(data):
         """Relay mute state to all others in room."""
-        room_id = data.get('room_id')
-        if not room_id:
+        identity = voice_identity(data)
+        if not identity:
             return
-        sio.emit('voice.mute', data, room=room_id, skip_sid=request.sid)
+        room_id, user_id = identity
+        sio.emit('voice.mute', {
+            'room_id': room_id,
+            'userId': user_id,
+            'muted': bool(data.get('muted')),
+        }, room=room_id, skip_sid=request.sid)
 
     @sio.on('voice.transcript')
     def on_voice_transcript(data):
         """Relay Whisper transcript to all others in room."""
-        room_id = data.get('room_id')
-        if not room_id:
+        identity = voice_identity(data)
+        if not identity:
             return
-        sio.emit('voice.transcript', data, room=room_id, skip_sid=request.sid)
+        room_id, user_id = identity
+        sio.emit('voice.transcript', {
+            'room_id': room_id,
+            'userId': user_id,
+            'text': data.get('text', ''),
+            'language': data.get('language', 'auto'),
+        }, room=room_id, skip_sid=request.sid)
 
 
 # ─── Legacy HTTP endpoints (kept for backward compat, can be removed later) ───

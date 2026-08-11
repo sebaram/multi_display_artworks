@@ -11,6 +11,14 @@ import { mountTeleportControls } from './interaction/teleport.js';
 import { mountAdminTransforms } from './interaction/admin-transforms.js';
 import { mountHandTracking } from './interaction/hand-tracking.js';
 import { mountShare } from './ui/share.js';
+import { registerDragComponent } from '../drag-component.js';
+import { registerLocationComponents } from '../location-features.js';
+import { addLLMEffectsButton, addLLMLayoutButton } from '../llm-layout.js';
+import { RoomEffects } from '../room-effects.js';
+import { createAvatarExpressions } from '../avatar-expression.js';
+import { initVoiceChat, VoiceChat } from '../voice-chat.js';
+import { bootstrapARMode } from '../marker-ar.js';
+import { bootstrapARReceiverMode } from '../ar-receiver.js';
 
 const FORWARDED_SOCKET_EVENTS = [
   'expression',
@@ -206,15 +214,15 @@ export function createRoomConsumers({
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  registerDragComponent(window.AFRAME);
+  registerLocationComponents(window.AFRAME);
   const bootstrapData = readRoomBootstrap(document);
   const controller = bootstrapRoomProfile({
     bootstrapData,
     document,
     storage: window.localStorage,
   });
-  window.roomControls = mountRoomControls({ bootstrapData, document, window });
-  window.roomProfileController = controller;
-  window.dispatchEvent(new CustomEvent('room-profile-ready', { detail: controller }));
+  const roomControls = mountRoomControls({ bootstrapData, document, window });
 
   const sceneRenderer = createSceneRenderer({
     document,
@@ -222,16 +230,24 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     selfId: bootstrapData.visitorId,
     createAvatarEntity: controller.createAvatarEntity,
   });
-  const initializeVoice = window.initVoiceChat;
+  const expressions = createAvatarExpressions({
+    document,
+    navigator: window.navigator,
+    setInterval: window.setInterval.bind(window),
+    clearInterval: window.clearInterval.bind(window),
+    setTimeout: window.setTimeout.bind(window),
+    now: Date.now,
+    console: window.console,
+  });
   const consumers = createRoomConsumers({
     sceneRenderer,
     roomId: bootstrapData.roomId,
     visitorId: bootstrapData.visitorId,
     isAdmin: bootstrapData.isAdmin,
-    effects: window.RoomEffects,
-    expressions: window.AvatarExpressions,
-    initializeVoice,
-    voice: window.VoiceChat,
+    effects: RoomEffects,
+    expressions,
+    initializeVoice: initVoiceChat,
+    voice: VoiceChat,
   });
   const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
   const realtime = bootstrapRoomRealtime({
@@ -243,6 +259,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   });
   const roomFeatures = [
     sceneRenderer,
+    expressions,
     mountShare({
       document,
       location: window.location,
@@ -258,9 +275,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       roomId: bootstrapData.roomId,
       setInterval: window.setInterval.bind(window),
       clearInterval: window.clearInterval.bind(window),
-      requestAnimationFrame: window.requestAnimationFrame.bind(window),
-      now: Date.now,
       console: window.console,
+      onHandRaiseDetected: expressions.onHandRaiseDetected,
     }),
   ];
 
@@ -287,16 +303,16 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       alert: window.alert.bind(window),
       setTimeout: window.setTimeout.bind(window),
     }));
-    window.addLLMLayoutButton?.();
-    window.addLLMEffectsButton?.();
+    addLLMLayoutButton(bootstrapData.roomId);
+    addLLMEffectsButton(bootstrapData.roomId);
   }
 
-  if (bootstrapData.isArMarker) window.bootstrapARMode?.(bootstrapData.roomId, null);
-  if (bootstrapData.isArCompanion) window.bootstrapARReceiverMode?.(bootstrapData.roomId);
+  if (bootstrapData.isArMarker) bootstrapARMode(bootstrapData.roomId, null);
+  if (bootstrapData.isArCompanion) bootstrapARReceiverMode(bootstrapData.roomId, window.io);
 
   window.addEventListener('beforeunload', () => {
     roomFeatures.forEach((feature) => feature.destroy?.());
-    window.roomControls.destroy();
+    roomControls.destroy();
     controller.destroy();
     realtime.destroy();
   }, { once: true });

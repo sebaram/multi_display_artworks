@@ -6,7 +6,7 @@ import { createRoomConsumers } from '../../app/metamuseum/static/js/room/bootstr
 
 const staticRoot = new URL('../../app/metamuseum/static/js/', import.meta.url);
 
-test('legacy room consumers receive the socket client explicitly', async () => {
+test('room consumer modules receive the socket client explicitly without first-party globals', async () => {
   const [voice, expressions, effects] = await Promise.all([
     readFile(new URL('voice-chat.js', staticRoot), 'utf8'),
     readFile(new URL('avatar-expression.js', staticRoot), 'utf8'),
@@ -17,8 +17,13 @@ test('legacy room consumers receive the socket client explicitly', async () => {
     assert.doesNotMatch(source, /\bposSocket(?:Connected)?\b/u);
   }
   assert.match(voice, /function initVoiceChat\(roomId, userId, isAdmin, socketClient\)/u);
-  assert.match(expressions, /function initAvatarExpressions\(socketClient, roomId, userId\)/u);
+  assert.match(expressions, /export function createAvatarExpressions/u);
+  assert.match(expressions, /function init\(nextSocketClient, nextRoomId, nextUserId\)/u);
   assert.match(effects, /init: function\(roomId, socketClient\)/u);
+  assert.doesNotMatch(
+    `${voice}\n${expressions}\n${effects}`,
+    /window\.(?:initVoiceChat|VoiceChat|AvatarExpressions|RoomEffects)\b/u,
+  );
 });
 
 test('room consumers route scene, effects, expressions, and voice through injected adapters', () => {

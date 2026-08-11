@@ -53,13 +53,15 @@ test('room bootstrap composes rendering, teleport, admin transforms, hand tracki
   }
 });
 
-test('room entry preserves AR modes and externally loaded voice, expression, effects, and admin adapters', async () => {
+test('room entry imports first-party adapters instead of loading or reading classic-script globals', async () => {
   const [template, bootstrap] = await Promise.all([
     readFile(templateUrl, 'utf8'),
     readFile(new URL('bootstrap.js', roomRoot), 'utf8'),
   ]);
 
-  for (const script of [
+  for (const modulePath of [
+    '../drag-component.js',
+    '../location-features.js',
     'js/marker-ar.js',
     'js/ar-receiver.js',
     'js/voice-chat.js',
@@ -67,12 +69,18 @@ test('room entry preserves AR modes and externally loaded voice, expression, eff
     'js/room-effects.js',
     'js/llm-layout.js',
   ]) {
-    assert.match(template, new RegExp(script.replaceAll('.', '\\.')), script);
+    const importPath = modulePath.startsWith('../') ? modulePath : `../${modulePath.slice(3)}`;
+    assert.match(bootstrap, new RegExp(`from ['"]${importPath.replaceAll('.', '\\.')}`), importPath);
   }
-  assert.match(bootstrap, /bootstrapData\.isArMarker[\s\S]*bootstrapARMode/u);
-  assert.match(bootstrap, /bootstrapData\.isArCompanion[\s\S]*bootstrapARReceiverMode/u);
-  assert.match(bootstrap, /addLLMLayoutButton/u);
-  assert.match(bootstrap, /addLLMEffectsButton/u);
+
+  const firstPartyScripts = [...template.matchAll(
+    /<script[^>]+src="\{\{\s*url_for\('static',\s*filename='([^']+)'\)\s*\}\}"[^>]*>/giu,
+  )].map((match) => match[1]);
+  assert.deepEqual(firstPartyScripts, ['js/room/bootstrap.js']);
+  assert.doesNotMatch(
+    bootstrap,
+    /window\.(?:initVoiceChat|VoiceChat|RoomEffects|AvatarExpressions|addLLMLayoutButton|addLLMEffectsButton|bootstrapARMode|bootstrapARReceiverMode)\b/u,
+  );
 });
 
 test('classic A-Frame includes expose components but not moved room business logic', async () => {
@@ -82,8 +90,22 @@ test('classic A-Frame includes expose components but not moved room business log
     readFile(new URL('drag-component.js', staticRoot), 'utf8'),
   ]);
 
-  assert.match(locationFeatures, /AFRAME\.registerComponent\('boundary-clamp'/u);
+  assert.match(locationFeatures, /registerLocationComponents/u);
   assert.doesNotMatch(locationFeatures, /function (?:teleportTo|saveCurrentPositionAsPreset|initLocationFeatures)\b/u);
-  assert.match(dragComponent, /AFRAME\.registerComponent\('drag-element'/u);
+  assert.match(dragComponent, /registerDragComponent/u);
   assert.doesNotMatch(dragComponent, /function (?:initTransformControls|enableARPassthrough)\b/u);
+});
+
+test('other A-Frame templates load the converted drag component as an ES module', async () => {
+  for (const templateName of ['wall_aframe.html', 'element_aframe.html']) {
+    const template = await readFile(
+      new URL(`../../app/metamuseum/templates/${templateName}`, import.meta.url),
+      'utf8',
+    );
+    assert.match(
+      template,
+      /<script type="module" src="\{\{\s*url_for\('static',\s*filename='js\/drag-component\.js'\)\s*\}\}"><\/script>/u,
+      templateName,
+    );
+  }
 });

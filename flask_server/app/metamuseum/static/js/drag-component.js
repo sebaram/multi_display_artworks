@@ -1,5 +1,7 @@
 /* A-Frame drag-to-move component for wall elements. */
-AFRAME.registerComponent('drag-element', {
+export function registerDragComponent(AFRAME) {
+  if (!AFRAME || AFRAME.components?.['drag-element']) return;
+  AFRAME.registerComponent('drag-element', {
   schema: {
     elementId: { type: 'string', default: '' },
     elementType: { type: 'string', default: '' },
@@ -117,4 +119,7 @@ AFRAME.registerComponent('drag-element', {
     })
     .catch(err => console.error('Failed to save transform:', err));
   }
-});
+  });
+}
+
+registerDragComponent(globalThis.AFRAME);

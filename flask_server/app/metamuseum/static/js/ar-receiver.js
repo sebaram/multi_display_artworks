@@ -9,9 +9,9 @@ let socketConnected = false;
 let lastPoseUpdate = null;
 let teleportThrottle = 0;
 
-function connectARReceiver(roomId) {
+function connectARReceiver(roomId, ioFactory) {
   const proto = location.protocol === 'https:' ? 'https:' : 'http:';
-  socket = io(`${proto}//${location.host}`, {
+  socket = ioFactory(`${proto}//${location.host}`, {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000
@@ -119,11 +119,11 @@ function updateDeviceCount(phones, visionPros) {
 }
 
 // Bootstrap AR receiver mode — called from room template
-function bootstrapARReceiverMode(roomId) {
+export function bootstrapARReceiverMode(roomId, ioFactory) {
   console.log('[AR-Receiver] Starting companion AR mode for room:', roomId);
 
   // Connect to Socket.IO server
-  connectARReceiver(roomId);
+  connectARReceiver(roomId, ioFactory);
 
   // Show connecting status
   showARStatus('🔌 Connecting to companion phone...');

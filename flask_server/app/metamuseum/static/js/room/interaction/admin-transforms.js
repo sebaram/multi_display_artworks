@@ -129,6 +129,7 @@ async function enableARPassthrough({ document, navigator, alert }) {
     const session = await navigator.xr.requestSession('immersive-ar', {
       requiredFeatures: ['dom-overlay', 'hand-tracking'],
       optionalFeatures: ['local-floor', 'bounded-floor', 'passthrough'],
+      domOverlay: { root: document.body },
     });
     const button = document.getElementById('ar-passthrough-btn');
     session.addEventListener('end', () => {

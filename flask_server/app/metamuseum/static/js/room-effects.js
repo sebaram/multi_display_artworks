@@ -3,13 +3,11 @@
  * Listens to Socket.IO events: room_effects, room_effects_cleared
  * Reads active effects from RoomEffect DB and applies to scene
  */
-(function() {
-  var effects = {};
-  var activeParticles = [];
-  var activeSpotlights = {};
-  var activeAmbient = null;
+var activeParticles = [];
+var activeSpotlights = {};
+var activeAmbient = null;
 
-  window.RoomEffects = {
+export const RoomEffects = {
     init: function(roomId, socketClient) {
       this.roomId = roomId;
       this.socketClient = socketClient;
@@ -21,7 +19,7 @@
       if (eventName === 'room_effects') renderEffects(data.effects);
       if (eventName === 'room_effects_cleared') clearAllEffects();
     }
-  };
+};
 
   function fetchActiveEffects() {
     // Server pushes active effects on join via room_state
@@ -318,4 +316,3 @@
     var overlay = document.getElementById('llm-fade-overlay');
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
-})();

@@ -1,6 +1,8 @@
 /* A-Frame room boundary component. */
 
-AFRAME.registerComponent('boundary-clamp', {
+export function registerLocationComponents(AFRAME) {
+  if (!AFRAME || AFRAME.components?.['boundary-clamp']) return;
+  AFRAME.registerComponent('boundary-clamp', {
   schema: {
     minX: { type: 'number', default: -10 },
     maxX: { type: 'number', default: 10 },
@@ -25,4 +27,5 @@ AFRAME.registerComponent('boundary-clamp', {
       }
     }
   }
-});
+  });
+}

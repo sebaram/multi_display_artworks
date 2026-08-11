@@ -97,3 +97,50 @@ test('admin transform setup enables draggable elements and owns its controls', (
   assert.equal(document.getElementById('admin-indicator'), null);
   assert.equal(document.getElementById('transform-panel'), null);
 });
+
+test('AR passthrough supplies the document body as the requested DOM overlay root', async () => {
+  const body = new FakeElement('body');
+  const scene = new FakeElement('a-scene');
+  scene.setSession = async () => {};
+  const document = {
+    body,
+    createElement: (tagName) => new FakeElement(tagName),
+    getElementById(id) {
+      return descendants(body).find((element) => element.id === id) ?? null;
+    },
+    querySelector(selector) {
+      if (selector === 'a-scene') return scene;
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  let request;
+  const session = { addEventListener() {} };
+  mountAdminTransforms({
+    document,
+    navigator: {
+      xr: {
+        isSessionSupported: async () => true,
+        requestSession: async (...args) => {
+          request = args;
+          return session;
+        },
+      },
+    },
+    fetch: () => Promise.reject(new Error('unused')),
+    alert() {},
+    setTimeout(callback, delay) {
+      if (delay <= 1000) callback();
+      return delay;
+    },
+  });
+
+  const button = document.getElementById('ar-passthrough-btn');
+  await button.listeners.get('click')();
+
+  assert.equal(request[0], 'immersive-ar');
+  assert.deepEqual(request[1].requiredFeatures, ['dom-overlay', 'hand-tracking']);
+  assert.equal(request[1].domOverlay.root, body);
+});

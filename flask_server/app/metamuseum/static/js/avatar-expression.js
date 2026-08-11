@@ -1,186 +1,155 @@
-/* Avatar Expressions — face + gesture → emoji indicator above avatar
-
-Uses face-api.js (TensorFlow.js) for face expression detection.
-Shows emoji bubble above avatar when:
-- Smile detected → 😊
-- Hand raised (via WebXR hand tracking) → 👋
-
-Works for own avatar (seen by others) and other users' avatars.
-*/
-
-let faceApiLoaded = false;
-let faceApiModelsLoaded = false;
-let expressionInterval = null;
-let lastSmileTime = 0;
-let expressionSocketClient = null;
-let expressionRoomId = null;
-let expressionUserId = null;
+/* Avatar Expressions — face + gesture → emoji indicator above avatar. */
 
 const FACE_API_MODELS_BASE = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
-async function loadFaceAPI() {
-  if (faceApiLoaded) return;
-  faceApiLoaded = true;
-
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
-  script.onload = async () => {
-    console.log('[FaceAPI] Loaded, loading models...');
-    try {
-      // Load tiny face detector + expression model
-      await faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODELS_BASE);
-      await faceapi.nets.faceExpressionNet.loadFromUri(FACE_API_MODELS_BASE);
-      faceApiModelsLoaded = true;
-      console.log('[FaceAPI] Models ready');
-      startExpressionDetection();
-    } catch (e) {
-      console.warn('[FaceAPI] Model load failed, expressions disabled:', e);
-    }
-  };
-  script.onerror = () => {
-    console.warn('[FaceAPI] Script load failed, expressions disabled');
-  };
-  document.head.appendChild(script);
+function renderBubble({ document, target, emoji, duration, position, setTimeout }) {
+  let bubble = target.querySelector('.expression-bubble');
+  if (!bubble) {
+    bubble = document.createElement('a-text');
+    bubble.setAttribute('class', 'expression-bubble');
+    bubble.setAttribute('position', position);
+    bubble.setAttribute('scale', '0.8 0.8 0.8');
+    bubble.setAttribute('align', 'center');
+    target.appendChild(bubble);
+  }
+  bubble.setAttribute('value', emoji);
+  setTimeout(() => bubble.setAttribute('value', ''), duration);
 }
 
-async function startExpressionDetection() {
-  if (!faceApiModelsLoaded) return;
+export function createAvatarExpressions({
+  document,
+  navigator,
+  setInterval,
+  clearInterval,
+  setTimeout,
+  now,
+  console,
+  getFaceApi = () => globalThis.faceapi,
+}) {
+  let faceApiLoaded = false;
+  let faceApiModelsLoaded = false;
+  let expressionInterval = null;
+  let lastSmileTime = 0;
+  let socketClient = null;
+  let roomId = null;
+  let userId = null;
 
-  // Only attempt camera on mobile devices — desktop browsers shouldn't be prompted
-  if (navigator.maxTouchPoints === 0) {
-    console.log('[FaceAPI] Desktop detected, skipping camera for expressions');
-    return;
-  }
+  async function startExpressionDetection() {
+    if (!faceApiModelsLoaded || navigator.maxTouchPoints === 0) return;
 
-  const video = document.createElement('video');
-  video.style.cssText = 'position:fixed;width:1px;height:1px;top:-9999px;left:-9999px;opacity:0;';
-  video.autoplay = true;
-  video.playsinline = true;
-  video.muted = true;
-  document.body.appendChild(video);
-
-  let stream = null;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-    video.srcObject = stream;
-    await video.play();
-  } catch (e) {
-    console.warn('[FaceAPI] Camera access denied:', e.message);
-    return;
-  }
-
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'display:none;';
-  document.body.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
-
-  expressionInterval = setInterval(async () => {
-    if (!faceApiModelsLoaded || video.readyState < 2) return;
+    const video = document.createElement('video');
+    video.style.cssText = 'position:fixed;width:1px;height:1px;top:-9999px;left:-9999px;opacity:0;';
+    video.autoplay = true;
+    video.playsinline = true;
+    video.muted = true;
+    document.body.appendChild(video);
 
     try {
-      const detections = await faceapi
-        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-        .withFaceExpressions();
-
-      let isSmiling = false;
-      detections.forEach(det => {
-        const smile = det.expressions.get('happy');
-        if (smile && smile > 0.5) {
-          isSmiling = true;
-        }
+      video.srcObject = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
       });
-
-      const now = Date.now();
-      if (isSmiling && now - lastSmileTime > 3000) {
-        lastSmileTime = now;
-        showAvatarExpression('😊');
-      }
-    } catch (e) {
-      // Silent fail on detection errors
+      await video.play();
+    } catch (error) {
+      console.warn('[FaceAPI] Camera access denied:', error.message);
+      return;
     }
-  }, 1000);
-}
 
-// Show expression emoji bubble above own avatar
-function showAvatarExpression(emoji, duration = 3000) {
-  // Find own camera element
-  const myCamera = document.getElementById(`camera-${expressionUserId}`);
-  if (!myCamera) return;
-
-  // Create or update expression bubble
-  let bubble = myCamera.querySelector('.expression-bubble');
-  if (!bubble) {
-    bubble = document.createElement('a-text');
-    bubble.setAttribute('class', 'expression-bubble');
-    bubble.setAttribute('value', emoji);
-    bubble.setAttribute('position', '0 0.8 0');
-    bubble.setAttribute('scale', '0.8 0.8 0.8');
-    bubble.setAttribute('align', 'center');
-    myCamera.appendChild(bubble);
+    expressionInterval = setInterval(async () => {
+      if (!faceApiModelsLoaded || video.readyState < 2) return;
+      try {
+        const faceapi = getFaceApi();
+        const detections = await faceapi
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+          .withFaceExpressions();
+        const isSmiling = detections.some((detection) => detection.expressions?.happy > 0.5);
+        const currentTime = now();
+        if (isSmiling && currentTime - lastSmileTime > 3000) {
+          lastSmileTime = currentTime;
+          showLocalExpression('😊');
+        }
+      } catch {
+        // A transient detection error should not stop later samples.
+      }
+    }, 1000);
   }
-  bubble.setAttribute('value', emoji);
 
-  setTimeout(() => {
-    if (bubble) bubble.setAttribute('value', '');
-  }, duration);
-
-  // Broadcast expression to other users via socket
-  expressionSocketClient?.emit('expression', {
-    room_id: expressionRoomId,
-    userId: expressionUserId,
-    expression: emoji
-  });
-}
-
-// Handle hand-raise wave detection (called from hand tracking)
-function onHandRaiseDetected(side) {
-  const emoji = side === 'left' ? '👋' : '👋';
-  showAvatarExpression(emoji, 2000);
-}
-
-// ─── Receive and display others' expressions ─────────────────────────────────
-
-function handleAvatarExpressionSocketEvent(data) {
-  if (data.userId === expressionUserId) return;
-  showExpressionForUser(data.userId, data.expression);
-}
-
-function showExpressionForUser(userId, emoji) {
-  const cam = document.getElementById(`camera-${userId}`);
-  if (!cam) return;
-
-  let bubble = cam.querySelector('.expression-bubble');
-  if (!bubble) {
-    bubble = document.createElement('a-text');
-    bubble.setAttribute('class', 'expression-bubble');
-    bubble.setAttribute('value', emoji);
-    bubble.setAttribute('position', '0 0.8 0');
-    bubble.setAttribute('scale', '0.8 0.8 0.8');
-    bubble.setAttribute('align', 'center');
-    cam.appendChild(bubble);
+  function loadFaceAPI() {
+    if (faceApiLoaded) return;
+    faceApiLoaded = true;
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
+    script.onload = async () => {
+      try {
+        const faceapi = getFaceApi();
+        await faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODELS_BASE);
+        await faceapi.nets.faceExpressionNet.loadFromUri(FACE_API_MODELS_BASE);
+        faceApiModelsLoaded = true;
+        await startExpressionDetection();
+      } catch (error) {
+        console.warn('[FaceAPI] Model load failed, expressions disabled:', error);
+      }
+    };
+    script.onerror = () => console.warn('[FaceAPI] Script load failed, expressions disabled');
+    document.head.appendChild(script);
   }
-  bubble.setAttribute('value', emoji);
 
-  setTimeout(() => {
-    if (bubble) bubble.setAttribute('value', '');
-  }, 3000);
+  function showLocalExpression(emoji, duration = 3000) {
+    socketClient?.emit('expression', {
+      room_id: roomId,
+      userId,
+      expression: emoji,
+    });
+
+    const remoteStyleTarget = document.getElementById(`camera-${userId}`);
+    const target = remoteStyleTarget ?? document.getElementById('camera');
+    if (!target) return;
+    renderBubble({
+      document,
+      target,
+      emoji,
+      duration,
+      position: remoteStyleTarget ? '0 0.8 0' : '0 0.8 -1.5',
+      setTimeout,
+    });
+  }
+
+  function onHandRaiseDetected() {
+    showLocalExpression('👋', 2000);
+  }
+
+  function showExpressionForUser(remoteUserId, emoji) {
+    const target = document.getElementById(`camera-${remoteUserId}`);
+    if (!target) return;
+    renderBubble({
+      document,
+      target,
+      emoji,
+      duration: 3000,
+      position: '0 0.8 0',
+      setTimeout,
+    });
+  }
+
+  function handleSocketEvent(data) {
+    if (data.userId === userId) return;
+    showExpressionForUser(data.userId, data.expression);
+  }
+
+  function init(nextSocketClient, nextRoomId, nextUserId) {
+    socketClient = nextSocketClient;
+    roomId = nextRoomId;
+    userId = nextUserId;
+    loadFaceAPI();
+  }
+
+  return {
+    init,
+    showLocalExpression,
+    onHandRaiseDetected,
+    handleSocketEvent,
+    destroy() {
+      if (expressionInterval !== null) clearInterval(expressionInterval);
+    },
+  };
 }
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
-
-function initAvatarExpressions(socketClient, roomId, userId) {
-  expressionSocketClient = socketClient;
-  expressionRoomId = roomId;
-  expressionUserId = userId;
-
-  // Start face detection (desktop browsers with camera)
-  loadFaceAPI();
-}
-
-window.initAvatarExpressions = initAvatarExpressions;
-window.AvatarExpressions = {
-  init: initAvatarExpressions,
-  handleSocketEvent: handleAvatarExpressionSocketEvent
-};
-window.showAvatarExpression = showAvatarExpression;
-window.onHandRaiseDetected = onHandRaiseDetected;

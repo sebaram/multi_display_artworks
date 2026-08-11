@@ -555,6 +555,6 @@ function showVoiceIndicator(peerId, speaking) {
   }
 }
 
-window.initVoiceChat = initVoiceChat;
 VoiceChat.handleSocketEvent = handleVoiceSocketEvent;
-window.VoiceChat = VoiceChat;
+
+export { initVoiceChat, VoiceChat };

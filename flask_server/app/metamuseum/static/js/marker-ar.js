@@ -147,7 +147,7 @@ function enableARCameraFeed() {
 }
 
 // AR mode bootstrap — called from room template
-function bootstrapARMode(roomId, presetId) {
+export function bootstrapARMode(roomId, presetId) {
   // Hide 3D skybox, show camera feed
   const sky = document.querySelector('a-sky');
   if (sky) {

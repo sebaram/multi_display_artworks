@@ -1,6 +1,10 @@
 /* LLM Auto-Layout UI — admin button opens modal, sends prompt to /api/auto-layout, applies result */
 
+let currentLLMRoomId = null;
+let currentEffectsRoomId = null;
+
 function showLLMLayoutModal(roomId) {
+  currentLLMRoomId = roomId;
   const modal = document.createElement('div');
   modal.id = 'llm-layout-modal';
   modal.style.cssText = `
@@ -32,12 +36,12 @@ e.g. 'Arrange by color: warm tones on the main wall'"
       <div id="llm-status" style="font-size: 13px; margin: 10px 0; min-height: 18px; color: #aaa;"></div>
 
       <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <button id="llm-run-btn" onclick="runLLMLayout()"
+        <button id="llm-run-btn"
           style="flex:2; padding: 10px; border-radius: 8px; border: none; background: #9b59b6;
                  color: white; cursor: pointer; font-size: 14px; font-weight: 600;">
           ✨ Arrange with AI
         </button>
-        <button onclick="closeLLLModal()"
+        <button id="llm-cancel-btn"
           style="flex:1; padding: 10px; border-radius: 8px; border: none; background: #555;
                  color: white; cursor: pointer; font-size: 14px;">
           Cancel
@@ -49,11 +53,11 @@ e.g. 'Arrange by color: warm tones on the main wall'"
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeLLLModal();
   });
+  modal.querySelector('#llm-run-btn').addEventListener('click', runLLMLayout);
+  modal.querySelector('#llm-cancel-btn').addEventListener('click', closeLLLModal);
   document.body.appendChild(modal);
   document.getElementById('llm-prompt-input').focus();
 }
-
-let currentLLMRoomId = null;
 
 function closeLLLModal() {
   const el = document.getElementById('llm-layout-modal');
@@ -61,7 +65,7 @@ function closeLLLModal() {
 }
 
 async function runLLMLayout() {
-  const roomId = new URLSearchParams(window.location.search).get('room_id');
+  const roomId = currentLLMRoomId;
   const prompt = document.getElementById('llm-prompt-input').value.trim();
   const status = document.getElementById('llm-status');
   const btn = document.getElementById('llm-run-btn');
@@ -125,10 +129,7 @@ async function runLLMLayout() {
 }
 
 // Admin button in room — only shown to admins
-function addLLMLayoutButton() {
-  // Only admins see this button (drag_enabled indicates admin in room)
-  if (typeof isAdmin !== 'undefined' && !isAdmin) return;
-
+function addLLMLayoutButton(roomId) {
   const btn = document.createElement('button');
   btn.id = 'llm-layout-btn';
   btn.textContent = '✨ AI Arrange';
@@ -147,7 +148,6 @@ function addLLMLayoutButton() {
     font-family: -apple-system, sans-serif;
   `;
   btn.onclick = () => {
-    const roomId = new URLSearchParams(window.location.search).get('room_id');
     showLLMLayoutModal(roomId);
   };
   document.body.appendChild(btn);
@@ -156,6 +156,7 @@ function addLLMLayoutButton() {
 // ─── Effects Modal ──────────────────────────────────────────────────────────
 
 function showLLMEffectsModal(roomId) {
+  currentEffectsRoomId = roomId;
   const modal = document.createElement('div');
   modal.id = 'llm-effects-modal';
   modal.style.cssText = `
@@ -190,17 +191,17 @@ e.g. 'Play ambient forest sounds with subtle lighting"
       <div id="llm-effects-status" style="font-size: 13px; margin: 10px 0; min-height: 18px; color: #aaa;"></div>
 
       <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <button id="llm-effects-run-btn" onclick="runLLMEffects()"
+        <button id="llm-effects-run-btn"
           style="flex:2; padding: 10px; border-radius: 8px; border: none; background: #e67e22;
                  color: white; cursor: pointer; font-size: 14px; font-weight: 600;">
           🎆 Trigger Effects
         </button>
-        <button onclick="closeLLLEffectsModal()"
+        <button id="llm-effects-cancel-btn"
           style="flex:1; padding: 10px; border-radius: 8px; border: none; background: #555;
                  color: white; cursor: pointer; font-size: 14px;">
           Cancel
         </button>
-        <button onclick="clearRoomEffects()"
+        <button id="llm-effects-clear-btn"
           style="padding: 10px; border-radius: 8px; border: none; background: #c0392b;
                  color: white; cursor: pointer; font-size: 13px;">
           Clear All
@@ -212,6 +213,9 @@ e.g. 'Play ambient forest sounds with subtle lighting"
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeLLLEffectsModal();
   });
+  modal.querySelector('#llm-effects-run-btn').addEventListener('click', runLLMEffects);
+  modal.querySelector('#llm-effects-cancel-btn').addEventListener('click', closeLLLEffectsModal);
+  modal.querySelector('#llm-effects-clear-btn').addEventListener('click', clearRoomEffects);
   document.body.appendChild(modal);
   document.getElementById('llm-effects-prompt-input').focus();
 }
@@ -222,7 +226,7 @@ function closeLLLEffectsModal() {
 }
 
 async function runLLMEffects() {
-  const roomId = new URLSearchParams(window.location.search).get('room_id');
+  const roomId = currentEffectsRoomId;
   const prompt = document.getElementById('llm-effects-prompt-input').value.trim();
   const status = document.getElementById('llm-effects-status');
   const btn = document.getElementById('llm-effects-run-btn');
@@ -273,7 +277,7 @@ async function runLLMEffects() {
 }
 
 async function clearRoomEffects() {
-  const roomId = new URLSearchParams(window.location.search).get('room_id');
+  const roomId = currentEffectsRoomId;
   try {
     await fetch('/api/clear-effects', {
       method: 'POST',
@@ -287,9 +291,7 @@ async function clearRoomEffects() {
 }
 
 // Add effects button (next to AI Arrange)
-function addLLMEffectsButton() {
-  if (typeof isAdmin !== 'undefined' && !isAdmin) return;
-
+function addLLMEffectsButton(roomId) {
   const btn = document.createElement('button');
   btn.id = 'llm-effects-btn';
   btn.textContent = '🎆 Effects';
@@ -308,18 +310,19 @@ function addLLMEffectsButton() {
     font-family: -apple-system, sans-serif;
   `;
   btn.onclick = () => {
-    const roomId = new URLSearchParams(window.location.search).get('room_id');
     showLLMEffectsModal(roomId);
   };
   document.body.appendChild(btn);
 }
 
-window.showLLMLayoutModal = showLLMLayoutModal;
-window.closeLLLModal = closeLLLModal;
-window.runLLMLayout = runLLMLayout;
-window.addLLMLayoutButton = addLLMLayoutButton;
-window.showLLMEffectsModal = showLLMEffectsModal;
-window.closeLLLEffectsModal = closeLLLEffectsModal;
-window.runLLMEffects = runLLMEffects;
-window.clearRoomEffects = clearRoomEffects;
-window.addLLMEffectsButton = addLLMEffectsButton;
+export {
+  addLLMEffectsButton,
+  addLLMLayoutButton,
+  clearRoomEffects,
+  closeLLLEffectsModal,
+  closeLLLModal,
+  runLLMEffects,
+  runLLMLayout,
+  showLLMEffectsModal,
+  showLLMLayoutModal,
+};

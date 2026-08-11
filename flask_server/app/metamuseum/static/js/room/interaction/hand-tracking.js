@@ -1,30 +1,46 @@
-function jointData(hand, name) {
-  const joint = hand.get(name);
-  if (!joint?.position) return null;
+function jointPose(frame, referenceSpace, hand, name) {
+  const jointSpace = hand.get(name);
+  if (!jointSpace || typeof frame?.getJointPose !== 'function' || !referenceSpace) return null;
+  const pose = frame.getJointPose(jointSpace, referenceSpace);
+  const position = pose?.transform?.position;
+  if (!position) return null;
+  const orientation = pose.transform.orientation;
   return {
-    position: [joint.position.x, joint.position.y, joint.position.z],
-    rotation: joint.rotation
-      ? [joint.rotation.x, joint.rotation.y, joint.rotation.z]
+    position: [position.x, position.y, position.z],
+    rotation: orientation
+      ? [orientation.x, orientation.y, orientation.z, orientation.w]
       : null,
   };
 }
 
-function collectHands(sources) {
+export function collectHandPoses(frame, referenceSpace, sources) {
   let leftHand = null;
   let rightHand = null;
 
   for (const source of sources) {
     if (!source.hand || source.handedness === 'none') continue;
     const data = {
-      wrist: jointData(source.hand, 'wrist'),
-      thumbTip: jointData(source.hand, 'thumb-tip'),
-      indexTip: jointData(source.hand, 'index-tip'),
-      middleTip: jointData(source.hand, 'middle-tip'),
+      wrist: jointPose(frame, referenceSpace, source.hand, 'wrist'),
+      thumbTip: jointPose(frame, referenceSpace, source.hand, 'thumb-tip'),
+      indexTip: jointPose(frame, referenceSpace, source.hand, 'index-tip'),
+      middleTip: jointPose(frame, referenceSpace, source.hand, 'middle-tip'),
     };
+    if (!Object.values(data).some(Boolean)) continue;
     if (source.handedness === 'left') leftHand = data;
     if (source.handedness === 'right') rightHand = data;
   }
   return { leftHand, rightHand };
+}
+
+async function requestTrackingSpace(session) {
+  for (const type of ['local-floor', 'local']) {
+    try {
+      return await session.requestReferenceSpace(type);
+    } catch {
+      // Try the less capable local space before giving up.
+    }
+  }
+  return null;
 }
 
 export function mountHandTracking({
@@ -34,16 +50,17 @@ export function mountHandTracking({
   roomId,
   setInterval,
   clearInterval,
-  requestAnimationFrame,
-  now,
   console,
+  onHandRaiseDetected,
 }) {
   let enabled = false;
   let session = null;
+  let referenceSpace = null;
   let button = null;
   let lastHandSend = 0;
+  const raised = { left: false, right: false };
 
-  function publish(leftHand = null, rightHand = null) {
+  function publish(leftHand = null, rightHand = null, handTracking = enabled) {
     const camera = document.getElementById('camera');
     if (!camera) return;
     socketClient.emit('position_update', {
@@ -52,19 +69,36 @@ export function mountHandTracking({
       rotation: camera.getAttribute('rotation'),
       leftHand,
       rightHand,
-      handTracking: enabled,
+      handTracking,
     });
   }
 
-  function trackHands(sources) {
-    if (!enabled || !session) return;
-    const currentTime = now();
-    if (currentTime - lastHandSend >= 100) {
-      lastHandSend = currentTime;
-      const hands = collectHands(sources);
-      publish(hands.leftHand, hands.rightHand);
+  function detectRaisedHands(frame, hands) {
+    const viewerY = frame.getViewerPose?.(referenceSpace)?.transform?.position?.y;
+    if (!Number.isFinite(viewerY)) return;
+    for (const side of ['left', 'right']) {
+      const wristY = hands[`${side}Hand`]?.wrist?.position?.[1];
+      const isRaised = Number.isFinite(wristY) && wristY > viewerY + 0.15;
+      if (isRaised && !raised[side]) onHandRaiseDetected?.(side);
+      raised[side] = isRaised;
     }
-    requestAnimationFrame(() => trackHands(sources));
+  }
+
+  function trackHands(time, frame) {
+    if (!enabled || !session) return;
+    if (time - lastHandSend >= 100) {
+      lastHandSend = time;
+      const hands = collectHandPoses(frame, referenceSpace, session.inputSources ?? []);
+      if (hands.leftHand || hands.rightHand) {
+        publish(hands.leftHand, hands.rightHand, true);
+        detectRaisedHands(frame, hands);
+      } else {
+        raised.left = false;
+        raised.right = false;
+        publish(null, null, false);
+      }
+    }
+    session.requestAnimationFrame(trackHands);
   }
 
   async function enable() {
@@ -73,16 +107,21 @@ export function mountHandTracking({
       session = await navigator.xr.requestSession('immersive-vr', {
         optionalFeatures: ['hand-tracking', 'local-floor'],
       });
+      referenceSpace = await requestTrackingSpace(session);
+      if (!referenceSpace || typeof session.requestAnimationFrame !== 'function') {
+        await session.end?.();
+        session = null;
+        return false;
+      }
       session.addEventListener('end', () => {
         enabled = false;
+        session = null;
+        referenceSpace = null;
         if (button) button.style.background = '#666';
       });
-      const sources = typeof session.requestHandSources === 'function'
-        ? await session.requestHandSources()
-        : Array.from(session.inputSources ?? []);
       enabled = true;
       if (button) button.style.background = '#4CAF50';
-      trackHands(sources);
+      session.requestAnimationFrame(trackHands);
       return true;
     } catch (error) {
       console.error('Hand tracking error:', error);
@@ -106,7 +145,7 @@ export function mountHandTracking({
   }
 
   const positionTimer = setInterval(() => {
-    if (!enabled) publish();
+    if (!enabled) publish(null, null, false);
   }, 100);
   void addButtonWhenSupported();
 

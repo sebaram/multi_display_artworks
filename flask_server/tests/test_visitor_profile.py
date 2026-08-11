@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 import mongoengine
 import pytest
+from bson import json_util
 from flask import template_rendered
 
 
@@ -45,6 +46,17 @@ def events_named(socket, event_name):
         for event in socket.get_received()
         if event["name"] == event_name
     ]
+
+
+def database_snapshot(database):
+    """Capture every collection's complete content in a stable form."""
+    return {
+        name: sorted(
+            json_util.dumps(document, sort_keys=True)
+            for document in database[name].find()
+        )
+        for name in sorted(database.list_collection_names())
+    }
 
 
 def test_room_assigns_one_visitor_id_per_browser_session(client, sample_image):
@@ -181,6 +193,58 @@ def test_room_state_contains_public_profiles_without_socket_sid(app):
     second_socket.disconnect()
 
 
+def test_legacy_position_rooms_contains_only_public_presence_data(app):
+    from metamuseum.core.position_sync import get_position_rooms
+
+    first_client = app.test_client()
+    first_socket = socket_client(app, first_client, "visitor-one")
+    first_socket.emit("join_position_room", {
+        "room_id": "legacy-http-room",
+        "profile": {
+            "displayName": "First Visitor",
+            "avatarId": "robot",
+            "color": "#123ABC",
+        },
+    })
+
+    second_client = app.test_client()
+    second_socket = socket_client(app, second_client, "visitor-two")
+    second_socket.emit("join_position_room", {
+        "room_id": "legacy-http-room",
+        "profile": {
+            "displayName": "Second Visitor",
+            "avatarId": "shiba",
+            "color": "#456DEF",
+        },
+    })
+
+    assert get_position_rooms() == {
+        "legacy-http-room": [{
+            "userId": "visitor-one",
+            "displayName": "First Visitor",
+            "avatarId": "robot",
+            "color": "#123ABC",
+            "position": "0 1.6 0",
+            "rotation": "0 0 0",
+            "leftHand": None,
+            "rightHand": None,
+            "handTracking": False,
+        }, {
+            "userId": "visitor-two",
+            "displayName": "Second Visitor",
+            "avatarId": "shiba",
+            "color": "#456DEF",
+            "position": "0 1.6 0",
+            "rotation": "0 0 0",
+            "leftHand": None,
+            "rightHand": None,
+            "handTracking": False,
+        }]
+    }
+    first_socket.disconnect()
+    second_socket.disconnect()
+
+
 def test_profile_update_normalizes_only_the_connected_presence(app):
     from metamuseum.core.position_sync import room_users
 
@@ -312,10 +376,11 @@ def test_position_update_cannot_overwrite_identity_or_profile(app):
 
 def test_guest_socket_presence_does_not_write_to_mongodb(app, client):
     database = mongoengine.connection.get_db()
-    before = {
-        name: database[name].count_documents({})
-        for name in database.list_collection_names()
-    }
+    database["presence_snapshot"].insert_one({
+        "marker": "must-not-change",
+        "nested": {"version": 1},
+    })
+    before = database_snapshot(database)
     socket = socket_client(app, client, "mongo-free-visitor")
 
     socket.emit("join_position_room", {
@@ -339,9 +404,6 @@ def test_guest_socket_presence_does_not_write_to_mongodb(app, client):
         "position": "1 2 3",
     })
 
-    after = {
-        name: database[name].count_documents({})
-        for name in database.list_collection_names()
-    }
+    after = database_snapshot(database)
     assert after == before
     socket.disconnect()

@@ -318,19 +318,6 @@ def _register_sync_handlers(sio):
 def get_position_rooms():
     """Return serializable dict of current rooms for HTTP fallback."""
     return {
-        room_id: {
-            sid: {
-                'userId': u['userId'],
-                'displayName': u['displayName'],
-                'avatarId': u['avatarId'],
-                'color': u['color'],
-                'position': u['position'],
-                'rotation': u['rotation'],
-                'leftHand': u['leftHand'],
-                'rightHand': u['rightHand'],
-                'handTracking': u['handTracking']
-            }
-            for sid, u in users.items()
-        }
+        room_id: [_public_presence(user) for user in users.values()]
         for room_id, users in room_users.items()
     }

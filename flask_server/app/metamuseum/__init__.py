@@ -314,18 +314,12 @@ from metamuseum.models import User, LLMConfig, WhisperConfig
 
 def _init_mongoengine(app):
     """Single MongoEngine connection from Flask config (see config.py)."""
-    use_mock = app.config.get('MONGODB_USE_MOCK', False)
     db_name = app.config.get('MONGODB_DB', 'metamuseum')
     uri = (app.config.get('MONGODB_URI') or '').strip()
     host = app.config.get('MONGODB_HOST', 'localhost')
     port = int(app.config.get('MONGODB_PORT', 27017))
 
-    if use_mock:
-        import mongomock
-
-        mongoengine.connect(db_name, mongo_client_class=mongomock.MongoClient)
-        print('=======RUNNING WITH MONGOMOCK (in-memory DB)==========')
-    elif uri:
+    if uri:
         mongoengine.connect(db_name, host=uri)
         print('=======RUNNING MAIN APP (with auth URI)==========')
     else:

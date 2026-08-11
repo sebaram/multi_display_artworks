@@ -4,14 +4,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
 
-import mongoengine
-import mongomock
+from metamuseum import create_app
 
-USE_MOCK = os.environ.get('MONGODB_MOCK', 'false').lower() == 'true'
-mongoengine.connect('metamuseum', mongo_client_class=mongomock.MongoClient)
-print("Connected to mongomock")
-
-from app import app
+app = create_app()
 
 from metamuseum.models import User
 from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat, GLTFmodel
@@ -134,5 +129,8 @@ def seed():
 
 if __name__ == "__main__":
     seed()
-    print("\nStarting server on http://0.0.0.0:8000")
-    app.run(host='0.0.0.0', port=8000)
+    if '--serve' in sys.argv:
+        from metamuseum.core.ar_proxy import socketio_instance
+
+        print("\nStarting server on http://0.0.0.0:8000")
+        socketio_instance.run(app, host='0.0.0.0', port=8000)

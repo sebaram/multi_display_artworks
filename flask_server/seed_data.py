@@ -1,23 +1,12 @@
-"""Seed script to populate mongomock with sample MetaMuseum data."""
+"""Seed script to populate the configured MetaMuseum database."""
 import os
 import sys
 
-# Add app to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
 
-# Set up mongomock connection BEFORE importing app
-USE_MOCK = os.environ.get('MONGODB_MOCK', 'false').lower() == 'true'
+from metamuseum import create_app
 
-if USE_MOCK:
-    import mongoengine
-    import mongomock
-    mongoengine.connect('metamuseum', mongo_client_class=mongomock.MongoClient)
-    print("Connected to mongomock")
-
-import os
-os.environ['MONGODB_MOCK'] = 'true'  # Ensure app uses mock too
-
-from app import app  # This imports metamuseum but doesn't re-connect if already connected
+app = create_app()
 
 from metamuseum.models import User
 from metamuseum.elements.basic import Room, Wall, Image, GaussianSplat, GLTFmodel
@@ -242,5 +231,7 @@ if __name__ == "__main__":
     
     # Keep app running if called directly
     if '--serve' in sys.argv:
+        from metamuseum.core.ar_proxy import socketio_instance
+
         print("\nStarting server...")
-        app.run(host='0.0.0.0', port=8000)
+        socketio_instance.run(app, host='0.0.0.0', port=8000)

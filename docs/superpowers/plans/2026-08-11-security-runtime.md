@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Use existing `User.is_admin()` authorization; do not add passcodes or roles.
-- Do not include mongomock or `MONGODB_MOCK` in runtime, tests, dependencies, or CI.
+- Do not include an in-memory-database fallback in runtime, tests, dependencies, or CI.
 - Integration tests require `MONGODB_URI` and must use database `metamuseum_test`.
 - Test each behavior before production-code changes.
 
@@ -129,7 +129,7 @@ Expected: all tests pass.
 - `create_app()` connects only to real MongoDB.
 - `seed()` is importable from `seed_and_serve.py` and seeds the connected real database once.
 
-- [ ] **Step 1: Remove MONGODB_MOCK and mongomock imports/branches**
+- [ ] **Step 1: Remove in-memory database imports and connection branches**
 
 ```python
 if uri:

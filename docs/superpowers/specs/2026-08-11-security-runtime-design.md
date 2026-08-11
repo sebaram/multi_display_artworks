@@ -10,7 +10,7 @@ Remove the retired GitLab credential, restrict mutable gallery and streaming ope
 - A shared `admin_required` decorator returns JSON `403` responses. It protects artwork updates and every streaming route that creates, controls, or deletes stream state.
 - Stream identifiers are limited to safe filename-like values (letters, numbers, `_`, and `-`, max 64 characters). This prevents filesystem path traversal before any directory or FFmpeg operation.
 - The retired GitLab token is removed from the tracked test script. Existing public Git history cannot be safely rewritten as part of this change; the token must be revoked separately.
-- The application no longer has a mongomock configuration branch or dependency. The app connects via `MONGODB_URI` when set, otherwise to the configured real MongoDB host and port.
+- The application has no in-memory-database configuration branch or dependency. The app connects via `MONGODB_URI` when set, otherwise to the configured real MongoDB host and port.
 - `seed_and_serve.py` uses the real app factory and database connection. It seeds only an empty database, then runs the Socket.IO server.
 - Integration tests require `MONGODB_URI` and use a dedicated `metamuseum_test` database. CI starts a temporary `mongo:7` container on a private Docker network and runs the app smoke test and pytest suite against it.
 

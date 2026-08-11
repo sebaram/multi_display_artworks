@@ -143,7 +143,7 @@ multi_display_artworks/
 cd flask_server
 pip install -r requirements.txt
 export MONGODB_URI=mongodb://localhost:27017/metamuseum
-python seed_and_serve.py
+python seed_and_serve.py --serve
 ```
 
 Requires a running **real MongoDB** server. `MONGODB_URI` is the preferred

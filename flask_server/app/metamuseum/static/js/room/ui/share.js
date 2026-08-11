@@ -1,6 +1,4 @@
-export function buildShareRoomUrl(pageLocation, explicitRoomId) {
-  const roomId = explicitRoomId
-    || new URLSearchParams(pageLocation.search).get('room_id');
+export function buildShareRoomUrl(pageLocation, roomId) {
   if (!roomId) return null;
   const protocol = pageLocation.protocol === 'https:' ? 'https:' : 'http:';
   return `${protocol}//${pageLocation.host}/room?room_id=${encodeURIComponent(roomId)}`;

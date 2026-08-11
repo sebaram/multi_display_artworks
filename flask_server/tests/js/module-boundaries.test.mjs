@@ -30,13 +30,47 @@ test('room template is declarative and has one application entry module', async 
   assert.doesNotMatch(template, /filename='js\/share-qr\.js'/u);
 });
 
-test('room modules do not depend on the temporary socket bridge', async () => {
+test('room modules do not depend on legacy socket state, query-derived room IDs, or first-party window globals', async () => {
   const files = await listJavaScriptFiles(roomRootPath);
+  const supportedWindowGlobals = new Set([
+    'AFRAME',
+    'addEventListener',
+    'alert',
+    'cancelAnimationFrame',
+    'clearInterval',
+    'clearTimeout',
+    'console',
+    'document',
+    'fetch',
+    'io',
+    'localStorage',
+    'location',
+    'matchMedia',
+    'navigator',
+    'prompt',
+    'qrcode',
+    'requestAnimationFrame',
+    'setInterval',
+    'setTimeout',
+    'window',
+  ]);
 
   for (const file of files) {
     const source = await readFile(file, 'utf8');
     assert.doesNotMatch(source, /roomLegacySocketAdapter|\bposSocket(?:Connected)?\b/u, file);
+    assert.doesNotMatch(source, /\b(?:URLSearchParams|searchParams)\b/u, file);
+
+    for (const match of source.matchAll(/\b(?:window|globalThis)\.([A-Za-z_$][\w$]*)/gu)) {
+      assert.ok(supportedWindowGlobals.has(match[1]), `${file} reads first-party global ${match[1]}`);
+    }
   }
+});
+
+test('room client no longer ships the unloaded guest-name socket bridge', async () => {
+  const staticRoot = new URL('../../app/metamuseum/static/js/', import.meta.url);
+
+  await assert.rejects(readFile(new URL('guest-name.js', staticRoot), 'utf8'), { code: 'ENOENT' });
+  await assert.rejects(readFile(new URL('share-qr.js', staticRoot), 'utf8'), { code: 'ENOENT' });
 });
 
 test('room bootstrap composes rendering, teleport, admin transforms, hand tracking, and share modules', async () => {

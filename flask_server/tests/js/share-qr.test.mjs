@@ -6,13 +6,13 @@ import {
   mountShare,
 } from '../../app/metamuseum/static/js/room/ui/share.js';
 
-test('shared room URL omits an ignored avatar query parameter', () => {
+test('shared room URL uses the injected room ID and omits page query parameters', () => {
   assert.equal(
     buildShareRoomUrl({
       protocol: 'https:',
       host: 'example.test',
       search: '?room_id=abc&avatar=robot',
-    }),
+    }, 'abc'),
     'https://example.test/room?room_id=abc',
   );
 });

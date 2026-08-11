@@ -102,22 +102,22 @@ profile behavior, controls, and several global scripts. The target boundaries
 are:
 
 ```
-frontend/
-  core/           room bootstrap, profile store, API and Socket.IO clients
-  rendering/      A-Frame scene, avatar renderer, minimap renderer
-  interaction/    teleport, mobile movement guidance, admin transforms
-  ui/             profile panel, dialogs, notifications
-
-backend/
-  views/          thin HTTP route adapters
-  services/       profile normalization and room query use-cases
-  realtime/       socket presence gateway and room state
+flask_server/app/metamuseum/static/js/room/
+  bootstrap.js     composition root; reads bootstrap JSON and injects browser/vendor dependencies
+  core/            room-state reducer and Socket.IO client
+  rendering/       A-Frame remote-presence scene rendering
+  interaction/     teleport, hand tracking, and admin transforms
+  ui/              share dialog
 ```
 
-Flask remains the initial frontend host. ES modules replace global script
-ordering and pass dependencies explicitly. Backend route URLs and Socket.IO
-event names remain backward compatible during extraction. Later, a standalone
-frontend build is a separate decision and not part of this scope.
+Flask remains the frontend host. ES modules replace global script ordering and
+pass dependencies explicitly. `bootstrap.js` is the only composition point
+that reads browser APIs and the vendor `AFRAME`, `io`, or `qrcode` globals.
+Room modules receive the server-provided `roomId`; they do not re-read URL
+query parameters or legacy first-party globals such as `posSocket`. Backend
+route URLs and Socket.IO event names remain backward compatible during
+extraction. Later, a standalone frontend build is a separate decision and not
+part of this scope.
 
 ## Error handling and accessibility
 

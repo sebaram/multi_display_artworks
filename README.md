@@ -70,8 +70,7 @@ multi_display_artworks/
 │               └── js/           # Client-side functionality
 │                   ├── drag-component.js       # Admin drag-to-move (auth-gated)
 │                   ├── location-features.js   # Teleport dropdown and boundary clamp
-│                   ├── room/                   # Browser profile, avatar catalog, expandable map, mobile guidance
-│                   ├── share-qr.js             # QR code generation (local, no external API)
+│                   ├── room/                   # ES-module room client: bootstrap, state/socket, rendering, interaction, UI
 │                   ├── llm-layout.js           # LLM auto-layout UI (curator panel)
 │                   ├── marker-ar.js            # AR.js marker detection + overlay
 │                   ├── avatar-expression.js    # face-api.js smile detection → emoji bubble

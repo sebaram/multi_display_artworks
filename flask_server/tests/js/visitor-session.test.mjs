@@ -118,6 +118,41 @@ test('malformed stored records are discarded and reissued', async () => {
   assert.equal(issue.calls.length, 1);
 });
 
+test('capability responses with extra own fields are rejected', async () => {
+  const issue = createIssuer([{
+    visitorId: 'visitor-a',
+    capability: 'capability-a',
+    profile: { displayName: 'Injected' },
+  }]);
+
+  await assert.rejects(
+    resolveVisitorSession({
+      storage: createStorage(),
+      fetch: issue,
+      location: { search: '', pathname: '/room' },
+      history: createHistory(),
+      avatarIds: ['robot'],
+    }),
+    /malformed/u,
+  );
+});
+
+test('malformed percent encoding is not treated as a new visitor query', async () => {
+  const history = createHistory();
+  const issue = createIssuer([{ visitorId: 'visitor-a', capability: 'capability-a' }]);
+
+  const record = await resolveVisitorSession({
+    storage: createStorage(),
+    fetch: issue,
+    location: { search: '?user=%E0%A4%A', pathname: '/room' },
+    history,
+    avatarIds: ['robot'],
+  });
+
+  assert.equal(record.visitorId, 'visitor-a');
+  assert.deepEqual(history.calls, []);
+});
+
 test('replaceVisitorSession always persists a fresh issued record', async () => {
   const storage = createStorage({
     'metamuseum.tab-visitor.v1': JSON.stringify({

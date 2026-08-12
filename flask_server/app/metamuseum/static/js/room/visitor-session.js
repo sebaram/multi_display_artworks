@@ -12,22 +12,27 @@ function randomIndex(values, random) {
   return Math.max(0, Math.min(values.length - 1, Math.floor(value * values.length)));
 }
 
+function decodeQueryComponent(value) {
+  try {
+    return decodeURIComponent(value.replaceAll('+', ' '));
+  } catch {
+    return null;
+  }
+}
+
+function isNewVisitorEntry(entry) {
+  const [key, value = ''] = entry.split('=', 2);
+  return decodeQueryComponent(key) === 'user' && decodeQueryComponent(value) === 'new';
+}
+
 function isNewVisitorQuery(search) {
-  return String(search ?? '').replace(/^\?/u, '').split('&').some((entry) => {
-    const [key, value = ''] = entry.split('=', 2);
-    return decodeURIComponent(key.replaceAll('+', ' ')) === 'user'
-      && decodeURIComponent(value.replaceAll('+', ' ')) === 'new';
-  });
+  return String(search ?? '').replace(/^\?/u, '').split('&').some(isNewVisitorEntry);
 }
 
 function removeNewVisitorQuery(location) {
   const query = String(location.search ?? '').replace(/^\?/u, '')
     .split('&')
-    .filter((entry) => {
-      const [key, value = ''] = entry.split('=', 2);
-      return !(decodeURIComponent(key.replaceAll('+', ' ')) === 'user'
-        && decodeURIComponent(value.replaceAll('+', ' ')) === 'new');
-    })
+    .filter((entry) => !isNewVisitorEntry(entry))
     .filter(Boolean)
     .join('&');
   return `${location.pathname ?? ''}${query ? `?${query}` : ''}${location.hash ?? ''}`;
@@ -90,6 +95,9 @@ async function issueVisitorSession({
   if (
     issued === null
     || typeof issued !== 'object'
+    || Object.keys(issued).length !== 2
+    || !Object.hasOwn(issued, 'visitorId')
+    || !Object.hasOwn(issued, 'capability')
     || typeof issued.visitorId !== 'string'
     || issued.visitorId.length === 0
     || typeof issued.capability !== 'string'

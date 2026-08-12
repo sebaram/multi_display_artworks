@@ -103,6 +103,21 @@ const initialProfile = {
   color: '#123456',
 };
 
+test('profile panel requires its document dependency even when a browser global exists', () => {
+  const originalDocument = globalThis.document;
+  globalThis.document = createDocument();
+  try {
+    assert.throws(() => mountProfilePanel({
+      profile: initialProfile,
+      catalog: AVATAR_CATALOG,
+      onSave: (profile) => profile,
+      onNewVisitor() {},
+    }), TypeError);
+  } finally {
+    globalThis.document = originalDocument;
+  }
+});
+
 test('visitor controls are closed by default and reveal editing only after Edit', () => {
   const document = createDocument();
   mountProfilePanel({

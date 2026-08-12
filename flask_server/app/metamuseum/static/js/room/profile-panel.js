@@ -23,7 +23,7 @@ export function mountProfilePanel({
   catalog,
   onSave,
   onNewVisitor = () => {},
-  document = globalThis.document,
+  document,
 }) {
   let currentProfile = { ...profile };
   let dialog = null;

@@ -114,8 +114,7 @@ export function bootstrapRoomRealtime({
   consumers = {},
 }) {
   const { roomId } = bootstrapData;
-  const activeVisitorSession = visitorSession ?? bootstrapData;
-  const { visitorId } = activeVisitorSession;
+  const { visitorId, capability } = visitorSession;
   const state = createRoomState(visitorId);
   const renderUsers = () => consumers.renderUsers?.(
     state.users().filter((user) => user.position != null && user.rotation != null),
@@ -158,7 +157,7 @@ export function bootstrapRoomRealtime({
   profileController.setSocketClient(socketClient);
   consumers.initialize?.(socketClient);
   socketClient.connect(socketUrl, {
-    auth: { visitorCapability: activeVisitorSession.capability },
+    auth: { visitorCapability: capability },
     transports: ['websocket', 'polling'],
     reconnection: true,
   });
@@ -222,34 +221,35 @@ export function createRoomConsumers({
   };
 }
 
-export async function bootstrapRoomApplication({ window, document }) {
-  registerDragComponent(window.AFRAME);
-  registerLocationComponents(window.AFRAME);
-  const bootstrapData = readRoomBootstrap(document);
-  const visitorDependencies = {
-    storage: window.sessionStorage,
-    fetch: window.fetch.bind(window),
-    location: window.location,
-    history: window.history,
-    avatarIds: bootstrapData.avatarCatalog,
-    visitorCapabilityUrl: bootstrapData.visitorCapabilityUrl,
-  };
-  let visitorSession = await resolveVisitorSession(visitorDependencies);
-  let realtime = null;
+export async function bootstrapRoomApplication({
+  resolveVisitorSession,
+  replaceVisitorSession,
+  initializeRoom,
+  reload,
+}) {
+  const visitorSession = await resolveVisitorSession();
+  let room;
+
+  async function newVisitor() {
+    const replacement = await replaceVisitorSession();
+    room.realtime.destroy();
+    reload();
+    return replacement;
+  }
+
+  room = initializeRoom({ visitorSession, newVisitor });
+  return { visitorSession, ...room };
+}
+
+function initializeBrowserRoom({ window, document, bootstrapData, visitorSession, newVisitor }) {
   const controller = bootstrapRoomProfile({
     bootstrapData,
     visitorSession,
     document,
     persistVisitorSession(nextSession) {
-      visitorSession = nextSession;
       window.sessionStorage.setItem('metamuseum.tab-visitor.v1', JSON.stringify(nextSession));
     },
-    async onNewVisitor() {
-      visitorSession = await replaceVisitorSession(visitorDependencies);
-      realtime?.destroy();
-      window.location.reload();
-      return visitorSession;
-    },
+    onNewVisitor: newVisitor,
   });
   const roomControls = mountRoomControls({ bootstrapData, document, window });
 
@@ -279,7 +279,7 @@ export async function bootstrapRoomApplication({ window, document }) {
     voice: VoiceChat,
   });
   const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  realtime = bootstrapRoomRealtime({
+  const realtime = bootstrapRoomRealtime({
     bootstrapData,
     visitorSession,
     ioFactory: window.io,
@@ -359,8 +359,35 @@ export async function bootstrapRoomApplication({ window, document }) {
   };
 }
 
+async function bootstrapBrowserRoom({ window, document }) {
+  registerDragComponent(window.AFRAME);
+  registerLocationComponents(window.AFRAME);
+  const bootstrapData = readRoomBootstrap(document);
+  const visitorDependencies = {
+    storage: window.sessionStorage,
+    fetch: window.fetch.bind(window),
+    location: window.location,
+    history: window.history,
+    avatarIds: bootstrapData.avatarCatalog,
+    visitorCapabilityUrl: bootstrapData.visitorCapabilityUrl,
+  };
+
+  return bootstrapRoomApplication({
+    resolveVisitorSession: () => resolveVisitorSession(visitorDependencies),
+    replaceVisitorSession: () => replaceVisitorSession(visitorDependencies),
+    initializeRoom: ({ visitorSession, newVisitor }) => initializeBrowserRoom({
+      window,
+      document,
+      bootstrapData,
+      visitorSession,
+      newVisitor,
+    }),
+    reload: () => window.location.reload(),
+  });
+}
+
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  void bootstrapRoomApplication({ window, document }).catch((error) => {
+  void bootstrapBrowserRoom({ window, document }).catch((error) => {
     window.console.error('Unable to start room visitor session', error);
   });
 }

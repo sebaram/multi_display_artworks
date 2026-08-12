@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import { bootstrapRoomRealtime } from '../../app/metamuseum/static/js/room/bootstrap.js';
 
+const visitorSession = { visitorId: 'self', capability: 'signed' };
+
 class FakeSocket {
   constructor() {
     this.connected = false;
@@ -52,7 +54,8 @@ test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
   };
 
   const realtime = bootstrapRoomRealtime({
-    bootstrapData: { visitorId: 'self', roomId: 'room-a' },
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
     ioFactory: () => socket,
     profileController,
     socketUrl: 'https://museum.test',
@@ -109,7 +112,8 @@ test('room realtime forwards ancillary public socket events unchanged', () => {
   const socket = new FakeSocket();
   const received = [];
   bootstrapRoomRealtime({
-    bootstrapData: { visitorId: 'self', roomId: 'room-a' },
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
     ioFactory: () => socket,
     profileController: {
       joinPayload: () => ({ room_id: 'room-a', profile: {} }),
@@ -146,7 +150,8 @@ test('user join is stored but waits for renderable position data', () => {
   const socket = new FakeSocket();
   const rendered = [];
   const realtime = bootstrapRoomRealtime({
-    bootstrapData: { visitorId: 'self', roomId: 'room-a' },
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
     ioFactory: () => socket,
     profileController: {
       joinPayload: () => ({ room_id: 'room-a', profile: {} }),

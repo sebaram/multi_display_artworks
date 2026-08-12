@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  bootstrapRoomApplication,
   bootstrapRoomProfile,
   bootstrapRoomRealtime,
 } from '../../app/metamuseum/static/js/room/bootstrap.js';
@@ -221,4 +222,105 @@ test('realtime connects with the signed tab capability', () => {
 
   assert.deepEqual(calls[0].options.auth, { visitorCapability: 'signed' });
   realtime.destroy();
+});
+
+test('realtime requires a resolved visitor session instead of bootstrap identity fallback', () => {
+  assert.throws(() => bootstrapRoomRealtime({
+    bootstrapData: {
+      ...bootstrapData,
+      visitorId: 'legacy-id',
+      capability: 'legacy-capability',
+    },
+    ioFactory: () => {
+      throw new Error('must not connect without a visitor session');
+    },
+    profileController: {
+      joinPayload: () => ({ room_id: 'room-a', profile: {} }),
+      setSocketClient() {},
+    },
+  }), TypeError);
+});
+
+test('application resolves identity before initialization and replaces it before disconnect and reload', async () => {
+  const document = createDocument();
+  const order = [];
+  let finishResolve;
+  let finishReplacement;
+  let onNewVisitor;
+  const sockets = [];
+  const startup = bootstrapRoomApplication({
+    resolveVisitorSession: () => new Promise((resolve) => {
+      order.push('resolve');
+      finishResolve = resolve;
+    }),
+    replaceVisitorSession: () => new Promise((resolve) => {
+      order.push('replace');
+      finishReplacement = () => {
+        order.push('persisted');
+        resolve({
+          visitorId: 'tab-b',
+          capability: 'signed-b',
+          profile: visitorSession.profile,
+        });
+      };
+    }),
+    initializeRoom({ visitorSession: resolvedSession, newVisitor }) {
+      order.push(`initialize:${resolvedSession.visitorId}`);
+      onNewVisitor = newVisitor;
+      const profileController = bootstrapRoomProfile({
+        bootstrapData,
+        visitorSession: resolvedSession,
+        document,
+      });
+      const socket = {
+        connected: false,
+        listeners: new Map(),
+        on(eventName, handler) { this.listeners.set(eventName, handler); },
+        off(eventName, handler) {
+          if (this.listeners.get(eventName) === handler) this.listeners.delete(eventName);
+        },
+        connect() { order.push('connect'); },
+        disconnect() { order.push('disconnect'); },
+      };
+      const ioFactory = (url, options) => {
+        sockets.push({ url, options });
+        return socket;
+      };
+      order.push('consumers');
+      const realtime = bootstrapRoomRealtime({
+        bootstrapData,
+        visitorSession: resolvedSession,
+        ioFactory,
+        profileController,
+        socketUrl: 'https://museum.test',
+      });
+      return { profileController, realtime };
+    },
+    reload() {
+      order.push('reload');
+    },
+  });
+
+  assert.deepEqual(order, ['resolve']);
+  finishResolve(visitorSession);
+  const application = await startup;
+
+  assert.deepEqual(order, ['resolve', 'initialize:tab-a', 'consumers', 'connect']);
+  assert.deepEqual(sockets[0].options.auth, { visitorCapability: 'signed' });
+
+  const replacement = onNewVisitor();
+  assert.deepEqual(order, ['resolve', 'initialize:tab-a', 'consumers', 'connect', 'replace']);
+  finishReplacement();
+  await replacement;
+  assert.deepEqual(order, [
+    'resolve',
+    'initialize:tab-a',
+    'consumers',
+    'connect',
+    'replace',
+    'persisted',
+    'disconnect',
+    'reload',
+  ]);
+  assert.equal(application.visitorSession.visitorId, 'tab-a');
 });

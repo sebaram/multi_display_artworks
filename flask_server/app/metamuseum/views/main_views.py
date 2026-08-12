@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint
-from flask import current_app, render_template, send_from_directory, abort, send_file, request, redirect, url_for, flash, jsonify, session
+from flask import current_app, render_template, send_from_directory, abort, send_file, request, redirect, url_for, flash, jsonify
 from flask_login import current_user
 import logging
 
@@ -13,7 +13,8 @@ from datetime import datetime, timedelta
 from metamuseum.core.pyAframe import Box, Sphere, Cylinder, Plane, Sky
 from metamuseum.core.ratelimit import rate_limiter
 from metamuseum.core.authorization import admin_required
-from metamuseum.core.visitor_profile import AVATAR_IDS, get_or_create_visitor_id
+from metamuseum.core.visitor_capability import issue_visitor_capability
+from metamuseum.core.visitor_profile import AVATAR_IDS
 from metamuseum.elements.basic import Room, Wall, WallElement, Image, GaussianSplat, GLTFmodel, Webpage, LocationPreset
 from metamuseum.elements.user import OnlineUser
 
@@ -40,6 +41,11 @@ def health():
         return jsonify({"status": "error", "db": str(e)}), 503
 
 
+@bp.post("/visitor-capability")
+def create_visitor_capability():
+    return jsonify(issue_visitor_capability()), 201
+
+
 @bp.route("/room")
 def room():
     room_id = request.args.get('room_id')
@@ -51,7 +57,6 @@ def room():
         if not this_room:
             return "Room not found", 404
         aframe_list = [this_room.to_aframe()]
-        visitor_id = get_or_create_visitor_id(session)
         drag_enabled = current_user.is_authenticated and current_user.is_admin()
         ar_mode = request.args.get('ar')  # 'marker' or 'companion'
         is_ar_marker = ar_mode == 'marker'
@@ -107,7 +112,8 @@ def room():
 
         return render_template('room_aframe.html',
                              aframe_list=aframe_list, camera_d=3, avatar='shiba',
-                             visitor_id=visitor_id, avatar_catalog=sorted(AVATAR_IDS),
+                             visitor_capability_url=url_for("main.create_visitor_capability"),
+                             avatar_catalog=sorted(AVATAR_IDS),
                              drag_enabled=drag_enabled, presets=preset_list,
                              spawn_preset=selected, boundary=boundary,
                              is_ar_marker=is_ar_marker, is_ar_companion=is_ar_companion,

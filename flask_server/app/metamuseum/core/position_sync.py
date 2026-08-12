@@ -15,6 +15,7 @@ from flask import request, session
 from mongoengine import ValidationError
 
 from metamuseum.core.presence_service import PresenceService
+from metamuseum.core.visitor_capability import validate_visitor_capability
 
 _SOCKETIO_ASYNC_MODE = (
     'eventlet' if importlib.util.find_spec('eventlet') is not None
@@ -29,6 +30,7 @@ socketio = None  # alias used by other modules
 # Compatibility alias for code that still inspects the in-memory room mapping.
 presence_service = PresenceService()
 room_users = presence_service.rooms
+socket_visitors: dict[str, str] = {}
 
 
 # room_voice_enabled: { room_id: bool } — server-authoritative voice state
@@ -99,8 +101,17 @@ def _register_sync_handlers(sio):
             return None
         return target_id, target_sid
 
+    @sio.on("connect")
+    def on_connect(auth):
+        capability = auth.get("visitorCapability") if isinstance(auth, dict) else None
+        visitor_id = validate_visitor_capability(capability)
+        if not visitor_id:
+            return False
+        socket_visitors[request.sid] = visitor_id
+
     @sio.on('disconnect')
     def on_disconnect():
+        socket_visitors.pop(request.sid, None)
         # Clean up AR rooms (ar_proxy shares this SocketIO instance)
         from metamuseum.core.ar_proxy import ar_rooms
         for room_id, room in ar_rooms.items():
@@ -116,7 +127,7 @@ def _register_sync_handlers(sio):
     def on_join(data):
         data = data or {}
         room_id = data.get('room_id')
-        visitor_id = session.get('visitor_id')
+        visitor_id = socket_visitors.get(request.sid)
 
         if not visitor_id or not _room_exists(room_id):
             return

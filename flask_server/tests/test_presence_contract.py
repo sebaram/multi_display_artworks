@@ -2,6 +2,7 @@
 
 from metamuseum.core.presence_service import PresenceService
 from metamuseum.core.visitor_profile import DEFAULT_PROFILE
+from itsdangerous import URLSafeTimedSerializer
 
 
 FIRST_PROFILE = {
@@ -16,13 +17,18 @@ SECOND_PROFILE = {
 }
 
 
-def _socket_for(app, visitor_id):
+def _socket_for(app, visitor_id, client=None):
     from metamuseum.core.position_sync import socketio_instance
 
-    client = app.test_client()
-    with client.session_transaction() as session:
-        session["visitor_id"] = visitor_id
-    return socketio_instance.test_client(app, flask_test_client=client)
+    client = client or app.test_client()
+    capability = URLSafeTimedSerializer(
+        app.secret_key, salt="metamuseum.visitor-capability.v1"
+    ).dumps({"visitorId": visitor_id})
+    return socketio_instance.test_client(
+        app,
+        flask_test_client=client,
+        auth={"visitorCapability": capability},
+    )
 
 
 def _event_payloads(socket, event_name):
@@ -53,7 +59,7 @@ def test_presence_update_uses_the_joined_identity_not_payload_identity():
     assert event["position"] == "1 2 3"
 
 
-def test_presence_events_keep_session_identity_and_public_payloads(app, room_id):
+def test_presence_events_keep_capability_identity_and_public_payloads(app, room_id):
     first = _socket_for(app, "visitor-a")
     second = _socket_for(app, "visitor-b")
     try:
@@ -315,17 +321,11 @@ def test_voice_relays_require_membership_and_use_server_identity(app, room_id):
 def test_voice_admin_toggle_requires_an_admin_member(
     app, room_id, admin_client, user_client
 ):
-    from metamuseum.core.position_sync import room_voice_enabled, socketio_instance
+    from metamuseum.core.position_sync import room_voice_enabled
 
     visitor = _socket_for(app, "visitor")
-    with user_client.session_transaction() as user_session:
-        user_session["visitor_id"] = "signed-in-visitor"
-    signed_in_socket = socketio_instance.test_client(
-        app, flask_test_client=user_client
-    )
-    with admin_client.session_transaction() as admin_session:
-        admin_session["visitor_id"] = "admin-visitor"
-    admin_socket = socketio_instance.test_client(app, flask_test_client=admin_client)
+    signed_in_socket = _socket_for(app, "signed-in-visitor", user_client)
+    admin_socket = _socket_for(app, "admin-visitor", admin_client)
     try:
         visitor.emit("join_position_room", {"room_id": room_id, "profile": {}})
         _only_event_payload(visitor, "room_state")

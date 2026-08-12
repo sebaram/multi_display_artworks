@@ -7,6 +7,7 @@ import mongoengine
 import pytest
 from bson import json_util
 from flask import template_rendered
+from itsdangerous import URLSafeTimedSerializer
 
 
 @contextmanager
@@ -32,13 +33,24 @@ def clear_position_rooms():
     room_users.clear()
 
 
-def socket_client(app, client, visitor_id=None):
+def socket_with_capability(app, capability, client=None):
     from metamuseum.core.position_sync import socketio_instance
 
-    if visitor_id is not None:
-        with client.session_transaction() as browser_session:
-            browser_session["visitor_id"] = visitor_id
-    return socketio_instance.test_client(app, flask_test_client=client)
+    return socketio_instance.test_client(
+        app,
+        flask_test_client=client,
+        auth={"visitorCapability": capability},
+    )
+
+
+def socket_client(app, client, visitor_id=None):
+    if visitor_id is None:
+        return socket_with_capability(app, None, client)
+
+    capability = URLSafeTimedSerializer(
+        app.secret_key, salt="metamuseum.visitor-capability.v1"
+    ).dumps({"visitorId": visitor_id})
+    return socket_with_capability(app, capability, client)
 
 
 def events_named(socket, event_name):
@@ -60,7 +72,58 @@ def database_snapshot(database):
     }
 
 
-def test_room_assigns_one_visitor_id_per_browser_session(client, sample_image):
+def test_capability_endpoint_issues_distinct_signed_visitors(client):
+    first = client.post("/visitor-capability")
+    second = client.post("/visitor-capability")
+
+    assert first.status_code == second.status_code == 201
+    assert set(first.json) == {"visitorId", "capability"}
+    assert first.json["visitorId"] != second.json["visitorId"]
+
+
+def test_two_capabilities_can_join_one_room(app, client, room_id):
+    from metamuseum.core.position_sync import room_users
+
+    first = socket_with_capability(
+        app, client.post("/visitor-capability").json["capability"], client
+    )
+    second = socket_with_capability(
+        app, client.post("/visitor-capability").json["capability"], client
+    )
+    try:
+        first.emit("join_position_room", {"room_id": room_id, "profile": {}})
+        second.emit("join_position_room", {"room_id": room_id, "profile": {}})
+
+        assert len(room_users[room_id]) == 2
+    finally:
+        first.disconnect()
+        second.disconnect()
+
+
+def test_invalid_capability_cannot_join(app, client, room_id):
+    from metamuseum.core.position_sync import room_users
+
+    socket = socket_with_capability(app, "forged", client)
+
+    assert not socket.is_connected()
+    assert room_id not in room_users
+
+
+def test_guest_capability_and_presence_do_not_write_mongodb(app, client, room_id):
+    database = mongoengine.connection.get_db()
+    before = database_snapshot(database)
+    socket = socket_with_capability(
+        app, client.post("/visitor-capability").json["capability"], client
+    )
+    try:
+        socket.emit("join_position_room", {"room_id": room_id, "profile": {}})
+    finally:
+        socket.disconnect()
+
+    assert database_snapshot(database) == before
+
+
+def test_room_bootstrap_exposes_capability_url_without_visitor_id(client, sample_image):
     from metamuseum.core.visitor_profile import AVATAR_IDS
 
     room_id = str(sample_image.wall.room._id)
@@ -68,13 +131,13 @@ def test_room_assigns_one_visitor_id_per_browser_session(client, sample_image):
         first = client.get(f"/room?room_id={room_id}&avatar=robot")
         second = client.get(f"/room?room_id={room_id}&avatar=none")
 
-    with client.session_transaction() as browser_session:
-        visitor_id = browser_session["visitor_id"]
-
     first_context = templates[0][1]
     second_context = templates[1][1]
     assert first.status_code == second.status_code == 200
-    assert visitor_id == first_context["visitor_id"] == second_context["visitor_id"]
+    assert first_context["visitor_capability_url"] == "/visitor-capability"
+    assert second_context["visitor_capability_url"] == "/visitor-capability"
+    assert "visitor_id" not in first_context
+    assert "visitor_id" not in second_context
     assert first_context["avatar_catalog"] == sorted(AVATAR_IDS)
     assert first_context["avatar"] == second_context["avatar"] == "shiba"
 
@@ -135,7 +198,7 @@ def test_normalize_profile_accepts_mapping_like_payload():
     }
 
 
-def test_socket_uses_signed_session_identity_and_ignores_spoofed_user_id(app, client, room_id):
+def test_socket_uses_capability_identity_and_ignores_spoofed_user_id(app, client, room_id):
     from metamuseum.core.position_sync import room_users
 
     socket = socket_client(app, client, "server-owned-id")
@@ -157,18 +220,12 @@ def test_socket_uses_signed_session_identity_and_ignores_spoofed_user_id(app, cl
     socket.disconnect()
 
 
-def test_socket_without_signed_visitor_id_does_not_join(app, client, room_id):
+def test_socket_without_capability_is_rejected(app, client, room_id):
     from metamuseum.core.position_sync import room_users
 
     socket = socket_client(app, client)
-    socket.emit("join_position_room", {
-        "room_id": room_id,
-        "userId": "client-owned-id",
-        "profile": {},
-    })
-
+    assert not socket.is_connected()
     assert room_id not in room_users
-    socket.disconnect()
 
 
 def test_room_state_contains_public_profiles_without_socket_sid(app, room_id):

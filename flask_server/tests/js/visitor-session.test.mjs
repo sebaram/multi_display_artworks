@@ -3,8 +3,10 @@ import test from 'node:test';
 
 import {
   createRandomProfile,
+  ensureTabMarker,
   replaceVisitorSession,
   resolveVisitorSession,
+  updateVisitorSession,
 } from '../../app/metamuseum/static/js/room/visitor-session.js';
 
 function createStorage(initialValues = {}) {
@@ -50,11 +52,13 @@ test('first tab session mints and persists a random valid visitor record', async
     location: { search: '', pathname: '/room' },
     history,
     avatarIds,
+    tabMarker: 'tab-a',
     random: () => 0,
   });
 
   assert.equal(record.visitorId, 'visitor-a');
   assert.equal(record.capability, 'capability-a');
+  assert.equal(record.tabMarker, 'tab-a');
   assert.notEqual(record.profile.displayName, 'Visitor');
   assert.notEqual(record.profile.avatarId, 'none');
   assert.match(record.profile.color, /^#[0-9A-F]{6}$/u);
@@ -71,6 +75,7 @@ test('same tab reload reuses its stored capability without issuing again', async
     location: { search: '', pathname: '/room' },
     history,
     avatarIds: ['robot'],
+    tabMarker: 'tab-a',
   };
 
   const first = await resolveVisitorSession({ ...dependencies, fetch: issue });
@@ -94,6 +99,7 @@ test('user=new replaces the tab record once and removes the query parameter', as
     location: { search: '?user=new', pathname: '/room' },
     history,
     avatarIds: ['robot'],
+    tabMarker: 'tab-a',
   });
 
   assert.equal(record.visitorId, 'visitor-b');
@@ -112,6 +118,7 @@ test('malformed stored records are discarded and reissued', async () => {
     location: { search: '', pathname: '/room' },
     history: createHistory(),
     avatarIds: ['robot'],
+    tabMarker: 'tab-a',
   });
 
   assert.equal(record.visitorId, 'visitor-b');
@@ -132,6 +139,7 @@ test('capability responses with extra own fields are rejected', async () => {
       location: { search: '', pathname: '/room' },
       history: createHistory(),
       avatarIds: ['robot'],
+      tabMarker: 'tab-a',
     }),
     /malformed/u,
   );
@@ -147,6 +155,7 @@ test('malformed percent encoding is not treated as a new visitor query', async (
     location: { search: '?user=%E0%A4%A', pathname: '/room' },
     history,
     avatarIds: ['robot'],
+    tabMarker: 'tab-a',
   });
 
   assert.equal(record.visitorId, 'visitor-a');
@@ -158,6 +167,7 @@ test('replaceVisitorSession always persists a fresh issued record', async () => 
     'metamuseum.tab-visitor.v1': JSON.stringify({
       visitorId: 'visitor-a',
       capability: 'capability-a',
+      tabMarker: 'tab-a',
       profile: { displayName: 'Mina 100', avatarId: 'robot', color: '#4CAF50' },
     }),
   });
@@ -169,10 +179,74 @@ test('replaceVisitorSession always persists a fresh issued record', async () => 
     location: { search: '', pathname: '/room' },
     history: createHistory(),
     avatarIds: ['robot'],
+    tabMarker: 'tab-a',
   });
 
   assert.equal(record.visitorId, 'visitor-b');
   assert.equal(issue.calls.length, 1);
+});
+
+test('a copied tab record is replaced when the top-level tab marker differs', async () => {
+  const storage = createStorage({
+    'metamuseum.tab-visitor.v1': JSON.stringify({
+      visitorId: 'visitor-a',
+      capability: 'capability-a',
+      tabMarker: 'tab-a',
+      profile: { displayName: 'Mina 100', avatarId: 'robot', color: '#4CAF50' },
+    }),
+  });
+  const issue = createIssuer([{ visitorId: 'visitor-b', capability: 'capability-b' }]);
+
+  const record = await resolveVisitorSession({
+    storage,
+    fetch: issue,
+    location: { search: '', pathname: '/room' },
+    history: createHistory(),
+    avatarIds: ['robot'],
+    tabMarker: 'tab-b',
+  });
+
+  assert.equal(record.visitorId, 'visitor-b');
+  assert.equal(record.tabMarker, 'tab-b');
+  assert.equal(issue.calls.length, 1);
+});
+
+test('ensureTabMarker keeps one window.name marker across reloads', () => {
+  const tab = { name: '' };
+  let generated = 0;
+  const dependencies = {
+    tab,
+    createMarker: () => `marker-${++generated}`,
+  };
+
+  assert.equal(ensureTabMarker(dependencies), 'metamuseum:marker-1');
+  assert.equal(ensureTabMarker(dependencies), 'metamuseum:marker-1');
+  assert.equal(tab.name, 'metamuseum:marker-1');
+  assert.equal(generated, 1);
+});
+
+test('updateVisitorSession owns profile normalization and storage writes', () => {
+  const storage = createStorage();
+  const visitorSession = {
+    visitorId: 'visitor-a',
+    capability: 'capability-a',
+    tabMarker: 'tab-a',
+    profile: { displayName: 'Mina 100', avatarId: 'robot', color: '#1565C0' },
+  };
+
+  const updated = updateVisitorSession({
+    storage,
+    visitorSession: {
+      ...visitorSession,
+      profile: { displayName: 'Updated Visitor', avatarId: 'shiba', color: '#abcdef' },
+    },
+  });
+
+  assert.deepEqual(updated, {
+    ...visitorSession,
+    profile: { displayName: 'Updated Visitor', avatarId: 'shiba', color: '#ABCDEF' },
+  });
+  assert.deepEqual(JSON.parse(storage.values.get('metamuseum.tab-visitor.v1')), updated);
 });
 
 test('createRandomProfile chooses only non-empty allowed avatars', () => {

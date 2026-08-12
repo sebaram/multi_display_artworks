@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from pathlib import Path
+from unittest.mock import patch
 
 import mongoengine
 import pytest
@@ -107,6 +108,21 @@ def test_invalid_capability_cannot_join(app, client, room_id):
 
     assert not socket.is_connected()
     assert room_id not in room_users
+
+
+def test_expired_capability_is_rejected(app):
+    from metamuseum.core.visitor_capability import (
+        CAPABILITY_SALT,
+        validate_visitor_capability,
+    )
+
+    with app.app_context():
+        with patch("itsdangerous.timed.time.time", return_value=1):
+            capability = URLSafeTimedSerializer(
+                app.secret_key, salt=CAPABILITY_SALT
+            ).dumps({"visitorId": "expired-visitor"})
+
+        assert validate_visitor_capability(capability) is None
 
 
 def test_guest_capability_and_presence_do_not_write_mongodb(app, client, room_id):
@@ -220,12 +236,50 @@ def test_socket_uses_capability_identity_and_ignores_spoofed_user_id(app, client
     socket.disconnect()
 
 
-def test_socket_without_capability_is_rejected(app, client, room_id):
+def test_socket_without_capability_can_use_shared_namespace_without_presence(
+    app, client, room_id
+):
     from metamuseum.core.position_sync import room_users
 
     socket = socket_client(app, client)
-    assert not socket.is_connected()
-    assert room_id not in room_users
+    try:
+        assert socket.is_connected()
+
+        socket.emit("join_position_room", {
+            "room_id": room_id,
+            "userId": "client-owned-id",
+            "profile": {},
+        })
+        assert room_id not in room_users
+
+        socket.emit("gesture_mark.join", {})
+        assert events_named(socket, "gesture_mark.state")
+    finally:
+        if socket.is_connected():
+            socket.disconnect()
+
+
+def test_socket_without_capability_cannot_use_identity_dependent_presence_events(
+    app, client, room_id
+):
+    visitor = socket_client(app, app.test_client(), "bound-visitor")
+    shared_namespace_client = socket_client(app, client)
+    try:
+        visitor.emit("join_position_room", {"room_id": room_id, "profile": {}})
+        visitor.get_received()
+
+        shared_namespace_client.emit("request_room_state", {"room_id": room_id})
+        assert events_named(shared_namespace_client, "room_state") == []
+
+        shared_namespace_client.emit("expression", {
+            "room_id": room_id,
+            "expression": "smile",
+        })
+        assert events_named(visitor, "expression") == []
+    finally:
+        visitor.disconnect()
+        if shared_namespace_client.is_connected():
+            shared_namespace_client.disconnect()
 
 
 def test_room_state_contains_public_profiles_without_socket_sid(app, room_id):

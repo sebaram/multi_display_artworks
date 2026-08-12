@@ -273,3 +273,26 @@ test('New visitor waits for its callback and updateProfile refreshes the summary
   await Promise.resolve();
   assert.equal(findByText(document.body, 'New visitor').disabled, false);
 });
+
+test('New visitor failure is reported in the panel without an unhandled rejection', async () => {
+  const document = createDocument();
+  const panel = mountProfilePanel({
+    profile: initialProfile,
+    catalog: AVATAR_CATALOG,
+    onSave: (profile) => profile,
+    onNewVisitor: async () => {
+      throw new Error('capability endpoint unavailable');
+    },
+    document,
+  });
+
+  panel.open();
+  click(findByText(document.body, 'New visitor'));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.match(
+    descendants(document.body).map((element) => element.textContent).join(' '),
+    /Unable to create a new visitor/iu,
+  );
+  assert.equal(findByText(document.body, 'New visitor').disabled, false);
+});

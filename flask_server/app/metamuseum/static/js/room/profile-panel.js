@@ -59,6 +59,10 @@ export function mountProfilePanel({
   summaryText.setAttribute('aria-live', 'polite');
   const editButton = createButton(document, 'Edit');
   const newVisitorButton = createButton(document, 'New visitor');
+  const errorMessage = document.createElement('p');
+  errorMessage.setAttribute('role', 'alert');
+  setStyles(errorMessage, 'margin:8px 0 0;color:#ffb4ab;');
+  const retryButton = createButton(document, 'Retry');
   summary.append(swatch, summaryText, editButton, newVisitorButton);
 
   function updateProfile(nextProfile) {
@@ -71,6 +75,19 @@ export function mountProfilePanel({
   function open() {
     if (!summary.parentNode) container.appendChild(summary);
     visitorButton.setAttribute('aria-expanded', 'true');
+  }
+
+  function showConnectionError(
+    message = 'Visitor connection expired or was rejected. Retry to create a new visitor.',
+  ) {
+    open();
+    errorMessage.textContent = message;
+    if (!errorMessage.parentNode) summary.append(errorMessage, retryButton);
+  }
+
+  function clearConnectionError() {
+    errorMessage.remove();
+    retryButton.remove();
   }
 
   function restoreFocus() {
@@ -190,19 +207,29 @@ export function mountProfilePanel({
     editor.nameInput.focus();
   }
 
-  async function newVisitor() {
+  async function replaceVisitor(failureMessage) {
     newVisitorButton.disabled = true;
+    retryButton.disabled = true;
     try {
       const nextSession = await onNewVisitor();
+      clearConnectionError();
       if (nextSession?.profile) updateProfile(nextSession.profile);
+    } catch {
+      showConnectionError(failureMessage);
     } finally {
       newVisitorButton.disabled = false;
+      retryButton.disabled = false;
     }
   }
 
   visitorButton.addEventListener('click', open);
   editButton.addEventListener('click', openEditor);
-  newVisitorButton.addEventListener('click', newVisitor);
+  newVisitorButton.addEventListener('click', () => {
+    void replaceVisitor('Unable to create a new visitor. Retry when ready.');
+  });
+  retryButton.addEventListener('click', () => {
+    void replaceVisitor('Unable to retry the visitor connection. Try again when ready.');
+  });
 
   updateProfile(currentProfile);
   const toolbar = document.getElementById?.('room-toolbar') ?? document.body;
@@ -210,6 +237,7 @@ export function mountProfilePanel({
 
   return {
     open,
+    showConnectionError,
     updateProfile,
     destroy() {
       container.remove();

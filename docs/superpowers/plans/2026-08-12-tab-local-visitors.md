@@ -60,12 +60,13 @@ def test_invalid_capability_cannot_join(app, client, room_id):
     assert not socket.is_connected()
     assert room_id not in room_users
 
-def test_guest_capability_and_presence_do_not_write_mongodb(app, client, room_id, real_database):
-    before = database_snapshot(real_database)
+def test_guest_capability_and_presence_do_not_write_mongodb(app, client, room_id):
+    database = mongoengine.connection.get_db()
+    before = database_snapshot(database)
     socket = socket_with_capability(app, client.post('/visitor-capability').json['capability'])
     socket.emit('join_position_room', {'room_id': room_id, 'profile': {}})
     socket.disconnect()
-    assert database_snapshot(real_database) == before
+    assert database_snapshot(database) == before
 ```
 
 - [ ] **Step 2: Run test to verify it fails**

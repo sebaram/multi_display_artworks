@@ -2,7 +2,12 @@ import { AVATAR_CATALOG } from './avatar-catalog.js';
 import { createAvatarEntity } from './avatar-renderer.js';
 import { mountProfilePanel } from './profile-panel.js';
 import { normalizeProfile } from './profile-store.js';
-import { replaceVisitorSession, resolveVisitorSession } from './visitor-session.js';
+import {
+  ensureTabMarker,
+  replaceVisitorSession,
+  resolveVisitorSession,
+  updateVisitorSession,
+} from './visitor-session.js';
 import { mountMinimap } from './minimap.js';
 import { mountMobileGuidance } from './mobile-guidance.js';
 import { createRoomState } from './core/room-state.js';
@@ -100,6 +105,7 @@ export function bootstrapRoomProfile({
       return createAvatarEntity(profile, document);
     },
     openProfile: panel.open,
+    showConnectionError: panel.showConnectionError,
     updateProfile: panel.updateProfile,
     destroy: panel.destroy,
   };
@@ -124,6 +130,9 @@ export function bootstrapRoomRealtime({
   const handlers = {
     connect() {
       socketClient.emit('join_position_room', profileController.joinPayload());
+    },
+    connect_error() {
+      profileController.showConnectionError?.();
     },
     disconnect() {},
     room_state(data) {
@@ -241,13 +250,44 @@ export async function bootstrapRoomApplication({
   return { visitorSession, ...room };
 }
 
+export async function bootstrapRoomWithRecovery({ document, startRoom }) {
+  let errorPanel = null;
+
+  async function attempt() {
+    errorPanel?.remove();
+    errorPanel = null;
+    try {
+      return await startRoom();
+    } catch {
+      errorPanel = document.createElement('section');
+      errorPanel.setAttribute('role', 'alert');
+      errorPanel.setAttribute(
+        'style',
+        'position:fixed;top:12px;left:12px;z-index:10000;padding:12px;'
+        + 'border-radius:8px;background:#351313;color:white;font-family:sans-serif;',
+      );
+      const message = document.createElement('p');
+      message.textContent = 'Unable to start the visitor session. Check your connection and retry.';
+      const retryButton = document.createElement('button');
+      retryButton.setAttribute('type', 'button');
+      retryButton.textContent = 'Retry';
+      retryButton.addEventListener('click', () => { void attempt(); });
+      errorPanel.append(message, retryButton);
+      (document.getElementById?.('room-toolbar') ?? document.body).appendChild(errorPanel);
+      return null;
+    }
+  }
+
+  return attempt();
+}
+
 function initializeBrowserRoom({ window, document, bootstrapData, visitorSession, newVisitor }) {
   const controller = bootstrapRoomProfile({
     bootstrapData,
     visitorSession,
     document,
     persistVisitorSession(nextSession) {
-      window.sessionStorage.setItem('metamuseum.tab-visitor.v1', JSON.stringify(nextSession));
+      updateVisitorSession({ storage: window.sessionStorage, visitorSession: nextSession });
     },
     onNewVisitor: newVisitor,
   });
@@ -363,12 +403,17 @@ async function bootstrapBrowserRoom({ window, document }) {
   registerDragComponent(window.AFRAME);
   registerLocationComponents(window.AFRAME);
   const bootstrapData = readRoomBootstrap(document);
+  const tabMarker = ensureTabMarker({
+    tab: window,
+    createMarker: () => window.crypto.randomUUID(),
+  });
   const visitorDependencies = {
     storage: window.sessionStorage,
     fetch: window.fetch.bind(window),
     location: window.location,
     history: window.history,
     avatarIds: bootstrapData.avatarCatalog,
+    tabMarker,
     visitorCapabilityUrl: bootstrapData.visitorCapabilityUrl,
   };
 
@@ -387,7 +432,8 @@ async function bootstrapBrowserRoom({ window, document }) {
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  void bootstrapBrowserRoom({ window, document }).catch((error) => {
-    window.console.error('Unable to start room visitor session', error);
+  void bootstrapRoomWithRecovery({
+    document,
+    startRoom: () => bootstrapBrowserRoom({ window, document }),
   });
 }

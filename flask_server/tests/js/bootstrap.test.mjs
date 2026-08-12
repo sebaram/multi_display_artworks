@@ -5,6 +5,7 @@ import {
   bootstrapRoomApplication,
   bootstrapRoomProfile,
   bootstrapRoomRealtime,
+  bootstrapRoomWithRecovery,
 } from '../../app/metamuseum/static/js/room/bootstrap.js';
 
 class FakeElement {
@@ -222,6 +223,87 @@ test('realtime connects with the signed tab capability', () => {
 
   assert.deepEqual(calls[0].options.auth, { visitorCapability: 'signed' });
   realtime.destroy();
+});
+
+test('expired capability connect error shows an explicit retry control', async () => {
+  const document = createDocument();
+  let replacementAttempts = 0;
+  const controller = bootstrapRoomProfile({
+    bootstrapData,
+    visitorSession,
+    document,
+    onNewVisitor: async () => {
+      replacementAttempts += 1;
+      return visitorSession;
+    },
+  });
+  let socket;
+  const realtime = bootstrapRoomRealtime({
+    bootstrapData,
+    visitorSession,
+    ioFactory: () => {
+      socket = new (class {
+        constructor() {
+          this.connected = false;
+          this.listeners = new Map();
+        }
+
+        on(eventName, handler) { this.listeners.set(eventName, handler); }
+
+        off(eventName, handler) {
+          if (this.listeners.get(eventName) === handler) this.listeners.delete(eventName);
+        }
+
+        connect() {}
+
+        disconnect() {}
+      })();
+      return socket;
+    },
+    profileController: controller,
+    socketUrl: 'https://museum.test',
+  });
+
+  socket.listeners.get('connect_error')?.(new Error('Invalid visitor capability'));
+
+  assert.match(
+    descendants(document.body).map((element) => element.textContent).join(' '),
+    /connection expired or was rejected/iu,
+  );
+  assert.equal(replacementAttempts, 0);
+  find(document.body, (element) => element.textContent === 'Retry').dispatchEvent({ type: 'click' });
+  await Promise.resolve();
+  assert.equal(replacementAttempts, 1);
+  realtime.destroy();
+});
+
+test('initial capability issuance failure is visible and retries only after a click', async () => {
+  const document = createDocument();
+  let attempts = 0;
+  const started = bootstrapRoomWithRecovery({
+    document,
+    startRoom: async () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('capability endpoint unavailable');
+      return { visitorId: 'visitor-after-retry' };
+    },
+  });
+
+  assert.equal(await started, null);
+  assert.equal(attempts, 1);
+  assert.match(
+    descendants(document.body).map((element) => element.textContent).join(' '),
+    /Unable to start the visitor session/iu,
+  );
+
+  find(document.body, (element) => element.textContent === 'Retry').dispatchEvent({ type: 'click' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(attempts, 2);
+  assert.doesNotMatch(
+    descendants(document.body).map((element) => element.textContent).join(' '),
+    /Unable to start the visitor session/iu,
+  );
 });
 
 test('realtime requires a resolved visitor session instead of bootstrap identity fallback', () => {

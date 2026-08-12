@@ -2,6 +2,7 @@ import { AVATAR_CATALOG } from './avatar-catalog.js';
 import { isValidProfile, normalizeProfile } from './profile-store.js';
 
 const STORAGE_KEY = 'metamuseum.tab-visitor.v1';
+const TAB_MARKER_PREFIX = 'metamuseum:';
 const DEFAULT_CAPABILITY_URL = '/visitor-capability';
 const DEFAULT_NAMES = Object.freeze(['Mina', 'Joon', 'Sora', 'Hana', 'Yuri']);
 const DEFAULT_COLORS = Object.freeze(['#1565C0', '#2E7D32', '#6A1B9A', '#C62828', '#EF6C00']);
@@ -38,7 +39,7 @@ function removeNewVisitorQuery(location) {
   return `${location.pathname ?? ''}${query ? `?${query}` : ''}${location.hash ?? ''}`;
 }
 
-function readVisitorSession(storage) {
+function readVisitorSession(storage, tabMarker) {
   try {
     const value = storage.getItem(STORAGE_KEY);
     if (value === null) return null;
@@ -50,6 +51,7 @@ function readVisitorSession(storage) {
       || record.visitorId.length === 0
       || typeof record.capability !== 'string'
       || record.capability.length === 0
+      || record.tabMarker !== tabMarker
       || !isValidProfile(record.profile)
     ) return null;
     return record;
@@ -58,8 +60,30 @@ function readVisitorSession(storage) {
   }
 }
 
+export function ensureTabMarker({ tab, createMarker }) {
+  if (
+    typeof tab.name === 'string'
+    && tab.name.startsWith(TAB_MARKER_PREFIX)
+    && tab.name.length > TAB_MARKER_PREFIX.length
+  ) return tab.name;
+
+  const marker = String(createMarker()).trim();
+  if (!marker) throw new Error('Unable to create a tab marker');
+  tab.name = `${TAB_MARKER_PREFIX}${marker}`;
+  return tab.name;
+}
+
 function writeVisitorSession(storage, record) {
   storage.setItem(STORAGE_KEY, JSON.stringify(record));
+}
+
+export function updateVisitorSession({ storage, visitorSession }) {
+  const record = {
+    ...visitorSession,
+    profile: normalizeProfile(visitorSession.profile),
+  };
+  writeVisitorSession(storage, record);
+  return record;
 }
 
 function allowedDefaultAvatars(avatarIds) {
@@ -87,6 +111,7 @@ async function issueVisitorSession({
   visitorCapabilityUrl = DEFAULT_CAPABILITY_URL,
   avatarIds,
   random,
+  tabMarker,
 }) {
   const response = await fetch(visitorCapabilityUrl, { method: 'POST' });
   if (!response?.ok) throw new Error('Unable to issue a visitor capability');
@@ -107,6 +132,7 @@ async function issueVisitorSession({
   return {
     visitorId: issued.visitorId,
     capability: issued.capability,
+    tabMarker,
     profile: createRandomProfile({ avatarIds, random }),
   };
 }
@@ -119,15 +145,17 @@ export async function resolveVisitorSession(dependencies) {
     history,
     avatarIds,
     random = Math.random,
+    tabMarker,
     visitorCapabilityUrl,
   } = dependencies;
   const forceNew = isNewVisitorQuery(location.search);
-  const existing = forceNew ? null : readVisitorSession(storage);
+  const existing = forceNew ? null : readVisitorSession(storage, tabMarker);
   const record = existing ?? await issueVisitorSession({
     fetch,
     visitorCapabilityUrl,
     avatarIds,
     random,
+    tabMarker,
   });
 
   writeVisitorSession(storage, record);
@@ -141,6 +169,7 @@ export async function replaceVisitorSession(dependencies) {
     fetch,
     avatarIds,
     random = Math.random,
+    tabMarker,
     visitorCapabilityUrl,
   } = dependencies;
   const record = await issueVisitorSession({
@@ -148,6 +177,7 @@ export async function replaceVisitorSession(dependencies) {
     visitorCapabilityUrl,
     avatarIds,
     random,
+    tabMarker,
   });
   writeVisitorSession(storage, record);
   return record;

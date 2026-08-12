@@ -104,6 +104,8 @@ def _register_sync_handlers(sio):
     @sio.on("connect")
     def on_connect(auth):
         capability = auth.get("visitorCapability") if isinstance(auth, dict) else None
+        if capability is None:
+            return None
         visitor_id = validate_visitor_capability(capability)
         if not visitor_id:
             return False
@@ -213,7 +215,7 @@ def _register_sync_handlers(sio):
     def on_request_state(data):
         """Re-send full room state to requesting client."""
         room_id = data.get('room_id')
-        if not room_id or not presence_service.has_room(room_id):
+        if not room_id or not presence_service.user_id(room_id, request.sid):
             return
 
         existing_users = presence_service.public_room_state(
@@ -229,11 +231,12 @@ def _register_sync_handlers(sio):
     def on_expression(data):
         """Broadcast emoji expression to all other users in room."""
         room_id = data.get('room_id')
-        if not room_id or not presence_service.has_room(room_id):
+        user_id = presence_service.user_id(room_id, request.sid)
+        if not room_id or not user_id:
             return
 
         sio.emit('expression', {
-            'userId': presence_service.user_id(room_id, request.sid) or '?',
+            'userId': user_id,
             'expression': data.get('expression', ''),
             'room_id': room_id
         }, room=room_id, skip_sid=request.sid)

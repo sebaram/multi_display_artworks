@@ -7,6 +7,10 @@ import { fileURLToPath } from 'node:url';
 const roomRoot = new URL('../../app/metamuseum/static/js/room/', import.meta.url);
 const roomRootPath = fileURLToPath(roomRoot);
 const templateUrl = new URL('../../app/metamuseum/templates/room_aframe.html', import.meta.url);
+const visitorPlanUrl = new URL(
+  '../../../docs/superpowers/plans/2026-08-12-tab-local-visitors.md',
+  import.meta.url,
+);
 
 async function listJavaScriptFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -57,7 +61,7 @@ test('room modules do not depend on legacy socket state, query-derived room IDs,
     const source = await readFile(file, 'utf8');
     const allowedWindowGlobals = new Set(supportedWindowGlobals);
     if (file === join(roomRootPath, 'bootstrap.js')) {
-      ['sessionStorage', 'fetch', 'history', 'location'].forEach((name) => {
+      ['sessionStorage', 'fetch', 'history', 'location', 'crypto'].forEach((name) => {
         allowedWindowGlobals.add(name);
       });
     }
@@ -75,6 +79,30 @@ test('room client no longer ships the unloaded guest-name socket bridge', async 
 
   await assert.rejects(readFile(new URL('guest-name.js', staticRoot), 'utf8'), { code: 'ENOENT' });
   await assert.rejects(readFile(new URL('share-qr.js', staticRoot), 'utf8'), { code: 'ENOENT' });
+});
+
+test('visitor-session is the sole owner of its storage record and browser tab marker', async () => {
+  const files = await listJavaScriptFiles(roomRootPath);
+  const sources = await Promise.all(files.map(async (file) => [file, await readFile(file, 'utf8')]));
+  const storageKeyOwners = sources
+    .filter(([, source]) => source.includes('metamuseum.tab-visitor.v1'))
+    .map(([file]) => file);
+  const bootstrap = await readFile(new URL('bootstrap.js', roomRoot), 'utf8');
+  const visitorSession = await readFile(new URL('visitor-session.js', roomRoot), 'utf8');
+
+  assert.deepEqual(storageKeyOwners, [join(roomRootPath, 'visitor-session.js')]);
+  assert.match(visitorSession, /export function updateVisitorSession\b/u);
+  assert.match(visitorSession, /export function ensureTabMarker\b/u);
+  assert.match(bootstrap, /updateVisitorSession\(/u);
+  assert.match(bootstrap, /ensureTabMarker\(/u);
+  assert.doesNotMatch(bootstrap, /sessionStorage\.setItem/u);
+});
+
+test('visitor plan uses the real Mongo fixture pattern', async () => {
+  const plan = await readFile(visitorPlanUrl, 'utf8');
+
+  assert.doesNotMatch(plan, /\breal_database\b/u);
+  assert.match(plan, /database = mongoengine\.connection\.get_db\(\)/u);
 });
 
 test('room bootstrap composes rendering, teleport, admin transforms, hand tracking, and share modules', async () => {

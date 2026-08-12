@@ -99,8 +99,9 @@ multi_display_artworks/
 
 ### 👥 Multi-User
 - **Position sync** — Socket.IO broadcasts camera pos/rot to all users in room
-- **Browser visitor profile** — a signed Flask browser-session identity is paired with a name, catalog avatar, and color stored only in that browser’s site data; it is not an account and does not restore across devices. Clearing this site’s data resets the profile.
-- **Profile editing** — the first room visit opens the profile editor; later visits use the top-left profile panel. Saving a name, catalog avatar, or color updates that visitor’s remote presence for other people currently in the room.
+- **Tab-local visitor profile** — every room tab receives its own signed visitor capability and randomized name, catalog avatar, and color. The record lives in that tab’s `sessionStorage`, so reloading preserves it while a separately opened tab starts as a distinct visitor.
+- **Profile editing** — rooms open directly without a profile dialog. Use `Visitor` → `Edit` in the top-left toolbar to change the name, catalog avatar, or color; saving updates that visitor’s remote presence for other people currently in the room. Use `?user=new` (or `Visitor` → `New visitor`) to replace the current tab’s visitor; the query flag is removed after the replacement is created.
+- **Guest persistence** — anonymous visitor capabilities, profiles, and room presence are browser- or memory-scoped only; they never create MongoDB user or profile records.
 - **Avatar catalog and attribution** — visitors can select only the built-in `Shiba`, `Robot`, `Rigged Simple`, or `None` entries; URL parameters such as `?avatar=` do not select an avatar. `Rigged Simple` is by Cesium under CC BY 4.0; its complete attribution is in [`flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md`](flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md).
 - **Avatar expressions** — face-api.js smile detection → emoji bubble above avatar
 
@@ -161,6 +162,20 @@ MONGODB_URI=mongodb://localhost:27017/metamuseum_test \
 MONGODB_DB=metamuseum_test \
 pytest tests -v
 ```
+
+### Tab-local visitor smoke check
+
+With the application running against `metamuseum_test`, open a seeded room and
+verify the following in a browser:
+
+1. The room opens without a profile dialog; `Visitor` reveals the summary and
+   `Edit` reveals the profile form.
+2. Save an edited profile, reload the same tab, and confirm the profile is
+   retained.
+3. Open the same room in a separate new tab and confirm it has a different
+   visitor profile while both presences are visible.
+4. Visit the room with `?user=new` and confirm a fresh visitor is created and
+   the query flag is removed from the address bar.
 
 For a self-contained dev stack (app + its own MongoDB):
 

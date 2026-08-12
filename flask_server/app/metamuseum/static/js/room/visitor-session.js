@@ -3,6 +3,8 @@ import { isValidProfile, normalizeProfile } from './profile-store.js';
 
 const STORAGE_KEY = 'metamuseum.tab-visitor.v1';
 const TAB_MARKER_PREFIX = 'metamuseum:';
+const OWNERSHIP_CHANNEL = 'metamuseum.tab-visitor.ownership.v1';
+const DEFAULT_OWNERSHIP_PROBE_MS = 50;
 const DEFAULT_CAPABILITY_URL = '/visitor-capability';
 const DEFAULT_NAMES = Object.freeze(['Mina', 'Joon', 'Sora', 'Hana', 'Yuri']);
 const DEFAULT_COLORS = Object.freeze(['#1565C0', '#2E7D32', '#6A1B9A', '#C62828', '#EF6C00']);
@@ -71,6 +73,77 @@ export function ensureTabMarker({ tab, createMarker }) {
   if (!marker) throw new Error('Unable to create a tab marker');
   tab.name = `${TAB_MARKER_PREFIX}${marker}`;
   return tab.name;
+}
+
+let fallbackMarkerSequence = 0;
+
+export function createTabMarker({ crypto, now = Date.now, random = Math.random }) {
+  if (typeof crypto?.randomUUID === 'function') return crypto.randomUUID();
+
+  fallbackMarkerSequence += 1;
+  const timestamp = Number(now()).toString(36);
+  const randomPart = Math.floor(random() * Number.MAX_SAFE_INTEGER).toString(36);
+  return `fallback-${timestamp}-${randomPart}-${fallbackMarkerSequence.toString(36)}`;
+}
+
+function createOwnershipChannel(createBroadcastChannel) {
+  if (typeof createBroadcastChannel !== 'function') return null;
+  try {
+    return createBroadcastChannel(OWNERSHIP_CHANNEL);
+  } catch {
+    return null;
+  }
+}
+
+function probeMarkerOwnership({
+  channel,
+  tabMarker,
+  probeId,
+  scheduleTimeout,
+  clearScheduledTimeout,
+  ownershipProbeMs,
+}) {
+  return new Promise((resolve) => {
+    let timeoutId;
+    let resolved = false;
+
+    function finish(isOwned) {
+      if (resolved) return;
+      resolved = true;
+      if (timeoutId !== undefined) clearScheduledTimeout(timeoutId);
+      channel.removeEventListener('message', onMessage);
+      resolve(isOwned);
+    }
+
+    function onMessage(event) {
+      const message = event?.data;
+      if (
+        message?.type === 'owned'
+        && message.tabMarker === tabMarker
+        && message.probeId === probeId
+      ) finish(true);
+    }
+
+    channel.addEventListener('message', onMessage);
+    timeoutId = scheduleTimeout(() => finish(false), ownershipProbeMs);
+    channel.postMessage({ type: 'probe', tabMarker, probeId });
+  });
+}
+
+function ownMarker(channel, tabMarker) {
+  if (!channel) return () => {};
+
+  function onMessage(event) {
+    const message = event?.data;
+    if (message?.type !== 'probe' || message.tabMarker !== tabMarker) return;
+    channel.postMessage({ type: 'owned', tabMarker, probeId: message.probeId });
+  }
+
+  channel.addEventListener('message', onMessage);
+  return () => {
+    channel.removeEventListener('message', onMessage);
+    channel.close();
+  };
 }
 
 function writeVisitorSession(storage, record) {
@@ -161,6 +234,45 @@ export async function resolveVisitorSession(dependencies) {
   writeVisitorSession(storage, record);
   if (forceNew) history.replaceState(null, '', removeNewVisitorQuery(location));
   return record;
+}
+
+export async function openVisitorSession(dependencies) {
+  const {
+    tab,
+    createMarker,
+    createProbeId,
+    createBroadcastChannel,
+    scheduleTimeout,
+    clearScheduledTimeout,
+    ownershipProbeMs = DEFAULT_OWNERSHIP_PROBE_MS,
+  } = dependencies;
+  let tabMarker = ensureTabMarker({ tab, createMarker });
+  let channel = createOwnershipChannel(createBroadcastChannel);
+
+  if (channel) {
+    const isOwned = await probeMarkerOwnership({
+      channel,
+      tabMarker,
+      probeId: createProbeId(),
+      scheduleTimeout,
+      clearScheduledTimeout,
+      ownershipProbeMs,
+    });
+    if (isOwned) {
+      channel.close();
+      tab.name = '';
+      tabMarker = ensureTabMarker({ tab, createMarker });
+      channel = createOwnershipChannel(createBroadcastChannel);
+    }
+  }
+
+  try {
+    const visitorSession = await resolveVisitorSession({ ...dependencies, tabMarker });
+    return { visitorSession, release: ownMarker(channel, tabMarker) };
+  } catch (error) {
+    channel?.close();
+    throw error;
+  }
 }
 
 export async function replaceVisitorSession(dependencies) {

@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  createTabMarker,
   createRandomProfile,
   ensureTabMarker,
+  openVisitorSession,
   replaceVisitorSession,
   resolveVisitorSession,
   updateVisitorSession,
@@ -38,6 +40,54 @@ function createIssuer(records) {
   };
   issue.calls = calls;
   return issue;
+}
+
+function cloneStorage(storage) {
+  return createStorage(Object.fromEntries(storage.values));
+}
+
+function createBroadcastHub() {
+  const channels = new Map();
+
+  return function createBroadcastChannel(name) {
+    const peers = channels.get(name) ?? new Set();
+    const listeners = new Set();
+    const channel = {
+      addEventListener(type, listener) {
+        if (type === 'message') listeners.add(listener);
+      },
+      removeEventListener(type, listener) {
+        if (type === 'message') listeners.delete(listener);
+      },
+      postMessage(data) {
+        for (const peer of peers) {
+          if (peer !== channel) peer.deliver(data);
+        }
+      },
+      deliver(data) {
+        for (const listener of listeners) listener({ data });
+      },
+      close() {
+        peers.delete(channel);
+        listeners.clear();
+      },
+    };
+    peers.add(channel);
+    channels.set(name, peers);
+    return channel;
+  };
+}
+
+function ownershipDependencies(overrides = {}) {
+  let markerNumber = 0;
+  return {
+    createMarker: () => `marker-${++markerNumber}`,
+    createProbeId: () => `probe-${++markerNumber}`,
+    scheduleTimeout: setTimeout,
+    clearScheduledTimeout: clearTimeout,
+    ownershipProbeMs: 1,
+    ...overrides,
+  };
 }
 
 test('first tab session mints and persists a random valid visitor record', async () => {
@@ -223,6 +273,112 @@ test('ensureTabMarker keeps one window.name marker across reloads', () => {
   assert.equal(ensureTabMarker(dependencies), 'metamuseum:marker-1');
   assert.equal(tab.name, 'metamuseum:marker-1');
   assert.equal(generated, 1);
+});
+
+test('tab marker generation falls back when crypto or randomUUID is unavailable', () => {
+  const dependencies = {
+    crypto: {},
+    now: () => 123456,
+    random: () => 0.25,
+  };
+
+  const first = createTabMarker(dependencies);
+  const second = createTabMarker({ ...dependencies, crypto: undefined });
+
+  assert.match(first, /^fallback-/u);
+  assert.match(second, /^fallback-/u);
+  assert.notEqual(first, second);
+});
+
+test('same marker with an active peer mints a fresh tab identity once', async () => {
+  const createBroadcastChannel = createBroadcastHub();
+  const originalTab = { name: 'metamuseum:copied-marker' };
+  const originalStorage = createStorage({
+    'metamuseum.tab-visitor.v1': JSON.stringify({
+      visitorId: 'visitor-a',
+      capability: 'capability-a',
+      tabMarker: 'metamuseum:copied-marker',
+      profile: { displayName: 'Mina 100', avatarId: 'robot', color: '#4CAF50' },
+    }),
+  });
+  const shared = {
+    fetch: () => { throw new Error('the original tab must reuse its visitor'); },
+    location: { search: '', pathname: '/room' },
+    history: createHistory(),
+    avatarIds: ['robot'],
+    createBroadcastChannel,
+  };
+  const original = await openVisitorSession({
+    ...shared,
+    ...ownershipDependencies(),
+    tab: originalTab,
+    storage: originalStorage,
+  });
+  const duplicateTab = { name: originalTab.name };
+  const duplicateStorage = cloneStorage(originalStorage);
+  const issue = createIssuer([{ visitorId: 'visitor-b', capability: 'capability-b' }]);
+
+  const duplicate = await openVisitorSession({
+    ...shared,
+    ...ownershipDependencies(),
+    tab: duplicateTab,
+    storage: duplicateStorage,
+    fetch: issue,
+  });
+
+  assert.equal(original.visitorSession.visitorId, 'visitor-a');
+  assert.equal(duplicate.visitorSession.visitorId, 'visitor-b');
+  assert.notEqual(duplicateTab.name, originalTab.name);
+  assert.equal(duplicate.visitorSession.tabMarker, duplicateTab.name);
+  assert.equal(issue.calls.length, 1);
+  original.release();
+  duplicate.release();
+});
+
+test('same tab with no active peer reuses its stored visitor', async () => {
+  const stored = {
+    visitorId: 'visitor-a',
+    capability: 'capability-a',
+    tabMarker: 'metamuseum:tab-a',
+    profile: { displayName: 'Mina 100', avatarId: 'robot', color: '#4CAF50' },
+  };
+  const opened = await openVisitorSession({
+    ...ownershipDependencies({ createBroadcastChannel: createBroadcastHub() }),
+    tab: { name: stored.tabMarker },
+    storage: createStorage({
+      'metamuseum.tab-visitor.v1': JSON.stringify(stored),
+    }),
+    fetch: () => { throw new Error('same-tab reload must not issue'); },
+    location: { search: '', pathname: '/room' },
+    history: createHistory(),
+    avatarIds: ['robot'],
+  });
+
+  assert.deepEqual(opened.visitorSession, stored);
+  opened.release();
+});
+
+test('unavailable BroadcastChannel safely reuses the same-tab visitor', async () => {
+  const stored = {
+    visitorId: 'visitor-a',
+    capability: 'capability-a',
+    tabMarker: 'metamuseum:tab-a',
+    profile: { displayName: 'Mina 100', avatarId: 'robot', color: '#4CAF50' },
+  };
+  const opened = await openVisitorSession({
+    ...ownershipDependencies({ createBroadcastChannel: undefined }),
+    tab: { name: stored.tabMarker },
+    storage: createStorage({
+      'metamuseum.tab-visitor.v1': JSON.stringify(stored),
+    }),
+    fetch: () => { throw new Error('fallback must not issue'); },
+    location: { search: '', pathname: '/room' },
+    history: createHistory(),
+    avatarIds: ['robot'],
+  });
+
+  assert.deepEqual(opened.visitorSession, stored);
+  assert.doesNotThrow(() => opened.release());
 });
 
 test('updateVisitorSession owns profile normalization and storage writes', () => {

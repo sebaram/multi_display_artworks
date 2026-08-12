@@ -61,7 +61,7 @@ test('room modules do not depend on legacy socket state, query-derived room IDs,
     const source = await readFile(file, 'utf8');
     const allowedWindowGlobals = new Set(supportedWindowGlobals);
     if (file === join(roomRootPath, 'bootstrap.js')) {
-      ['sessionStorage', 'fetch', 'history', 'location', 'crypto'].forEach((name) => {
+      ['sessionStorage', 'fetch', 'history', 'location', 'crypto', 'BroadcastChannel'].forEach((name) => {
         allowedWindowGlobals.add(name);
       });
     }
@@ -93,8 +93,11 @@ test('visitor-session is the sole owner of its storage record and browser tab ma
   assert.deepEqual(storageKeyOwners, [join(roomRootPath, 'visitor-session.js')]);
   assert.match(visitorSession, /export function updateVisitorSession\b/u);
   assert.match(visitorSession, /export function ensureTabMarker\b/u);
+  assert.match(visitorSession, /export async function openVisitorSession\b/u);
+  assert.doesNotMatch(visitorSession, /\b(?:window|globalThis|BroadcastChannel)\b/u);
   assert.match(bootstrap, /updateVisitorSession\(/u);
-  assert.match(bootstrap, /ensureTabMarker\(/u);
+  assert.match(bootstrap, /openVisitorSession\(/u);
+  assert.match(bootstrap, /createTabMarker\(/u);
   assert.doesNotMatch(bootstrap, /sessionStorage\.setItem/u);
 });
 

@@ -68,6 +68,7 @@ class FakeElement {
   remove() {
     if (!this.parentNode) return;
     this.parentNode.children = this.parentNode.children.filter((child) => child !== this);
+    this.parentNode = null;
   }
 }
 
@@ -76,6 +77,9 @@ function createDocument() {
     activeElement: null,
     createElement(tagName) {
       return new FakeElement(tagName, document);
+    },
+    getElementById(id) {
+      return descendants(document.body).find((element) => element.attributes.id === id);
     },
   };
   document.body = document.createElement('body');
@@ -225,7 +229,7 @@ test('realtime connects with the signed tab capability', () => {
   realtime.destroy();
 });
 
-test('expired capability connect error shows an explicit retry control', async () => {
+test('expired capability recovery stays explicit and clears after retry or reconnect', async () => {
   const document = createDocument();
   let replacementAttempts = 0;
   const controller = bootstrapRoomProfile({
@@ -256,6 +260,8 @@ test('expired capability connect error shows an explicit retry control', async (
 
         connect() {}
 
+        emit() {}
+
         disconnect() {}
       })();
       return socket;
@@ -274,11 +280,31 @@ test('expired capability connect error shows an explicit retry control', async (
   find(document.body, (element) => element.textContent === 'Retry').dispatchEvent({ type: 'click' });
   await Promise.resolve();
   assert.equal(replacementAttempts, 1);
+  assert.equal(find(document.body, (element) => element.textContent === 'Retry'), undefined);
+
+  socket.listeners.get('connect_error')?.(new Error('Invalid visitor capability'));
+  assert.match(
+    descendants(document.body).map((element) => element.textContent).join(' '),
+    /connection expired or was rejected/iu,
+  );
+
+  socket.connected = true;
+  socket.listeners.get('connect')?.();
+
+  assert.doesNotMatch(
+    descendants(document.body).map((element) => element.textContent).join(' '),
+    /connection expired or was rejected/iu,
+  );
+  assert.equal(find(document.body, (element) => element.textContent === 'Retry'), undefined);
+  assert.equal(replacementAttempts, 1);
   realtime.destroy();
 });
 
-test('initial capability issuance failure is visible and retries only after a click', async () => {
+test('initial recovery alert is interactive in the toolbar and clears after retry success', async () => {
   const document = createDocument();
+  const toolbar = document.createElement('div');
+  toolbar.setAttribute('id', 'room-toolbar');
+  document.body.appendChild(toolbar);
   let attempts = 0;
   const started = bootstrapRoomWithRecovery({
     document,
@@ -295,15 +321,15 @@ test('initial capability issuance failure is visible and retries only after a cl
     descendants(document.body).map((element) => element.textContent).join(' '),
     /Unable to start the visitor session/iu,
   );
+  const recoveryAlert = find(toolbar, (element) => element.attributes.role === 'alert');
+  assert.ok(recoveryAlert);
+  assert.match(recoveryAlert.attributes.style, /(?:^|;)pointer-events:auto(?:;|$)/u);
 
-  find(document.body, (element) => element.textContent === 'Retry').dispatchEvent({ type: 'click' });
+  find(toolbar, (element) => element.textContent === 'Retry').dispatchEvent({ type: 'click' });
   await new Promise((resolve) => setImmediate(resolve));
 
   assert.equal(attempts, 2);
-  assert.doesNotMatch(
-    descendants(document.body).map((element) => element.textContent).join(' '),
-    /Unable to start the visitor session/iu,
-  );
+  assert.equal(find(toolbar, (element) => element.attributes.role === 'alert'), undefined);
 });
 
 test('realtime requires a resolved visitor session instead of bootstrap identity fallback', () => {
@@ -405,4 +431,22 @@ test('application resolves identity before initialization and replaces it before
     'reload',
   ]);
   assert.equal(application.visitorSession.visitorId, 'tab-a');
+});
+
+test('application releases tab ownership when room initialization fails', async () => {
+  let releases = 0;
+
+  await assert.rejects(bootstrapRoomApplication({
+    resolveVisitorSession: async () => visitorSession,
+    replaceVisitorSession: async () => visitorSession,
+    initializeRoom() {
+      throw new Error('scene initialization failed');
+    },
+    releaseVisitorSession() {
+      releases += 1;
+    },
+    reload() {},
+  }), /scene initialization failed/u);
+
+  assert.equal(releases, 1);
 });

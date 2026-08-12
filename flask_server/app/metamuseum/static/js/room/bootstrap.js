@@ -3,9 +3,9 @@ import { createAvatarEntity } from './avatar-renderer.js';
 import { mountProfilePanel } from './profile-panel.js';
 import { normalizeProfile } from './profile-store.js';
 import {
-  ensureTabMarker,
+  createTabMarker,
+  openVisitorSession,
   replaceVisitorSession,
-  resolveVisitorSession,
   updateVisitorSession,
 } from './visitor-session.js';
 import { mountMinimap } from './minimap.js';
@@ -105,6 +105,7 @@ export function bootstrapRoomProfile({
       return createAvatarEntity(profile, document);
     },
     openProfile: panel.open,
+    clearConnectionError: panel.clearConnectionError,
     showConnectionError: panel.showConnectionError,
     updateProfile: panel.updateProfile,
     destroy: panel.destroy,
@@ -129,6 +130,7 @@ export function bootstrapRoomRealtime({
 
   const handlers = {
     connect() {
+      profileController.clearConnectionError?.();
       socketClient.emit('join_position_room', profileController.joinPayload());
     },
     connect_error() {
@@ -234,6 +236,7 @@ export async function bootstrapRoomApplication({
   resolveVisitorSession,
   replaceVisitorSession,
   initializeRoom,
+  releaseVisitorSession = () => {},
   reload,
 }) {
   const visitorSession = await resolveVisitorSession();
@@ -246,7 +249,12 @@ export async function bootstrapRoomApplication({
     return replacement;
   }
 
-  room = initializeRoom({ visitorSession, newVisitor });
+  try {
+    room = initializeRoom({ visitorSession, newVisitor });
+  } catch (error) {
+    releaseVisitorSession();
+    throw error;
+  }
   return { visitorSession, ...room };
 }
 
@@ -264,7 +272,8 @@ export async function bootstrapRoomWithRecovery({ document, startRoom }) {
       errorPanel.setAttribute(
         'style',
         'position:fixed;top:12px;left:12px;z-index:10000;padding:12px;'
-        + 'border-radius:8px;background:#351313;color:white;font-family:sans-serif;',
+        + 'border-radius:8px;background:#351313;color:white;font-family:sans-serif;'
+        + 'pointer-events:auto;',
       );
       const message = document.createElement('p');
       message.textContent = 'Unable to start the visitor session. Check your connection and retry.';
@@ -403,30 +412,47 @@ async function bootstrapBrowserRoom({ window, document }) {
   registerDragComponent(window.AFRAME);
   registerLocationComponents(window.AFRAME);
   const bootstrapData = readRoomBootstrap(document);
-  const tabMarker = ensureTabMarker({
-    tab: window,
-    createMarker: () => window.crypto.randomUUID(),
-  });
   const visitorDependencies = {
     storage: window.sessionStorage,
     fetch: window.fetch.bind(window),
     location: window.location,
     history: window.history,
     avatarIds: bootstrapData.avatarCatalog,
-    tabMarker,
     visitorCapabilityUrl: bootstrapData.visitorCapabilityUrl,
   };
 
+  const ownedVisitorSession = await openVisitorSession({
+    ...visitorDependencies,
+    tab: window,
+    createMarker: () => createTabMarker({ crypto: window.crypto }),
+    createProbeId: () => createTabMarker({ crypto: window.crypto }),
+    createBroadcastChannel: typeof window.BroadcastChannel === 'function'
+      ? (name) => new window.BroadcastChannel(name)
+      : undefined,
+    scheduleTimeout: window.setTimeout.bind(window),
+    clearScheduledTimeout: window.clearTimeout.bind(window),
+  });
+  const { visitorSession, release } = ownedVisitorSession;
+  const activeVisitorDependencies = {
+    ...visitorDependencies,
+    tabMarker: visitorSession.tabMarker,
+  };
+
   return bootstrapRoomApplication({
-    resolveVisitorSession: () => resolveVisitorSession(visitorDependencies),
-    replaceVisitorSession: () => replaceVisitorSession(visitorDependencies),
-    initializeRoom: ({ visitorSession, newVisitor }) => initializeBrowserRoom({
-      window,
-      document,
-      bootstrapData,
-      visitorSession,
-      newVisitor,
-    }),
+    resolveVisitorSession: async () => visitorSession,
+    replaceVisitorSession: () => replaceVisitorSession(activeVisitorDependencies),
+    releaseVisitorSession: release,
+    initializeRoom: ({ visitorSession: resolvedSession, newVisitor }) => {
+      const room = initializeBrowserRoom({
+        window,
+        document,
+        bootstrapData,
+        visitorSession: resolvedSession,
+        newVisitor,
+      });
+      window.addEventListener('beforeunload', release, { once: true });
+      return room;
+    },
     reload: () => window.location.reload(),
   });
 }

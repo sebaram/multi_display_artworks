@@ -237,6 +237,7 @@ export function mountProfilePanel({
 
   return {
     open,
+    clearConnectionError,
     showConnectionError,
     updateProfile,
     destroy() {

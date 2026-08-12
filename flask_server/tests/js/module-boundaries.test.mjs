@@ -41,10 +41,8 @@ test('room modules do not depend on legacy socket state, query-derived room IDs,
     'clearTimeout',
     'console',
     'document',
-    'fetch',
     'io',
     'localStorage',
-    'location',
     'matchMedia',
     'navigator',
     'prompt',
@@ -57,11 +55,17 @@ test('room modules do not depend on legacy socket state, query-derived room IDs,
 
   for (const file of files) {
     const source = await readFile(file, 'utf8');
+    const allowedWindowGlobals = new Set(supportedWindowGlobals);
+    if (file === join(roomRootPath, 'bootstrap.js')) {
+      ['sessionStorage', 'fetch', 'history', 'location'].forEach((name) => {
+        allowedWindowGlobals.add(name);
+      });
+    }
     assert.doesNotMatch(source, /roomLegacySocketAdapter|\bposSocket(?:Connected)?\b/u, file);
     assert.doesNotMatch(source, /\b(?:URLSearchParams|searchParams)\b/u, file);
 
     for (const match of source.matchAll(/\b(?:window|globalThis)\.([A-Za-z_$][\w$]*)/gu)) {
-      assert.ok(supportedWindowGlobals.has(match[1]), `${file} reads first-party global ${match[1]}`);
+      assert.ok(allowedWindowGlobals.has(match[1]), `${file} reads first-party global ${match[1]}`);
     }
   }
 });

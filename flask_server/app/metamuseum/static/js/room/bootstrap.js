@@ -1,7 +1,8 @@
 import { AVATAR_CATALOG } from './avatar-catalog.js';
 import { createAvatarEntity } from './avatar-renderer.js';
 import { mountProfilePanel } from './profile-panel.js';
-import { loadProfile, saveProfile } from './profile-store.js';
+import { normalizeProfile } from './profile-store.js';
+import { replaceVisitorSession, resolveVisitorSession } from './visitor-session.js';
 import { mountMinimap } from './minimap.js';
 import { mountMobileGuidance } from './mobile-guidance.js';
 import { createRoomState } from './core/room-state.js';
@@ -43,23 +44,24 @@ function allowedCatalog(avatarIds) {
   );
 }
 
-function hasStoredProfile(storage, visitorId) {
-  try {
-    return storage.getItem(`metamuseum.profile.${visitorId}`) !== null;
-  } catch {
-    return false;
-  }
-}
-
 export function readRoomBootstrap(document) {
   return JSON.parse(document.getElementById('room-bootstrap').textContent);
 }
 
-export function bootstrapRoomProfile({ bootstrapData, document, storage }) {
-  const { visitorId, roomId } = bootstrapData;
+export function bootstrapRoomProfile({
+  bootstrapData,
+  visitorSession,
+  document,
+  persistVisitorSession = () => {},
+  onNewVisitor = () => {},
+}) {
+  const { roomId } = bootstrapData;
   const catalog = allowedCatalog(bootstrapData.avatarCatalog);
-  const isFirstEntry = !hasStoredProfile(storage, visitorId);
-  let currentProfile = loadProfile(storage, visitorId);
+  let currentSession = {
+    ...visitorSession,
+    profile: normalizeProfile(visitorSession.profile),
+  };
+  let currentProfile = currentSession.profile;
   let socketClient = null;
 
   const panel = mountProfilePanel({
@@ -67,19 +69,20 @@ export function bootstrapRoomProfile({ bootstrapData, document, storage }) {
     catalog,
     document,
     onSave(draft) {
-      currentProfile = saveProfile(storage, visitorId, draft);
+      currentProfile = normalizeProfile(draft);
+      currentSession = { ...currentSession, profile: currentProfile };
+      persistVisitorSession(currentSession);
       socketClient?.emit('profile_update', {
         room_id: roomId,
         profile: currentProfile,
       });
       return currentProfile;
     },
+    onNewVisitor,
   });
 
-  if (isFirstEntry) panel.open();
-
   return {
-    visitorId,
+    visitorId: visitorSession.visitorId,
     roomId,
     get profile() {
       return { ...currentProfile };
@@ -97,18 +100,22 @@ export function bootstrapRoomProfile({ bootstrapData, document, storage }) {
       return createAvatarEntity(profile, document);
     },
     openProfile: panel.open,
+    updateProfile: panel.updateProfile,
     destroy: panel.destroy,
   };
 }
 
 export function bootstrapRoomRealtime({
   bootstrapData,
+  visitorSession,
   ioFactory,
   profileController,
   socketUrl,
   consumers = {},
 }) {
-  const { visitorId, roomId } = bootstrapData;
+  const { roomId } = bootstrapData;
+  const activeVisitorSession = visitorSession ?? bootstrapData;
+  const { visitorId } = activeVisitorSession;
   const state = createRoomState(visitorId);
   const renderUsers = () => consumers.renderUsers?.(
     state.users().filter((user) => user.position != null && user.rotation != null),
@@ -151,6 +158,7 @@ export function bootstrapRoomRealtime({
   profileController.setSocketClient(socketClient);
   consumers.initialize?.(socketClient);
   socketClient.connect(socketUrl, {
+    auth: { visitorCapability: activeVisitorSession.capability },
     transports: ['websocket', 'polling'],
     reconnection: true,
   });
@@ -214,21 +222,41 @@ export function createRoomConsumers({
   };
 }
 
-if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+export async function bootstrapRoomApplication({ window, document }) {
   registerDragComponent(window.AFRAME);
   registerLocationComponents(window.AFRAME);
   const bootstrapData = readRoomBootstrap(document);
+  const visitorDependencies = {
+    storage: window.sessionStorage,
+    fetch: window.fetch.bind(window),
+    location: window.location,
+    history: window.history,
+    avatarIds: bootstrapData.avatarCatalog,
+    visitorCapabilityUrl: bootstrapData.visitorCapabilityUrl,
+  };
+  let visitorSession = await resolveVisitorSession(visitorDependencies);
+  let realtime = null;
   const controller = bootstrapRoomProfile({
     bootstrapData,
+    visitorSession,
     document,
-    storage: window.localStorage,
+    persistVisitorSession(nextSession) {
+      visitorSession = nextSession;
+      window.sessionStorage.setItem('metamuseum.tab-visitor.v1', JSON.stringify(nextSession));
+    },
+    async onNewVisitor() {
+      visitorSession = await replaceVisitorSession(visitorDependencies);
+      realtime?.destroy();
+      window.location.reload();
+      return visitorSession;
+    },
   });
   const roomControls = mountRoomControls({ bootstrapData, document, window });
 
   const sceneRenderer = createSceneRenderer({
     document,
     scene: document.querySelector('a-scene'),
-    selfId: bootstrapData.visitorId,
+    selfId: visitorSession.visitorId,
     createAvatarEntity: controller.createAvatarEntity,
   });
   const expressions = createAvatarExpressions({
@@ -243,7 +271,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const consumers = createRoomConsumers({
     sceneRenderer,
     roomId: bootstrapData.roomId,
-    visitorId: bootstrapData.visitorId,
+    visitorId: visitorSession.visitorId,
     isAdmin: bootstrapData.isAdmin,
     effects: RoomEffects,
     expressions,
@@ -251,8 +279,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     voice: VoiceChat,
   });
   const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const realtime = bootstrapRoomRealtime({
+  realtime = bootstrapRoomRealtime({
     bootstrapData,
+    visitorSession,
     ioFactory: window.io,
     profileController: controller,
     socketUrl: `${proto}//${window.location.host}`,
@@ -317,4 +346,21 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     controller.destroy();
     realtime.destroy();
   }, { once: true });
+
+  return {
+    controller,
+    realtime,
+    destroy() {
+      roomFeatures.forEach((feature) => feature.destroy?.());
+      roomControls.destroy();
+      controller.destroy();
+      realtime.destroy();
+    },
+  };
+}
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  void bootstrapRoomApplication({ window, document }).catch((error) => {
+    window.console.error('Unable to start room visitor session', error);
+  });
 }

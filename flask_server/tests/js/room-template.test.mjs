@@ -14,7 +14,8 @@ test('room template boots the session-bound profile module without query identit
   const template = await readFile(templateUrl, 'utf8');
 
   assert.match(template, /<script id="room-bootstrap" type="application\/json">/);
-  assert.match(template, /visitor_id\s*\|\s*tojson/);
+  assert.match(template, /"visitorCapabilityUrl":\s*{{\s*visitor_capability_url\s*\|\s*tojson\s*}}/);
+  assert.doesNotMatch(template, /visitor_id\s*\|\s*tojson/);
   assert.match(template, /avatar_catalog\s*\|\s*tojson/);
   assert.match(template, /filename='js\/room\/bootstrap\.js'/);
   assert.equal(template.match(/type="module"/g)?.length, 1);

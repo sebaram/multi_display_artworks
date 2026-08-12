@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { bootstrapRoomProfile } from '../../app/metamuseum/static/js/room/bootstrap.js';
+import {
+  bootstrapRoomProfile,
+  bootstrapRoomRealtime,
+} from '../../app/metamuseum/static/js/room/bootstrap.js';
 
 class FakeElement {
   constructor(tagName, ownerDocument) {
@@ -41,6 +44,11 @@ class FakeElement {
     event.currentTarget = this;
     event.preventDefault ??= () => { event.defaultPrevented = true; };
     for (const listener of this.listeners.get(event.type) ?? []) listener(event);
+    if (event.type === 'click' && this.tagName === 'button' && this.attributes.type === 'submit') {
+      let ancestor = this.parentNode;
+      while (ancestor && ancestor.tagName !== 'form') ancestor = ancestor.parentNode;
+      ancestor?.dispatchEvent({ type: 'submit' });
+    }
   }
 
   focus() {
@@ -73,15 +81,6 @@ function createDocument() {
   return document;
 }
 
-function createStorage(initial = {}) {
-  const values = new Map(Object.entries(initial));
-  return {
-    getItem: (key) => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-    values,
-  };
-}
-
 function descendants(root) {
   return [root, ...root.children.flatMap(descendants)];
 }
@@ -91,45 +90,44 @@ function find(root, predicate) {
 }
 
 const bootstrapData = {
-  visitorId: 'signed-visitor-id',
   roomId: 'room-a',
   avatarCatalog: ['none', 'rigged-simple', 'robot', 'shiba'],
 };
 
-test('first entry opens the profile dialog and join payload has only room and profile', () => {
+const visitorSession = {
+  visitorId: 'tab-a',
+  capability: 'signed',
+  profile: {
+    displayName: 'Random Visitor',
+    avatarId: 'robot',
+    color: '#123456',
+  },
+};
+
+test('resolved visitor profile stays opt-in and join payload has only room and profile', () => {
   const document = createDocument();
   const controller = bootstrapRoomProfile({
     bootstrapData,
+    visitorSession,
     document,
-    storage: createStorage(),
   });
 
-  assert.equal(find(document.body, (element) => element.tagName === 'dialog').open, true);
+  assert.equal(find(document.body, (element) => element.textContent === 'Visitor')?.tagName, 'button');
+  assert.equal(find(document.body, (element) => element.tagName === 'dialog'), undefined);
   assert.deepEqual(controller.joinPayload(), {
     room_id: 'room-a',
     profile: {
-      displayName: 'Visitor',
-      avatarId: 'shiba',
-      color: '#4CAF50',
-    },
-  });
-
-  const dialog = find(document.body, (element) => element.tagName === 'dialog');
-  const editButton = find(document.body, (element) => element.textContent === 'Edit');
-  dialog.dispatchEvent({ type: 'keydown', key: 'Escape' });
-  assert.equal(document.activeElement, editButton);
-});
-
-test('saved profile stays closed on entry and Save emits only when connected', () => {
-  const document = createDocument();
-  const storageKey = 'metamuseum.profile.signed-visitor-id';
-  const storage = createStorage({
-    [storageKey]: JSON.stringify({
-      displayName: 'Stored Visitor',
+      displayName: 'Random Visitor',
       avatarId: 'robot',
       color: '#123456',
-    }),
+    },
   });
+});
+
+test('Save updates the visitor record and emits only when connected', () => {
+  const document = createDocument();
+  const activeSession = structuredClone(visitorSession);
+  const savedSessions = [];
   const emitted = [];
   const socketClient = {
     connected: false,
@@ -139,11 +137,17 @@ test('saved profile stays closed on entry and Save emits only when connected', (
       return true;
     },
   };
-  const controller = bootstrapRoomProfile({ bootstrapData, document, storage });
+  const controller = bootstrapRoomProfile({
+    bootstrapData,
+    visitorSession: activeSession,
+    document,
+    persistVisitorSession(session) {
+      savedSessions.push(structuredClone(session));
+    },
+  });
   controller.setSocketClient(socketClient);
-  const dialog = find(document.body, (element) => element.tagName === 'dialog');
 
-  assert.equal(dialog.open, false);
+  find(document.body, (element) => element.textContent === 'Visitor').dispatchEvent({ type: 'click' });
   find(document.body, (element) => element.textContent === 'Edit').dispatchEvent({ type: 'click' });
   find(document.body, (element) => element.attributes.id === 'profile-display-name').value = 'Updated Visitor';
   find(document.body, (element) => element.attributes.id === 'profile-avatar').value = 'rigged-simple';
@@ -151,7 +155,15 @@ test('saved profile stays closed on entry and Save emits only when connected', (
   find(document.body, (element) => element.textContent === 'Save').dispatchEvent({ type: 'click' });
 
   assert.deepEqual(emitted, []);
-  assert.equal(JSON.parse(storage.values.get(storageKey)).displayName, 'Updated Visitor');
+  assert.equal(savedSessions[0].profile.displayName, 'Updated Visitor');
+  assert.deepEqual(controller.joinPayload(), {
+    room_id: 'room-a',
+    profile: {
+      displayName: 'Updated Visitor',
+      avatarId: 'rigged-simple',
+      color: '#ABCDEF',
+    },
+  });
 
   socketClient.connected = true;
   find(document.body, (element) => element.textContent === 'Edit').dispatchEvent({ type: 'click' });
@@ -169,4 +181,44 @@ test('saved profile stays closed on entry and Save emits only when connected', (
       },
     },
   ]]);
+});
+
+test('realtime connects with the signed tab capability', () => {
+  class FakeSocket {
+    constructor() {
+      this.connected = false;
+      this.listeners = new Map();
+    }
+
+    on(eventName, handler) {
+      this.listeners.set(eventName, handler);
+    }
+
+    off(eventName, handler) {
+      if (this.listeners.get(eventName) === handler) this.listeners.delete(eventName);
+    }
+
+    connect() {}
+
+    disconnect() {}
+  }
+
+  const calls = [];
+  const ioFactory = (url, options) => {
+    calls.push({ url, options });
+    return new FakeSocket();
+  };
+  const realtime = bootstrapRoomRealtime({
+    bootstrapData,
+    visitorSession,
+    ioFactory,
+    socketUrl: 'https://museum.test',
+    profileController: {
+      joinPayload: () => ({ room_id: 'room-a', profile: visitorSession.profile }),
+      setSocketClient() {},
+    },
+  });
+
+  assert.deepEqual(calls[0].options.auth, { visitorCapability: 'signed' });
+  realtime.destroy();
 });

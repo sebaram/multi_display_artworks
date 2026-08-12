@@ -42,6 +42,11 @@ class FakeElement {
     event.currentTarget = this;
     event.preventDefault ??= () => { event.defaultPrevented = true; };
     for (const listener of this.listeners.get(event.type) ?? []) listener(event);
+    if (event.type === 'click' && this.tagName === 'button' && this.attributes.type === 'submit') {
+      let ancestor = this.parentNode;
+      while (ancestor && ancestor.tagName !== 'form') ancestor = ancestor.parentNode;
+      ancestor?.dispatchEvent({ type: 'submit' });
+    }
     return !event.defaultPrevented;
   }
 
@@ -83,6 +88,10 @@ function find(root, predicate) {
   return descendants(root).find(predicate);
 }
 
+function findByText(root, text) {
+  return find(root, (element) => element.textContent === text);
+}
+
 function click(element) {
   element.focus();
   element.dispatchEvent({ type: 'click' });
@@ -94,24 +103,30 @@ const initialProfile = {
   color: '#123456',
 };
 
-test('profile panel shows the current profile and opens a labelled dialog from Edit', () => {
+test('visitor controls are closed by default and reveal editing only after Edit', () => {
   const document = createDocument();
   mountProfilePanel({
     profile: initialProfile,
     catalog: AVATAR_CATALOG,
     onSave: (profile) => profile,
+    onNewVisitor() {},
     document,
   });
 
-  const editButton = find(document.body, (element) => element.textContent === 'Edit');
-  const dialog = find(document.body, (element) => element.tagName === 'dialog');
-  const visibleText = descendants(document.body).map((element) => element.textContent).join(' ');
+  const visitorButton = findByText(document.body, 'Visitor');
+  assert.equal(visitorButton?.tagName, 'button');
+  assert.equal(find(document.body, (element) => element.attributes.id === 'profile-display-name'), undefined);
 
-  assert.match(visibleText, /Visitor One/);
-  assert.match(visibleText, /Robot/);
-  assert.equal(dialog.attributes['aria-labelledby'], 'profile-dialog-title');
+  click(visitorButton);
+  const editButton = findByText(document.body, 'Edit');
+  assert.equal(editButton?.tagName, 'button');
+  assert.equal(findByText(document.body, 'New visitor')?.tagName, 'button');
+  assert.match(descendants(document.body).map((element) => element.textContent).join(' '), /Visitor One/);
+  assert.equal(find(document.body, (element) => element.attributes.id === 'profile-display-name'), undefined);
 
   click(editButton);
+  const dialog = find(document.body, (element) => element.tagName === 'dialog');
+  assert.equal(dialog.attributes['aria-labelledby'], 'profile-dialog-title');
   assert.equal(dialog.open, true);
   assert.equal(document.activeElement.attributes.id, 'profile-display-name');
 });
@@ -122,13 +137,15 @@ test('Escape closes the dialog and returns focus to Edit', () => {
     profile: initialProfile,
     catalog: AVATAR_CATALOG,
     onSave: (profile) => profile,
+    onNewVisitor() {},
     document,
   });
-  const editButton = find(document.body, (element) => element.textContent === 'Edit');
-  const dialog = find(document.body, (element) => element.tagName === 'dialog');
+  click(findByText(document.body, 'Visitor'));
+  const editButton = findByText(document.body, 'Edit');
 
   editButton.focus();
-  panel.open();
+  click(editButton);
+  const dialog = find(document.body, (element) => element.tagName === 'dialog');
   dialog.dispatchEvent({ type: 'keydown', key: 'Escape' });
 
   assert.equal(dialog.open, false);
@@ -145,9 +162,11 @@ test('Save publishes the draft, updates the visible profile, and restores focus'
       savedProfiles.push(profile);
       return profile;
     },
+    onNewVisitor() {},
     document,
   });
-  const editButton = find(document.body, (element) => element.textContent === 'Edit');
+  click(findByText(document.body, 'Visitor'));
+  const editButton = findByText(document.body, 'Edit');
   click(editButton);
 
   find(document.body, (element) => element.attributes.id === 'profile-display-name').value = 'New Visitor';
@@ -171,9 +190,11 @@ test('Cancel discards edits and destroy removes panel and dialog', () => {
     profile: initialProfile,
     catalog: AVATAR_CATALOG,
     onSave: (profile) => savedProfiles.push(profile),
+    onNewVisitor() {},
     document,
   });
-  click(find(document.body, (element) => element.textContent === 'Edit'));
+  click(findByText(document.body, 'Visitor'));
+  click(findByText(document.body, 'Edit'));
   find(document.body, (element) => element.attributes.id === 'profile-display-name').value = 'Discard Me';
   click(find(document.body, (element) => element.textContent === 'Cancel'));
 
@@ -191,9 +212,11 @@ test('Save keeps the dialog open when native profile constraints fail', () => {
     profile: initialProfile,
     catalog: AVATAR_CATALOG,
     onSave: (profile) => savedProfiles.push(profile),
+    onNewVisitor() {},
     document,
   });
-  click(find(document.body, (element) => element.textContent === 'Edit'));
+  click(findByText(document.body, 'Visitor'));
+  click(findByText(document.body, 'Edit'));
   const dialog = find(document.body, (element) => element.tagName === 'dialog');
   const form = find(document.body, (element) => element.tagName === 'form');
   form.reportValidity = () => false;
@@ -202,4 +225,36 @@ test('Save keeps the dialog open when native profile constraints fail', () => {
 
   assert.deepEqual(savedProfiles, []);
   assert.equal(dialog.open, true);
+});
+
+test('New visitor waits for its callback and updateProfile refreshes the summary', async () => {
+  const document = createDocument();
+  let finishReplacement;
+  const calls = [];
+  const panel = mountProfilePanel({
+    profile: initialProfile,
+    catalog: AVATAR_CATALOG,
+    onSave: (profile) => profile,
+    onNewVisitor: () => new Promise((resolve) => {
+      calls.push('replace');
+      finishReplacement = resolve;
+    }),
+    document,
+  });
+
+  panel.open();
+  click(findByText(document.body, 'New visitor'));
+  assert.deepEqual(calls, ['replace']);
+  assert.equal(findByText(document.body, 'New visitor').disabled, true);
+
+  panel.updateProfile({
+    displayName: 'Visitor Two',
+    avatarId: 'shiba',
+    color: '#ABCDEF',
+  });
+  assert.match(descendants(document.body).map((element) => element.textContent).join(' '), /Visitor Two/);
+
+  finishReplacement();
+  await Promise.resolve();
+  assert.equal(findByText(document.body, 'New visitor').disabled, false);
 });

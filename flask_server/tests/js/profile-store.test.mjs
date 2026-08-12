@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  isValidProfile,
   loadProfile,
   normalizeProfile,
   saveProfile,
@@ -56,6 +57,19 @@ test('normalizeProfile accepts only public names, catalog IDs, and hex colors', 
     avatarId: 'shiba',
     color: '#4CAF50',
   });
+});
+
+test('isValidProfile rejects persisted profile fields that require normalization', () => {
+  assert.equal(isValidProfile({
+    displayName: 'Mina 100',
+    avatarId: 'robot',
+    color: '#1565C0',
+  }), true);
+  assert.equal(isValidProfile({
+    displayName: 'x',
+    avatarId: 'robot',
+    color: '#1565C0',
+  }), false);
 });
 
 test('loadProfile recovers from invalid stored JSON', () => {

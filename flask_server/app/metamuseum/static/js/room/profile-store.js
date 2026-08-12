@@ -28,6 +28,17 @@ export function normalizeProfile(draft) {
   };
 }
 
+export function isValidProfile(profile) {
+  if (profile === null || typeof profile !== 'object') return false;
+
+  const normalized = normalizeProfile(profile);
+  return (
+    profile.displayName === normalized.displayName
+    && profile.avatarId === normalized.avatarId
+    && profile.color === normalized.color
+  );
+}
+
 export function loadProfile(storage, visitorId) {
   try {
     const storedProfile = storage.getItem(profileKey(visitorId));

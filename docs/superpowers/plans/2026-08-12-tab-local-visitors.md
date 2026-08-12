@@ -59,6 +59,13 @@ def test_invalid_capability_cannot_join(app, client, room_id):
     socket = socket_with_capability(app, 'forged')
     assert not socket.is_connected()
     assert room_id not in room_users
+
+def test_guest_capability_and_presence_do_not_write_mongodb(app, client, room_id, real_database):
+    before = database_snapshot(real_database)
+    socket = socket_with_capability(app, client.post('/visitor-capability').json['capability'])
+    socket.emit('join_position_room', {'room_id': room_id, 'profile': {}})
+    socket.disconnect()
+    assert database_snapshot(real_database) == before
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -249,25 +256,13 @@ git commit -m "feat: make visitor profiles opt-in"
 - Documents per-tab `sessionStorage`, `?user=new`, `Visitor` → `Edit`, and no MongoDB guest profiles.
 - Adds a live-server checklist covering reload, new tab, profile panel, and `?user=new`.
 
-- [ ] **Step 1: Write failing non-persistence coverage**
-
-```python
-def test_guest_capability_and_presence_do_not_write_mongodb(app, client, room_id, real_database):
-    before = database_snapshot(real_database)
-    capability = client.post('/visitor-capability').json['capability']
-    socket = socket_with_capability(app, capability)
-    socket.emit('join_position_room', {'room_id': room_id, 'profile': {}})
-    socket.disconnect()
-    assert database_snapshot(real_database) == before
-```
-
-- [ ] **Step 2: Run it against real MongoDB before the implementation**
+- [ ] **Step 1: Run real-Mongo non-persistence coverage**
 
 Run: `cd flask_server; $env:MONGODB_URI='mongodb://localhost:27017'; $env:MONGODB_DB='metamuseum_test'; $env:SECRET_KEY='test-secret'; $env:SECURITY_PASSWORD_SALT='test-salt'; python -m pytest tests/test_visitor_profile.py::test_guest_capability_and_presence_do_not_write_mongodb -q`
 
-Expected: FAIL until Tasks 1–3 provide the endpoint and authenticated socket helper; then PASS.
+Expected: PASS, confirming that capability issuance and in-memory presence leave the complete database snapshot unchanged.
 
-- [ ] **Step 3: Update README and execute complete automated verification**
+- [ ] **Step 2: Update README and execute complete automated verification**
 
 Document the tab behavior, `?user=new`, `Visitor` → `Edit`, and browser-only storage. Do not mention browser-wide identity or `localStorage`.
 
@@ -288,11 +283,11 @@ rg -n -i 'mongomock|MONGODB_MOCK' . -g '!docs/superpowers/**'
 
 Expected: Python and JavaScript suites exit zero, diff check is clean, and the forbidden-identifier scan has no matches.
 
-- [ ] **Step 4: Run and verify in the browser**
+- [ ] **Step 3: Run and verify in the browser**
 
 Start the documented application command against real test MongoDB. In the in-app browser: open a seeded room and confirm no profile dialog opens; use `Visitor` → `Edit` to save a profile; reload and confirm it persists; open a separate new tab to confirm an independent profile and two visible presences; then visit `?user=new` and confirm a fresh profile with the query flag removed. Capture screenshots or browser assertions. Stop the local server afterward.
 
-- [ ] **Step 5: Commit, push, and verify remote state**
+- [ ] **Step 4: Commit, push, and verify remote state**
 
 ```powershell
 git add README.md flask_server/tests/test_visitor_profile.py

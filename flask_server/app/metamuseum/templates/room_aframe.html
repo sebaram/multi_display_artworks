@@ -44,6 +44,7 @@
         "wallList": {{ wall_list | tojson }},
         "roomControlsEnabled": {{ 'false' if is_ar_marker or is_ar_companion else 'true' }},
         "isAdmin": {{ 'true' if drag_enabled else 'false' }},
+        "syncDebugEnabled": {{ 'true' if sync_debug else 'false' }},
         "isArMarker": {{ 'true' if is_ar_marker else 'false' }},
         "isArCompanion": {{ 'true' if is_ar_companion else 'false' }}
       }

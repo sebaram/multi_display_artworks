@@ -37,6 +37,27 @@ class FakeSocket {
   }
 }
 
+function startRealtime(consumers) {
+  const socket = new FakeSocket();
+  const realtime = bootstrapRoomRealtime({
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
+    ioFactory: () => socket,
+    profileController: {
+      joinPayload: () => ({ room_id: 'room-a', profile: {} }),
+      setSocketClient() {},
+    },
+    socketUrl: 'https://museum.test',
+    consumers: {
+      initialize() {},
+      handleSocketEvent() {},
+      ...consumers,
+    },
+  });
+  socket.emitToClient = (eventName, payload) => socket.trigger(eventName, payload);
+  return { socket, realtime };
+}
+
 test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
   const socket = new FakeSocket();
   const initialized = [];
@@ -94,7 +115,7 @@ test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
     ['voice.get_state', { room_id: 'room-a' }],
   ]);
 
-  socket.trigger('position_update', { userId: 'other', position: '1 2 3' });
+  socket.trigger('position_update', { userId: 'other', position: '1 2 3', rotation: '0 0 0' });
   socket.trigger('profile_updated', { userId: 'other', displayName: 'Updated' });
   socket.trigger('user_left', { userId: 'other' });
 
@@ -187,4 +208,33 @@ test('user join is stored but waits for renderable position data', () => {
       rotation: '0 0 0',
     }],
   ]);
+});
+
+test('position packets feed the pose buffer and do not sync the roster', () => {
+  const rendered = [];
+  const { socket, realtime } = startRealtime({ syncRoster: (users) => rendered.push(users) });
+
+  socket.emitToClient('room_state', { users: [{ userId: 'other', displayName: 'Other' }] });
+  const rostersAfterState = rendered.length;
+
+  socket.emitToClient('position_update', {
+    userId: 'other', position: { x: 1, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+  });
+  socket.emitToClient('position_update', {
+    userId: 'other', position: { x: 2, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+  });
+
+  assert.equal(rendered.length, rostersAfterState + 1); // only the first, unknown user
+  assert.deepEqual(realtime.poseBuffer.userIds(), ['other']);
+});
+
+test('a departing user is dropped from the pose buffer', () => {
+  const { socket, realtime } = startRealtime({ syncRoster() {} });
+
+  socket.emitToClient('position_update', {
+    userId: 'other', position: { x: 1, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+  });
+  socket.emitToClient('user_left', { userId: 'other' });
+
+  assert.deepEqual(realtime.poseBuffer.userIds(), []);
 });

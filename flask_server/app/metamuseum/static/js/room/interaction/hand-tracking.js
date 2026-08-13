@@ -1,3 +1,5 @@
+import { MIN_SEND_INTERVAL_MS } from '../core/sync-constants.js';
+
 function jointPose(frame, referenceSpace, hand, name) {
   const jointSpace = hand.get(name);
   if (!jointSpace || typeof frame?.getJointPose !== 'function' || !referenceSpace) return null;
@@ -52,6 +54,8 @@ export function mountHandTracking({
   clearInterval,
   console,
   onHandRaiseDetected,
+  posePublisher,
+  now,
 }) {
   let enabled = false;
   let session = null;
@@ -63,10 +67,15 @@ export function mountHandTracking({
   function publish(leftHand = null, rightHand = null, handTracking = enabled) {
     const camera = document.getElementById('camera');
     if (!camera) return;
+    const position = camera.getAttribute('position');
+    const rotation = camera.getAttribute('rotation');
+    const hasHands = leftHand !== null || rightHand !== null;
+    if (!hasHands && !posePublisher.shouldSend({ position, rotation }, now())) return;
+
     socketClient.emit('position_update', {
       room_id: roomId,
-      position: camera.getAttribute('position'),
-      rotation: camera.getAttribute('rotation'),
+      position,
+      rotation,
       leftHand,
       rightHand,
       handTracking,
@@ -146,7 +155,7 @@ export function mountHandTracking({
 
   const positionTimer = setInterval(() => {
     if (!enabled) publish(null, null, false);
-  }, 100);
+  }, MIN_SEND_INTERVAL_MS);
   void addButtonWhenSupported();
 
   return {

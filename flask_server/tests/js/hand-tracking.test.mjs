@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import * as handTracking from '../../app/metamuseum/static/js/room/interaction/hand-tracking.js';
+import { createPosePublisher } from '../../app/metamuseum/static/js/room/core/pose-publisher.js';
 
 const { mountHandTracking } = handTracking;
 
@@ -63,6 +64,11 @@ test('hand tracking publishes only real joint poses from the WebXR animation fra
   };
   const emitted = [];
   const raised = [];
+  // now() is only consulted for no-hand publishes (calls 1 and 3 below); it advances far
+  // enough between them to clear the publisher's heartbeat even though the camera pose
+  // never changes, so the "hands lost" frame is still observable in this test.
+  let nowCalls = 0;
+  const now = () => { nowCalls += 1; return nowCalls === 1 ? 1000 : 3000; };
   mountHandTracking({
     document: {
       body: { appendChild() {} },
@@ -90,9 +96,10 @@ test('hand tracking publishes only real joint poses from the WebXR animation fra
     requestAnimationFrame() {
       throw new Error('window animation frames cannot provide XRFrame');
     },
-    now: () => 1000,
+    now,
     console: { error() {} },
     onHandRaiseDetected: (side) => raised.push(side),
+    posePublisher: createPosePublisher(),
   });
   await Promise.resolve();
   await Promise.resolve();
@@ -174,6 +181,7 @@ test('hand tracking publisher sends camera pose through the injected socket clie
     requestAnimationFrame() {},
     now: () => 1000,
     console: { error() {} },
+    posePublisher: createPosePublisher(),
   });
 
   intervalCallback();
@@ -191,4 +199,30 @@ test('hand tracking publisher sends camera pose through the injected socket clie
 
   controller.destroy();
   assert.equal(clearedTimer, 17);
+});
+
+test('a stationary camera emits at the heartbeat rate, not every tick', () => {
+  const emitted = [];
+  let clock = 0;
+  const timers = [];
+  const camera = { getAttribute: (name) => (name === 'position' ? { x: 0, y: 1.6, z: 0 } : { x: 0, y: 0, z: 0 }) };
+
+  mountHandTracking({
+    document: { getElementById: () => camera, createElement: () => ({ style: {}, addEventListener() {} }), body: { appendChild() {} } },
+    navigator: {},
+    socketClient: { emit: (event, payload) => emitted.push([event, payload]) },
+    roomId: 'room',
+    setInterval: (callback) => { timers.push(callback); return timers.length; },
+    clearInterval: () => {},
+    console,
+    now: () => clock,
+    posePublisher: createPosePublisher(),
+  });
+
+  for (let tick = 0; tick < 20; tick += 1) {
+    clock += 50;
+    timers.forEach((callback) => callback());
+  }
+
+  assert.equal(emitted.length, 1); // first sample at 50 ms; heartbeat not due until 1050 ms
 });

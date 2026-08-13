@@ -12,7 +12,10 @@ import { mountMinimap } from './minimap.js';
 import { mountMobileGuidance } from './mobile-guidance.js';
 import { createRoomState } from './core/room-state.js';
 import { createSocketClient } from './core/socket-client.js';
+import { createPoseBuffer } from './core/pose-buffer.js';
+import { createPosePublisher } from './core/pose-publisher.js';
 import { createSceneRenderer } from './rendering/scene.js';
+import { createRenderLoop } from './rendering/render-loop.js';
 import { mountTeleportControls } from './interaction/teleport.js';
 import { mountAdminTransforms } from './interaction/admin-transforms.js';
 import { mountHandTracking } from './interaction/hand-tracking.js';
@@ -123,6 +126,7 @@ export function bootstrapRoomRealtime({
   const { roomId } = bootstrapData;
   const { visitorId, capability } = visitorSession;
   const state = createRoomState(visitorId);
+  const poseBuffer = createPoseBuffer();
   const syncRoster = () => consumers.syncRoster?.(
     state.users().filter((user) => user.position != null && user.rotation != null),
   );
@@ -147,12 +151,13 @@ export function bootstrapRoomRealtime({
     },
     user_left(data) {
       state.applyLeave(data);
+      if (data?.userId) poseBuffer.forget(data.userId);
       syncRoster();
       consumers.handleSocketEvent?.('user_left', data);
     },
     position_update(data) {
       state.applyUpdate(data);
-      syncRoster();
+      if (poseBuffer.record(data?.userId, data, Date.now())) syncRoster();
     },
     profile_updated(data) {
       state.applyUpdate(data);
@@ -176,6 +181,7 @@ export function bootstrapRoomRealtime({
   return {
     socketClient,
     state,
+    poseBuffer,
     destroy: socketClient.destroy,
   };
 }
@@ -336,9 +342,19 @@ function initializeBrowserRoom({ window, document, bootstrapData, visitorSession
     socketUrl: `${proto}//${window.location.host}`,
     consumers,
   });
+  const renderLoop = createRenderLoop({
+    poseBuffer: realtime.poseBuffer,
+    applyPoses: sceneRenderer.applyPoses,
+    requestAnimationFrame: window.requestAnimationFrame.bind(window),
+    cancelAnimationFrame: window.cancelAnimationFrame.bind(window),
+    now: Date.now,
+  });
+  renderLoop.start();
+
   const roomFeatures = [
     sceneRenderer,
     expressions,
+    renderLoop,
     mountShare({
       document,
       location: window.location,
@@ -356,6 +372,8 @@ function initializeBrowserRoom({ window, document, bootstrapData, visitorSession
       clearInterval: window.clearInterval.bind(window),
       console: window.console,
       onHandRaiseDetected: expressions.onHandRaiseDetected,
+      now: Date.now,
+      posePublisher: createPosePublisher(),
     }),
   ];
 

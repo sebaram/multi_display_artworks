@@ -57,13 +57,21 @@ function updateProfile(camera, user, createAvatarEntity) {
   }
 }
 
-function updateHands(document, camera, user) {
+function handKey(user) {
   const enabled = user.handTracking === true || user.handTracking?.enabled === true;
+  if (!enabled) return 'off';
+  return JSON.stringify([user.leftHand ?? null, user.rightHand ?? null]);
+}
+
+function updateHands(document, camera, user) {
+  const key = handKey(user);
+  if (camera.getAttribute('data-hand-key') === key) return;
+  camera.setAttribute('data-hand-key', key);
 
   ['left', 'right'].forEach((side) => {
     const id = `hand-${side}-${user.userId}`;
     removeElement(document.getElementById(id));
-    const handData = enabled ? user[side === 'left' ? 'leftHand' : 'rightHand'] : null;
+    const handData = key === 'off' ? null : user[side === 'left' ? 'leftHand' : 'rightHand'];
     const hand = createHandEntity(document, handData, side);
     if (!hand) return;
     hand.setAttribute('id', id);
@@ -86,10 +94,26 @@ function createRemoteCamera(document, scene, user) {
   return camera;
 }
 
+const DEG_TO_RAD = Math.PI / 180;
+
+function writeTransform(camera, pose) {
+  if (camera.object3D?.position?.set && camera.object3D?.rotation?.set) {
+    camera.object3D.position.set(pose.position.x, pose.position.y, pose.position.z);
+    camera.object3D.rotation.set(
+      pose.rotation.x * DEG_TO_RAD,
+      pose.rotation.y * DEG_TO_RAD,
+      pose.rotation.z * DEG_TO_RAD,
+    );
+    return;
+  }
+  camera.setAttribute('position', pose.position);
+  camera.setAttribute('rotation', pose.rotation);
+}
+
 export function createSceneRenderer({ document, scene, selfId, createAvatarEntity }) {
   const renderedIds = new Set();
 
-  function renderUsers(users = []) {
+  function syncRoster(users = []) {
     const activeIds = new Set();
 
     users.forEach((user) => {
@@ -100,8 +124,6 @@ export function createSceneRenderer({ document, scene, selfId, createAvatarEntit
       const camera = document.getElementById(cameraId) ?? createRemoteCamera(document, scene, user);
       renderedIds.add(cameraId);
       updateProfile(camera, user, createAvatarEntity);
-      camera.setAttribute('position', user.position);
-      camera.setAttribute('rotation', user.rotation);
       updateHands(document, camera, user);
     });
 
@@ -112,10 +134,19 @@ export function createSceneRenderer({ document, scene, selfId, createAvatarEntit
     }
   }
 
+  function applyPoses(poses) {
+    poses.forEach((pose, userId) => {
+      if (userId === selfId || !pose) return;
+      const camera = document.getElementById(`camera-${userId}`);
+      if (camera) writeTransform(camera, pose);
+    });
+  }
+
   return {
-    renderUsers,
+    syncRoster,
+    applyPoses,
     destroy() {
-      renderUsers([]);
+      syncRoster([]);
     },
   };
 }

@@ -61,7 +61,7 @@ test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
     socketUrl: 'https://museum.test',
     consumers: {
       initialize: (client) => initialized.push(client),
-      renderUsers: (users) => rendered.push(users),
+      syncRoster: (users) => rendered.push(users),
       handleSocketEvent: (eventName, payload) => received.push([eventName, payload]),
     },
   });
@@ -122,7 +122,7 @@ test('room realtime forwards ancillary public socket events unchanged', () => {
     socketUrl: 'https://museum.test',
     consumers: {
       initialize() {},
-      renderUsers() {},
+      syncRoster() {},
       handleSocketEvent: (eventName, payload) => received.push([eventName, payload]),
     },
   });
@@ -160,7 +160,7 @@ test('user join is stored but waits for renderable position data', () => {
     socketUrl: 'https://museum.test',
     consumers: {
       initialize() {},
-      renderUsers: (users) => rendered.push(users),
+      syncRoster: (users) => rendered.push(users),
       handleSocketEvent() {},
     },
   });

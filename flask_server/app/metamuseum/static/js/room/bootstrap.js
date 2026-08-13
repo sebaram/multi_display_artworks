@@ -123,7 +123,7 @@ export function bootstrapRoomRealtime({
   const { roomId } = bootstrapData;
   const { visitorId, capability } = visitorSession;
   const state = createRoomState(visitorId);
-  const renderUsers = () => consumers.renderUsers?.(
+  const syncRoster = () => consumers.syncRoster?.(
     state.users().filter((user) => user.position != null && user.rotation != null),
   );
   let socketClient;
@@ -139,7 +139,7 @@ export function bootstrapRoomRealtime({
     disconnect() {},
     room_state(data) {
       state.applyRoomState(data?.users);
-      renderUsers();
+      syncRoster();
       socketClient.emit('voice.get_state', { room_id: roomId });
     },
     user_joined(data) {
@@ -147,16 +147,16 @@ export function bootstrapRoomRealtime({
     },
     user_left(data) {
       state.applyLeave(data);
-      renderUsers();
+      syncRoster();
       consumers.handleSocketEvent?.('user_left', data);
     },
     position_update(data) {
       state.applyUpdate(data);
-      renderUsers();
+      syncRoster();
     },
     profile_updated(data) {
       state.applyUpdate(data);
-      renderUsers();
+      syncRoster();
     },
   };
 
@@ -223,7 +223,7 @@ export function createRoomConsumers({
       expressions?.init(socketClient, roomId, visitorId);
       initializeVoice?.(roomId, visitorId, isAdmin, socketClient);
     },
-    renderUsers: sceneRenderer.renderUsers,
+    syncRoster: sceneRenderer.syncRoster,
     handleSocketEvent(eventName, data) {
       effects?.handleSocketEvent(eventName, data);
       if (eventName === 'expression') expressions?.handleSocketEvent(data);

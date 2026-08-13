@@ -64,9 +64,12 @@ test('hand tracking publishes only real joint poses from the WebXR animation fra
   };
   const emitted = [];
   const raised = [];
-  // now() is only consulted for no-hand publishes (calls 1 and 3 below); it advances far
-  // enough between them to clear the publisher's heartbeat even though the camera pose
-  // never changes, so the "hands lost" frame is still observable in this test.
+  // now() is only consulted by the publisher's own gating path: the very first
+  // no-hand publish below (call 1), which has nothing "sent" yet to compare
+  // against. The hand-carrying frame (call 2) and the hands-lost transition that
+  // follows it (call 3) both bypass the publisher entirely — a real hand-state
+  // change is never withheld behind its heartbeat/epsilon gate — so now() is never
+  // consulted again after call 1.
   let nowCalls = 0;
   const now = () => { nowCalls += 1; return nowCalls === 1 ? 1000 : 3000; };
   mountHandTracking({
@@ -150,6 +153,7 @@ test('hand tracking publishes only real joint poses from the WebXR animation fra
     rightHand: null,
     handTracking: false,
   });
+  assert.equal(nowCalls, 1); // the hands-lost transition bypassed the publisher's clock check
 });
 
 test('hand tracking publisher sends camera pose through the injected socket client', () => {
@@ -225,4 +229,34 @@ test('a stationary camera emits at the heartbeat rate, not every tick', () => {
   }
 
   assert.equal(emitted.length, 1); // first sample at 50 ms; heartbeat not due until 1050 ms
+});
+
+test('a failed emit resets the publisher so the pose is retried once reconnected', () => {
+  const emitted = [];
+  let clock = 0;
+  const timers = [];
+  const camera = { getAttribute: (name) => (name === 'position' ? { x: 0, y: 1.6, z: 0 } : { x: 0, y: 0, z: 0 }) };
+  let connected = false;
+
+  mountHandTracking({
+    document: { getElementById: () => camera, createElement: () => ({ style: {}, addEventListener() {} }), body: { appendChild() {} } },
+    navigator: {},
+    socketClient: { emit: (event, payload) => { emitted.push([event, payload]); return connected; } },
+    roomId: 'room',
+    setInterval: (callback) => { timers.push(callback); return timers.length; },
+    clearInterval: () => {},
+    console,
+    now: () => clock,
+    posePublisher: createPosePublisher(),
+  });
+
+  timers.forEach((callback) => callback()); // socket disconnected: emit() returns false
+  assert.equal(emitted.length, 1);
+
+  clock += 50; // well inside the heartbeat window
+  connected = true;
+  timers.forEach((callback) => callback());
+  // Without the reset-on-failed-emit fix, the publisher would still believe it sent
+  // the first pose and suppress this one until the 1000 ms heartbeat.
+  assert.equal(emitted.length, 2);
 });

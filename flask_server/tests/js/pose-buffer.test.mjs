@@ -39,14 +39,25 @@ test('poseAt holds the earliest sample before the buffer starts', () => {
   assert.equal(pose.position.x, 4);
 });
 
-test('out-of-order arrivals are ordered by timestamp, duplicates are ignored', () => {
+test('out-of-order arrivals are ordered by timestamp', () => {
   const buffer = createPoseBuffer({ delayMs: 100 });
   buffer.record('a', at(10), 1100);
   buffer.record('a', at(0), 1000);
-  buffer.record('a', at(99), 1000);
 
   const pose = buffer.poseAt('a', 1150);
   assert.equal(pose.position.x, 5);
+});
+
+test('a same-millisecond arrival replaces the earlier sample rather than being dropped', () => {
+  // Date.now() has 1 ms resolution, so a room_state seed and a fast-following live
+  // packet can share a timestamp; the later-arriving one must win, not the earlier.
+  const buffer = createPoseBuffer({ delayMs: 100 });
+  buffer.record('a', at(10), 1100);
+  buffer.record('a', at(0), 1000);
+  buffer.record('a', at(99), 1000); // arrives after the x:0 sample, same timestamp
+
+  const pose = buffer.poseAt('a', 1150);
+  assert.equal(pose.position.x, 54.5); // interpolates from x:99 (not x:0) toward x:10
 });
 
 test('the buffer evicts the oldest samples beyond its size', () => {

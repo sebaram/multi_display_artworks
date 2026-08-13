@@ -62,6 +62,7 @@ export function mountHandTracking({
   let referenceSpace = null;
   let button = null;
   let lastHandSend = 0;
+  let handsPresent = false;
   const raised = { left: false, right: false };
 
   function publish(leftHand = null, rightHand = null, handTracking = enabled) {
@@ -70,9 +71,15 @@ export function mountHandTracking({
     const position = camera.getAttribute('position');
     const rotation = camera.getAttribute('rotation');
     const hasHands = leftHand !== null || rightHand !== null;
-    if (!hasHands && !posePublisher.shouldSend({ position, rotation }, now())) return;
+    // A frame that CHANGES the hand state — hands appearing or hands disappearing —
+    // bypasses the pose publisher in both directions, so "my hands are gone" is
+    // never withheld behind the heartbeat/epsilon gate. Only a frame that repeats
+    // the current (no-hands) state goes through the publisher's ordinary gating.
+    const handStateChanged = hasHands !== handsPresent;
+    handsPresent = hasHands;
+    if (!hasHands && !handStateChanged && !posePublisher.shouldSend({ position, rotation }, now())) return;
 
-    socketClient.emit('position_update', {
+    const sent = socketClient.emit('position_update', {
       room_id: roomId,
       position,
       rotation,
@@ -80,6 +87,10 @@ export function mountHandTracking({
       rightHand,
       handTracking,
     });
+    // The publisher commits sentAt/sentPosition/sentRotation optimistically before
+    // the send happens. If the socket was actually disconnected, undo that so the
+    // next real attempt isn't suppressed against a packet that never left.
+    if (sent === false) posePublisher.reset();
   }
 
   function detectRaisedHands(frame, hands) {

@@ -81,8 +81,14 @@ reconnects and would matter more on an unordered transport later.
 `rendering/scene.js` splits its single `renderUsers` entry point in two:
 
 - **`syncRoster(users)`** — creates and removes remote camera entities, applies
-  profile changes, and updates hands. Runs on roster events only: join, leave,
-  profile update, and full `room_state`.
+  profile changes, and updates hands. Runs on roster events — join, leave,
+  profile update, full `room_state` — **and** is change-gated off
+  `position_update`: hand payloads (`leftHand`/`rightHand`/`handTracking`) ride
+  inside `position_update` packets, not a dedicated roster event, so
+  `bootstrap.js` tracks the last hand key per user and calls `syncRoster` when
+  it changes (including a `handTracking: true → false` transition, so a stale
+  hand entity gets torn down), in addition to the existing "first pose for a
+  brand-new user" trigger.
 - **`applyPoses(poses)`** — writes position and rotation only. Runs once per
   frame.
 

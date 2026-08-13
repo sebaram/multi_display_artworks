@@ -14,7 +14,7 @@ import { createRoomState } from './core/room-state.js';
 import { createSocketClient } from './core/socket-client.js';
 import { createPoseBuffer } from './core/pose-buffer.js';
 import { createPosePublisher } from './core/pose-publisher.js';
-import { createSceneRenderer } from './rendering/scene.js';
+import { createSceneRenderer, handKey } from './rendering/scene.js';
 import { createRenderLoop } from './rendering/render-loop.js';
 import { mountTeleportControls } from './interaction/teleport.js';
 import { mountAdminTransforms } from './interaction/admin-transforms.js';
@@ -131,6 +131,20 @@ export function bootstrapRoomRealtime({
   const syncRoster = () => consumers.syncRoster?.(
     state.users().filter((user) => user.position != null && user.rotation != null),
   );
+  // Hands ride inside position_update packets, which otherwise skip syncRoster once
+  // a peer is established (only a brand-new pose-buffer entry syncs the roster).
+  // Track each user's last hand key here so a real hand change — including the
+  // true→false transition that should tear down a stale hand entity — still
+  // reaches the renderer, without resyncing the roster on every ordinary packet.
+  const lastHandKeyByUser = new Map();
+  const handsChanged = (data) => {
+    const userId = data?.userId;
+    if (!userId) return false;
+    const key = handKey(data);
+    const changed = lastHandKeyByUser.get(userId) !== key;
+    lastHandKeyByUser.set(userId, key);
+    return changed;
+  };
   let socketClient;
 
   const handlers = {
@@ -144,21 +158,39 @@ export function bootstrapRoomRealtime({
     disconnect() {},
     room_state(data) {
       state.applyRoomState(data?.users);
+      // Seed the pose buffer with each peer's last-known pose so a late joiner's
+      // first render frame doesn't sit everyone at the A-Frame default origin
+      // until their next packet arrives (up to a full heartbeat away). Also seed
+      // the hand-key map so it reflects what syncRoster is about to render below,
+      // rather than treating each peer's first live packet as a hand "change".
+      (data?.users ?? []).forEach((user) => {
+        poseBuffer.record(user?.userId, user, Date.now());
+        handsChanged(user);
+      });
       syncRoster();
       socketClient.emit('voice.get_state', { room_id: roomId });
     },
     user_joined(data) {
+      // user_joined never carries a pose (server only sends userId/displayName/
+      // avatarId/color), so there is nothing to seed into the pose buffer here.
       state.applyJoin(data);
     },
     user_left(data) {
       state.applyLeave(data);
-      if (data?.userId) poseBuffer.forget(data.userId);
+      if (data?.userId) {
+        poseBuffer.forget(data.userId);
+        lastHandKeyByUser.delete(data.userId);
+      }
       syncRoster();
       consumers.handleSocketEvent?.('user_left', data);
     },
     position_update(data) {
       state.applyUpdate(data);
-      if (poseBuffer.record(data?.userId, data, Date.now())) syncRoster();
+      const isNew = poseBuffer.record(data?.userId, data, Date.now());
+      // Compute unconditionally (not `isNew ||`) so the hand-key map is always kept
+      // current, even on the packet that already triggers a resync for other reasons.
+      const handChanged = handsChanged(data);
+      if (isNew || handChanged) syncRoster();
       consumers.onPacketReceived?.();
     },
     profile_updated(data) {

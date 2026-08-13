@@ -8,8 +8,14 @@ export function createPoseBuffer({
   const samplesByUser = new Map();
 
   function insert(samples, sample) {
+    // A later-arriving sample at the same millisecond replaces the earlier one
+    // (Date.now() has 1 ms resolution, so a room_state seed and a fast-following
+    // live packet can legitimately collide — the fresher data should win).
     const existing = samples.findIndex((entry) => entry.at === sample.at);
-    if (existing !== -1) return;
+    if (existing !== -1) {
+      samples[existing] = sample;
+      return;
+    }
 
     const before = samples.filter((entry) => entry.at < sample.at).length;
     samples.splice(before, 0, sample);

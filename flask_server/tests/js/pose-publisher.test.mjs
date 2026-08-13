@@ -63,3 +63,16 @@ test('an unreadable pose is never sent', () => {
   const publisher = createPosePublisher();
   assert.equal(publisher.shouldSend({ position: null, rotation: null }, 0), false);
 });
+
+test('reset forgets the last-sent pose, so the next sample is treated as new', () => {
+  const publisher = createPosePublisher();
+  publisher.shouldSend(still, 0);
+  // Still suppressed: unchanged pose, before the heartbeat is due.
+  assert.equal(publisher.shouldSend(still, MIN_SEND_INTERVAL_MS), false);
+
+  publisher.reset();
+
+  // After reset, the same unchanged pose sends immediately again, exactly like
+  // the very first call — as if nothing had ever been sent.
+  assert.equal(publisher.shouldSend(still, MIN_SEND_INTERVAL_MS * 2), true);
+});

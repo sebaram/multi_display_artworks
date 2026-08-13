@@ -115,6 +115,10 @@ test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
     ['voice.get_state', { room_id: 'room-a' }],
   ]);
 
+  // room_state already seeded the pose buffer with 'other's pose (fix #3), so this
+  // position_update is no longer a brand-new pose-buffer entry and carries no hand
+  // change — it does not, by itself, trigger a roster resync. The moved position is
+  // still visible in the next roster snapshot because state.applyUpdate always runs.
   socket.trigger('position_update', { userId: 'other', position: '1 2 3', rotation: '0 0 0' });
   socket.trigger('profile_updated', { userId: 'other', displayName: 'Updated' });
   socket.trigger('user_left', { userId: 'other' });
@@ -122,7 +126,6 @@ test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
   assert.deepEqual(rendered, [
     [],
     [{ userId: 'other', displayName: 'Other', position: '0 1.6 0', rotation: '0 0 0' }],
-    [{ userId: 'other', displayName: 'Other', position: '1 2 3', rotation: '0 0 0' }],
     [{ userId: 'other', displayName: 'Updated', position: '1 2 3', rotation: '0 0 0' }],
     [],
   ]);
@@ -237,4 +240,64 @@ test('a departing user is dropped from the pose buffer', () => {
   socket.emitToClient('user_left', { userId: 'other' });
 
   assert.deepEqual(realtime.poseBuffer.userIds(), []);
+});
+
+test('room_state seeds the pose buffer with each user\'s last-known pose', () => {
+  const { socket, realtime } = startRealtime({ syncRoster() {} });
+
+  socket.emitToClient('room_state', {
+    users: [
+      { userId: 'self', position: '0 1.6 0', rotation: '0 0 0' },
+      { userId: 'other', position: '2 1.6 3', rotation: '0 90 0' },
+    ],
+  });
+
+  assert.deepEqual(realtime.poseBuffer.userIds().sort(), ['other', 'self']);
+  // Render far enough past the seeded sample that it is held rather than
+  // interpolated — proves the pose actually landed in the buffer, not just that
+  // the user key exists.
+  const pose = realtime.poseBuffer.poseAt('other', Date.now() + 1000);
+  assert.deepEqual(pose.position, { x: 2, y: 1.6, z: 3 });
+});
+
+test('position_update packets with changing hands sync the roster even for an established peer', () => {
+  const rendered = [];
+  const { socket } = startRealtime({ syncRoster: (users) => rendered.push(users) });
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: true,
+    leftHand: { wrist: { position: [0, 1, 0] } },
+  });
+  const afterFirst = rendered.length; // the brand-new pose-buffer entry triggers this one
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: true,
+    leftHand: { wrist: { position: [0, 1, 0] } },
+  });
+  assert.equal(rendered.length, afterFirst); // identical hand payload: no extra sync
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: true,
+    leftHand: { wrist: { position: [0, 2, 0] } },
+  });
+  assert.equal(rendered.length, afterFirst + 1); // differing leftHand still reaches the renderer
+  assert.deepEqual(rendered.at(-1)[0].leftHand, { wrist: { position: [0, 2, 0] } });
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: false,
+  });
+  assert.equal(rendered.length, afterFirst + 2); // a true -> false transition still syncs
+  assert.equal(rendered.at(-1)[0].handTracking, false);
 });

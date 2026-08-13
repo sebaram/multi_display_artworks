@@ -32,5 +32,16 @@ export function createPosePublisher({
       sentRotation = rotation;
       return true;
     },
+
+    // Forget the last-sent pose. Call this when a send never actually reached the
+    // server (e.g. socket.emit reported the socket as disconnected) — otherwise the
+    // publisher keeps advancing its "last sent" state against packets that never
+    // left, and the next real send can be suppressed by the epsilon/heartbeat
+    // checks even though the server never got a fresher pose.
+    reset() {
+      sentAt = null;
+      sentPosition = null;
+      sentRotation = null;
+    },
   };
 }

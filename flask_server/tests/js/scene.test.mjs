@@ -151,7 +151,7 @@ test('applyPoses prefers object3D and converts rotation to radians', () => {
   const written = { position: null, rotation: null };
   camera.object3D = {
     position: { set: (x, y, z) => { written.position = { x, y, z }; } },
-    rotation: { set: (x, y, z) => { written.rotation = { x, y, z }; } },
+    rotation: { set: (x, y, z, order) => { written.rotation = { x, y, z, order }; } },
   };
 
   renderer.applyPoses(new Map([['other', {
@@ -161,6 +161,9 @@ test('applyPoses prefers object3D and converts rotation to radians', () => {
 
   assert.deepEqual(written.position, { x: 1, y: 2, z: 3 });
   assert.equal(Math.round(written.rotation.y * 1000), Math.round(Math.PI * 1000));
+  // Passed explicitly so correctness does not depend on A-Frame's internal default
+  // for a bare object3D's rotation.order.
+  assert.equal(written.rotation.order, 'YXZ');
   assert.equal(camera.getAttribute('position'), null);
 });
 

@@ -57,7 +57,7 @@ function updateProfile(camera, user, createAvatarEntity) {
   }
 }
 
-function handKey(user) {
+export function handKey(user) {
   const enabled = user.handTracking === true || user.handTracking?.enabled === true;
   if (!enabled) return 'off';
   return JSON.stringify([user.leftHand ?? null, user.rightHand ?? null]);
@@ -99,10 +99,15 @@ const DEG_TO_RAD = Math.PI / 180;
 function writeTransform(camera, pose) {
   if (camera.object3D?.position?.set && camera.object3D?.rotation?.set) {
     camera.object3D.position.set(pose.position.x, pose.position.y, pose.position.z);
+    // A-Frame constructs every object3D with rotation.order === 'YXZ'. THREE's
+    // Euler#set preserves the existing order when no 4th argument is given, so this
+    // is currently a no-op in practice — but pass it explicitly so correctness does
+    // not depend on an A-Frame internal we don't control.
     camera.object3D.rotation.set(
       pose.rotation.x * DEG_TO_RAD,
       pose.rotation.y * DEG_TO_RAD,
       pose.rotation.z * DEG_TO_RAD,
+      'YXZ',
     );
     return;
   }

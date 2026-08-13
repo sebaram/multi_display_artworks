@@ -83,3 +83,26 @@ test('the loop reschedules itself while running and stops on destroy', () => {
   scheduler.step();
   assert.equal(scheduler.pending, 0);
 });
+
+test('a throwing applyPoses does not stop the loop from rescheduling', () => {
+  const scheduler = fakeScheduler();
+  let calls = 0;
+  const loop = createRenderLoop({
+    poseBuffer: { userIds: () => [], poseAt: () => null },
+    applyPoses: () => {
+      calls += 1;
+      if (calls === 1) throw new Error('boom');
+    },
+    requestAnimationFrame: scheduler.requestAnimationFrame,
+    cancelAnimationFrame: scheduler.cancelAnimationFrame,
+    now: () => 0,
+  });
+
+  loop.start();
+  assert.throws(() => scheduler.step(), /boom/);
+  assert.equal(calls, 1);
+  assert.equal(scheduler.pending, 1); // still rescheduled itself despite the throw
+
+  assert.doesNotThrow(() => scheduler.step());
+  assert.equal(calls, 2);
+});

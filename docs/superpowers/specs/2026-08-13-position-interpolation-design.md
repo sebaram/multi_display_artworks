@@ -126,6 +126,13 @@ Enabled by `?debug=sync` on the room URL, off otherwise. It reports send rate,
 receive rate, per-peer sample staleness, and the active interpolation delay.
 This is the measurement instrument for any future transport decision.
 
+The room modules may not read query parameters — `module-boundaries.test.mjs`
+forbids `URLSearchParams` and `searchParams` throughout `static/js/room/`. The
+flag is therefore resolved in `views/main_views.py` and passed to the client as
+`syncDebugEnabled` in the existing `room-bootstrap` JSON block, alongside
+`isAdmin` and `roomControlsEnabled`. This is the only server-side change in this
+round.
+
 ## Testing
 
 `npm run test:js` (`node --test tests/js/*.test.mjs`) covers:
@@ -150,5 +157,6 @@ drift or jitter.
 
 - WebRTC data channel transport (deferred; see above)
 - TURN configuration in `getRTCConfig()` (`static/js/voice-chat.js:99`)
-- Server-side changes of any kind
+- Changes to the Socket.IO handlers, the presence service, or the wire format
+  (the debug flag above is the sole server-side change)
 - Interest management or area-of-interest filtering

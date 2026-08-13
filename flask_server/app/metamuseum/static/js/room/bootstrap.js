@@ -20,6 +20,7 @@ import { mountTeleportControls } from './interaction/teleport.js';
 import { mountAdminTransforms } from './interaction/admin-transforms.js';
 import { mountHandTracking } from './interaction/hand-tracking.js';
 import { mountShare } from './ui/share.js';
+import { mountSyncDebug } from './ui/sync-debug.js';
 import { registerDragComponent } from '../drag-component.js';
 import { registerLocationComponents } from '../location-features.js';
 import { addLLMEffectsButton, addLLMLayoutButton } from '../llm-layout.js';
@@ -158,6 +159,7 @@ export function bootstrapRoomRealtime({
     position_update(data) {
       state.applyUpdate(data);
       if (poseBuffer.record(data?.userId, data, Date.now())) syncRoster();
+      consumers.onPacketReceived?.();
     },
     profile_updated(data) {
       state.applyUpdate(data);
@@ -351,6 +353,18 @@ function initializeBrowserRoom({ window, document, bootstrapData, visitorSession
   });
   renderLoop.start();
 
+  const syncDebug = bootstrapData.syncDebugEnabled
+    ? mountSyncDebug({
+      document,
+      poseBuffer: realtime.poseBuffer,
+      socketClient: realtime.socketClient,
+      now: Date.now,
+      setInterval: window.setInterval.bind(window),
+      clearInterval: window.clearInterval.bind(window),
+    })
+    : null;
+  if (syncDebug) consumers.onPacketReceived = syncDebug.recordReceive;
+
   const roomFeatures = [
     sceneRenderer,
     expressions,
@@ -376,6 +390,8 @@ function initializeBrowserRoom({ window, document, bootstrapData, visitorSession
       posePublisher: createPosePublisher(),
     }),
   ];
+
+  if (syncDebug) roomFeatures.push(syncDebug);
 
   if (bootstrapData.roomControlsEnabled) {
     roomFeatures.push(mountTeleportControls({

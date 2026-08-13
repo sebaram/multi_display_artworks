@@ -61,6 +61,7 @@ def room():
         ar_mode = request.args.get('ar')  # 'marker' or 'companion'
         is_ar_marker = ar_mode == 'marker'
         is_ar_companion = ar_mode == 'companion'
+        sync_debug = request.args.get('debug') == 'sync'
         preset_id = request.args.get('preset')
 
         # Get presets for this room
@@ -117,7 +118,8 @@ def room():
                              drag_enabled=drag_enabled, presets=preset_list,
                              spawn_preset=selected, boundary=boundary,
                              is_ar_marker=is_ar_marker, is_ar_companion=is_ar_companion,
-                             room_id=room_id, wall_list=wall_list)
+                             room_id=room_id, wall_list=wall_list,
+                             sync_debug=sync_debug)
     except Exception as e:
         logger.error(f"Error loading room {room_id}: {e}")
         return "Database unavailable", 503

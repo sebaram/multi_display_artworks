@@ -228,7 +228,8 @@ test('continuous motion is capped at the maximum send rate', () => {
 test('the string pose shape from room state is understood', () => {
   const publisher = createPosePublisher();
   assert.equal(publisher.shouldSend({ position: '0 1.6 0', rotation: '0 0 0' }, 0), true);
-  assert.equal(publisher.shouldSend({ position: { x: 0, y: 1.6, z: 0 }, rotation: '0 0 0' }, 10), false);
+  // Same pose in the object shape: suppressed by the change test, not the rate cap.
+  assert.equal(publisher.shouldSend({ position: { x: 0, y: 1.6, z: 0 }, rotation: '0 0 0' }, 100), false);
 });
 
 test('an unreadable pose is never sent', () => {

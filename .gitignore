@@ -1,3 +1,4 @@
 .worktrees/
 flask_server/.venv_new/
 flask_server/node_modules/
+.playwright-mcp/

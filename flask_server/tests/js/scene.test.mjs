@@ -72,7 +72,7 @@ test('scene renderer reconciles remote presence snapshots without rendering self
     },
   });
 
-  renderer.renderUsers([
+  renderer.syncRoster([
     { userId: 'self', position: '9 9 9', rotation: '0 0 0' },
     {
       userId: 'other',
@@ -90,13 +90,11 @@ test('scene renderer reconciles remote presence snapshots without rendering self
   const remote = document.getElementById('camera-other');
   assert.ok(remote);
   assert.equal(document.getElementById('camera-self'), null);
-  assert.equal(remote.getAttribute('position'), '1 2 3');
-  assert.equal(remote.getAttribute('rotation'), '0 90 0');
   assert.deepEqual(avatarProfiles, [{ avatarId: 'robot', color: '#123456' }]);
   assert.equal(remote.querySelector('.display-name').getAttribute('value'), 'Other Visitor');
   assert.ok(document.getElementById('hand-left-other'));
 
-  renderer.renderUsers([{
+  renderer.syncRoster([{
     userId: 'other',
     displayName: 'Renamed',
     avatarId: 'shiba',
@@ -106,13 +104,87 @@ test('scene renderer reconciles remote presence snapshots without rendering self
     handTracking: false,
   }]);
 
-  assert.equal(remote.getAttribute('position'), '4 5 6');
   assert.equal(remote.querySelector('.display-name').getAttribute('value'), 'Renamed');
   assert.deepEqual(avatarProfiles.at(-1), { avatarId: 'shiba', color: '#ABCDEF' });
   assert.equal(document.getElementById('hand-left-other'), null);
 
-  renderer.renderUsers([]);
+  renderer.syncRoster([]);
 
   assert.equal(document.getElementById('camera-other'), null);
   assert.equal(document.getElementById('room-art'), localEntity);
+});
+
+test('applyPoses writes transforms without touching the roster', () => {
+  const scene = new FakeElement('a-scene');
+  const renderer = createSceneRenderer({
+    document: createDocument(scene),
+    scene,
+    selfId: 'self',
+    createAvatarEntity: () => new FakeElement('a-entity'),
+  });
+
+  renderer.syncRoster([{ userId: 'other', displayName: 'Other' }]);
+  const created = scene.children.length;
+
+  renderer.applyPoses(new Map([['other', {
+    position: { x: 1, y: 2, z: 3 },
+    rotation: { x: 0, y: 90, z: 0 },
+  }]]));
+
+  const camera = scene.children.find((child) => child.getAttribute('id') === 'camera-other');
+  assert.equal(scene.children.length, created);
+  assert.deepEqual(camera.getAttribute('position'), { x: 1, y: 2, z: 3 });
+  assert.deepEqual(camera.getAttribute('rotation'), { x: 0, y: 90, z: 0 });
+});
+
+test('applyPoses prefers object3D and converts rotation to radians', () => {
+  const scene = new FakeElement('a-scene');
+  const renderer = createSceneRenderer({
+    document: createDocument(scene),
+    scene,
+    selfId: 'self',
+    createAvatarEntity: () => new FakeElement('a-entity'),
+  });
+
+  renderer.syncRoster([{ userId: 'other' }]);
+  const camera = scene.children.find((child) => child.getAttribute('id') === 'camera-other');
+  const written = { position: null, rotation: null };
+  camera.object3D = {
+    position: { set: (x, y, z) => { written.position = { x, y, z }; } },
+    rotation: { set: (x, y, z, order) => { written.rotation = { x, y, z, order }; } },
+  };
+
+  renderer.applyPoses(new Map([['other', {
+    position: { x: 1, y: 2, z: 3 },
+    rotation: { x: 0, y: 180, z: 0 },
+  }]]));
+
+  assert.deepEqual(written.position, { x: 1, y: 2, z: 3 });
+  assert.equal(Math.round(written.rotation.y * 1000), Math.round(Math.PI * 1000));
+  // Passed explicitly so correctness does not depend on A-Frame's internal default
+  // for a bare object3D's rotation.order.
+  assert.equal(written.rotation.order, 'YXZ');
+  assert.equal(camera.getAttribute('position'), null);
+});
+
+test('unchanged hand payloads do not rebuild hand entities', () => {
+  const scene = new FakeElement('a-scene');
+  const document = createDocument(scene);
+  const renderer = createSceneRenderer({
+    document, scene, selfId: 'self', createAvatarEntity: () => new FakeElement('a-entity'),
+  });
+
+  const user = {
+    userId: 'other',
+    handTracking: true,
+    leftHand: { wrist: { position: [0, 1, 0] } },
+  };
+  renderer.syncRoster([user]);
+  const firstHand = document.getElementById('hand-left-other');
+
+  renderer.syncRoster([{ ...user }]);
+  assert.equal(document.getElementById('hand-left-other'), firstHand);
+
+  renderer.syncRoster([{ ...user, leftHand: { wrist: { position: [0, 2, 0] } } }]);
+  assert.notEqual(document.getElementById('hand-left-other'), firstHand);
 });

@@ -30,7 +30,7 @@ test('room consumers route scene, effects, expressions, and voice through inject
   const calls = [];
   const socketClient = {};
   const consumers = createRoomConsumers({
-    sceneRenderer: { renderUsers: (users) => calls.push(['render', users]) },
+    sceneRenderer: { syncRoster: (users) => calls.push(['render', users]) },
     roomId: 'room-a',
     visitorId: 'visitor-a',
     isAdmin: true,
@@ -47,7 +47,7 @@ test('room consumers route scene, effects, expressions, and voice through inject
   });
 
   consumers.initialize(socketClient);
-  consumers.renderUsers([{ userId: 'other' }]);
+  consumers.syncRoster([{ userId: 'other' }]);
   consumers.handleSocketEvent('expression', { expression: '😊' });
 
   assert.deepEqual(calls, [

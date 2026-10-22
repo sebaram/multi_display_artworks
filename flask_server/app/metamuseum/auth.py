@@ -85,25 +85,30 @@ def signin():
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        if User.objects(email=request.form['email']).count():
-            flash(f'이미 가입되어 있습니다: {form.email.data}', 'danger')
-        else:
-            new_user = User(email=form.email.data,
-                            name=form.username.data,
-                            phone=form.phone_number.data,
-                            affiliation=form.affiliation.data,
-                            password=generate_password_hash(form.password.data) )
-            print("email: ",request.form['email'])
-            new_user.save()
-
-            send_verification_email(new_user)
-            flash(f'{new_user.email} registered! (A confirmation email has been sent via email.)', 'success')
-
-            return redirect(url_for('auth.signin'))
-        
-    return render_template('auth/register.html', form=form)
+    # Temporary hotfix: block all new registrations.
+    # Previous registration flow is kept below for quick rollback.
+    #
+    # form = RegistrationForm()
+    # if form.validate_on_submit():
+    #     if User.objects(email=request.form['email']).count():
+    #         flash(f'이미 가입되어 있습니다: {form.email.data}', 'danger')
+    #     else:
+    #         new_user = User(email=form.email.data,
+    #                         name=form.username.data,
+    #                         phone=form.phone_number.data,
+    #                         affiliation=form.affiliation.data,
+    #                         password=generate_password_hash(form.password.data) )
+    #         print("email: ",request.form['email'])
+    #         new_user.save()
+    #
+    #         send_verification_email(new_user)
+    #         flash(f'{new_user.email} registered! (A confirmation email has been sent via email.)', 'success')
+    #
+    #         return redirect(url_for('auth.signin'))
+    #
+    # return render_template('auth/register.html', form=form)
+    flash('New registration is temporarily closed. Please contact administrator.', 'danger')
+    return redirect(url_for('auth.signin'))
 
 @bp.route('/confirm/<token>')
 def confirm_email(token):

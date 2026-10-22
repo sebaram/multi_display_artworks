@@ -28,6 +28,18 @@ def test_authenticated_non_admin_cannot_update_element(user_client, sample_image
     assert response.get_json() == {"error": "Admin required"}
 
 
+def test_registration_is_closed(client):
+    from metamuseum.models import User
+
+    response = client.post(
+        "/register",
+        data={"email": "new@example.test", "username": "new", "password": "pw"},
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/signin")
+    assert User.objects(email="new@example.test").count() == 0
+
+
 def test_anonymous_client_cannot_control_stream(client):
     assert client.post("/stream/stop/camera").status_code == 403
 

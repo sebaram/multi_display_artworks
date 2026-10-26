@@ -14,8 +14,9 @@ export function mountSyncDebug({
 
   const originalEmit = socketClient.emit;
   socketClient.emit = (event, payload) => {
-    if (event === 'position_update') sends += 1;
-    return originalEmit.call(socketClient, event, payload);
+    const sent = originalEmit.call(socketClient, event, payload);
+    if (event === 'position_update' && sent !== false) sends += 1;
+    return sent;
   };
 
   function refresh() {

@@ -158,6 +158,9 @@ export function bootstrapRoomRealtime({
     disconnect() {},
     room_state(data) {
       state.applyRoomState(data?.users);
+      // A reconnect can miss user_left events; replace caches with this snapshot.
+      poseBuffer.userIds().forEach((userId) => poseBuffer.forget(userId));
+      lastHandKeyByUser.clear();
       // Seed the pose buffer with each peer's last-known pose so a late joiner's
       // first render frame doesn't sit everyone at the A-Frame default origin
       // until their next packet arrives (up to a full heartbeat away). Also seed
@@ -377,11 +380,12 @@ function initializeBrowserRoom({ window, document, bootstrapData, visitorSession
     consumers,
   });
   const renderLoop = createRenderLoop({
+    AFRAME: window.AFRAME,
+    scene: document.querySelector('a-scene'),
     poseBuffer: realtime.poseBuffer,
     applyPoses: sceneRenderer.applyPoses,
-    requestAnimationFrame: window.requestAnimationFrame.bind(window),
-    cancelAnimationFrame: window.cancelAnimationFrame.bind(window),
     now: Date.now,
+    console: window.console,
   });
   renderLoop.start();
 

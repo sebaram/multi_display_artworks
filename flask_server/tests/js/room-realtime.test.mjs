@@ -58,6 +58,23 @@ function startRealtime(consumers) {
   return { socket, realtime };
 }
 
+test('a reconnect snapshot drops departed peers so their next visit renders again', () => {
+  const rendered = [];
+  const { socket, realtime } = startRealtime({ syncRoster: (users) => rendered.push(users) });
+  const peer = {
+    userId: 'other', position: '1 1.6 0', rotation: '0 0 0', handTracking: false,
+  };
+  socket.emitToClient('room_state', { users: [peer] });
+  socket.trigger('disconnect');
+  socket.trigger('connect');
+  socket.emitToClient('room_state', { users: [] });
+
+  assert.deepEqual(realtime.poseBuffer.userIds(), []);
+  socket.emitToClient('user_joined', { userId: 'other', displayName: 'Returned' });
+  socket.emitToClient('position_update', peer);
+  assert.equal(rendered.at(-1)[0]?.displayName, 'Returned');
+});
+
 test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
   const socket = new FakeSocket();
   const initialized = [];

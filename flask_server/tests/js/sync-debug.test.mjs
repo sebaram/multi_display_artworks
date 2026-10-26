@@ -16,6 +16,30 @@ function fakeDocument() {
   };
 }
 
+test('failed sends are excluded from the send rate', () => {
+  const document = fakeDocument();
+  let refresh;
+  let clock = 0;
+  let connected = false;
+  const socketClient = { emit: () => connected };
+  const overlay = mountSyncDebug({
+    document,
+    poseBuffer: { userIds: () => [] },
+    socketClient,
+    now: () => clock,
+    setInterval: (callback) => { refresh = callback; },
+    clearInterval() {},
+  });
+
+  assert.equal(socketClient.emit('position_update', {}), false);
+  connected = true;
+  assert.equal(socketClient.emit('position_update', {}), true);
+  clock = 1000;
+  refresh();
+  assert.match(document.created[0].textContent, /send 1\/s/u);
+  overlay.destroy();
+});
+
 test('the overlay reports send rate, receive rate, and worst staleness', () => {
   const document = fakeDocument();
   const timers = [];

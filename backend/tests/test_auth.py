@@ -107,3 +107,17 @@ def test_existing_bcrypt_accounts_keep_legacy_72_byte_password_behavior(client, 
 def test_auth_responses_are_not_cached(client):
     assert client.get("/api/v1/auth/csrf").headers.get("cache-control") == "no-store"
     assert client.get("/api/v1/auth/session").headers.get("cache-control") == "no-store"
+
+
+def test_malformed_return_authority_is_rejected_without_server_error(client, csrf):
+    response = signin(client, csrf, next="//[")
+    assert response.status_code == 400
+    assert response.json() == {"detail": "invalid_return_url"}
+
+
+def test_non_ascii_csrf_header_is_rejected_without_server_error(client):
+    client.get("/api/v1/auth/csrf")
+    response = client.post("/api/v1/auth/signin", headers=[(b"origin", b"http://testserver"), (b"x-csrf-token", b"\xff")],
+                           json={"email": "admin@migration.invalid", "password": PASSWORD})
+    assert response.status_code == 403
+    assert response.json() == {"detail": "csrf_denied"}

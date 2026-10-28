@@ -38,7 +38,8 @@ def require_csrf(request: Request, csrf_token: str | None = Header(default=None,
     require_origin(request)
     expected = request.session.get("csrf_token")
     supplied = request.headers.get("x-csrf-token")
-    if not isinstance(expected, str) or not supplied or not secrets.compare_digest(expected, supplied):
+    if (not isinstance(expected, str) or not expected.isascii() or not supplied or not supplied.isascii()
+            or not secrets.compare_digest(expected, supplied)):
         raise HTTPException(403, "csrf_denied")
 
 
@@ -102,9 +103,14 @@ def safe_return_url(target: str) -> str:
     decoded = target
     for _ in range(3):
         decoded = unquote(decoded)
-    parsed = urlsplit(decoded)
     if (not decoded.startswith("/") or decoded.startswith("//") or "\\" in decoded
-            or parsed.scheme or parsed.netloc or any(ord(c) < 32 or ord(c) == 127 for c in decoded)):
+            or any(ord(c) < 32 or ord(c) == 127 for c in decoded)):
+        raise HTTPException(400, "invalid_return_url")
+    try:
+        parsed = urlsplit(decoded)
+    except ValueError:
+        raise HTTPException(400, "invalid_return_url") from None
+    if parsed.scheme or parsed.netloc:
         raise HTTPException(400, "invalid_return_url")
     return target
 

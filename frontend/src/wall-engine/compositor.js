@@ -116,7 +116,7 @@ export function createCompositor({canvas,assetResolver,onError=()=>{}}) {
         tc.globalAlpha=opacity(li,layout);tc.font=`${css.fontStyle} ${css.fontWeight} ${css.fontSize} ${css.fontFamily}`;tc.fillStyle=css.color;tc.textAlign='right';tc.textBaseline='top';tc.fillText(marker,rect.left-rootRect.left-size*.3,rect.top-rootRect.top+(parseFloat(css.lineHeight)-size)/2);
       }
       tc.textAlign='left';
-      for(const line of node.querySelectorAll('i')){const rect=line.getBoundingClientRect();if(rect.height&&rect.width){tc.globalAlpha=opacity(line,layout);tc.fillStyle=win.getComputedStyle(line).color;tc.fillRect(rect.left-rootRect.left,rect.top-rootRect.top,rect.width,rect.height);}}
+      for(const line of (entry.textKind==='footer'&&!node.classList.contains('authored-rich-text')?node.querySelectorAll(':scope > i:empty'):[])){const rect=line.getBoundingClientRect();if(rect.height&&rect.width){tc.globalAlpha=opacity(line,layout);tc.fillStyle=win.getComputedStyle(line).color;tc.fillRect(rect.left-rootRect.left,rect.top-rootRect.top,rect.width,rect.height);}}
       tc.restore();
       textBounds.push({id:entry.id,x,y,width:rootRect.width,height:rootRect.height,scaleX:correction*entry.size,scaleY:entry.size,rotation:entry.rotation});
     }

@@ -4,7 +4,7 @@ import { resolve, extname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
-const root=fileURLToPath(new URL('../../../../',import.meta.url));
+const root=resolve(fileURLToPath(new URL('../../../../',import.meta.url)));
 const frontendRequire=createRequire(join(root,'frontend/package.json'));
 let chromium;
 try { ({chromium}=frontendRequire('playwright')); }

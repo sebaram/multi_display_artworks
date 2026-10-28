@@ -149,7 +149,7 @@ def validate_geometry(document):
     for name in document._fields:
         value = getattr(document, name)
         if isinstance(value, (float, int)) and not isinstance(value, bool):
-            if not math.isfinite(value) or abs(value) > 1_000_000:
+            if abs(value) > 1_000_000 or not math.isfinite(value):
                 raise HTTPException(422, 'finite_bounded_number_required')
             if name.startswith('scale_') or name in {'width', 'height', 'depth'}:
                 if value <= 0:

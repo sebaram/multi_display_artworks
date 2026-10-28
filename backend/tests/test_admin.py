@@ -123,3 +123,15 @@ def test_nonadmin_cannot_read_or_mutate_admin_resources(client, csrf):
         assert client.post(url, headers=h, json={}).status_code == 403
         assert client.patch(url + '/' + 'f'*24, headers=h, json={}).status_code == 403
         assert client.delete(url + '/' + 'f'*24, headers=h).status_code == 403
+
+
+@pytest.mark.parametrize('value', [10**400, -(10**400)], ids=['huge-positive', 'huge-negative'])
+def test_extreme_integer_is_rejected_without_float_overflow(value):
+    from fastapi import HTTPException
+    from metamuseum.models import LLMConfig
+    from metamuseum.services.gallery import validate_geometry
+    document = LLMConfig(max_tokens=value)
+    with pytest.raises(HTTPException) as error:
+        validate_geometry(document)
+    assert error.value.status_code == 422
+    assert error.value.detail == 'finite_bounded_number_required'

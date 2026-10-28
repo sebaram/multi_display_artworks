@@ -1,0 +1,2185 @@
+{
+  "format_version": 1,
+  "provenance": "Entirely synthetic; generated with legacy MongoEngine to_mongo; BSON canonical Extended JSON",
+  "public_secret_rule": "password and api_key never enter public DTOs; LLMConfig.to_dict omits api_key; Whisper has no model to_dict",
+  "schemas": [
+    {
+      "model": "Room",
+      "collection": "room",
+      "allow_inheritance": false,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_time": {
+          "type": "DateTimeField",
+          "db_field": "updated_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "walls": {
+          "type": "ListField",
+          "db_field": "walls",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "list_reference_model": "Wall",
+          "dbref": false
+        },
+        "boundary_min_x": {
+          "type": "FloatField",
+          "db_field": "boundary_min_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "boundary_max_x": {
+          "type": "FloatField",
+          "db_field": "boundary_max_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "boundary_min_y": {
+          "type": "FloatField",
+          "db_field": "boundary_min_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "boundary_max_y": {
+          "type": "FloatField",
+          "db_field": "boundary_max_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "boundary_min_z": {
+          "type": "FloatField",
+          "db_field": "boundary_min_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "boundary_max_z": {
+          "type": "FloatField",
+          "db_field": "boundary_max_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "Wall",
+      "collection": "wall",
+      "allow_inheritance": false,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_time": {
+          "type": "DateTimeField",
+          "db_field": "updated_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "room": {
+          "type": "ReferenceField",
+          "db_field": "room",
+          "required": true,
+          "unique": false,
+          "null": false,
+          "reference_model": "Room",
+          "dbref": false
+        },
+        "images": {
+          "type": "ListField",
+          "db_field": "images",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "list_reference_model": "Image",
+          "dbref": false
+        },
+        "splats": {
+          "type": "ListField",
+          "db_field": "splats",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "list_reference_model": "GaussianSplat",
+          "dbref": false
+        },
+        "gltfs": {
+          "type": "ListField",
+          "db_field": "gltfs",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "list_reference_model": "GLTFmodel",
+          "dbref": false
+        },
+        "webpages": {
+          "type": "ListField",
+          "db_field": "webpages",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "list_reference_model": "Webpage",
+          "dbref": false
+        },
+        "position": {
+          "type": "StringField",
+          "db_field": "position",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "rotation": {
+          "type": "StringField",
+          "db_field": "rotation",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "width": {
+          "type": "FloatField",
+          "db_field": "width",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "height": {
+          "type": "FloatField",
+          "db_field": "height",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "depth": {
+          "type": "FloatField",
+          "db_field": "depth",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "color": {
+          "type": "StringField",
+          "db_field": "color",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "image_url": {
+          "type": "StringField",
+          "db_field": "image_url",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "video_url": {
+          "type": "StringField",
+          "db_field": "video_url",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "surface_type": {
+          "type": "StringField",
+          "db_field": "surface_type",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "Image",
+      "collection": "image",
+      "allow_inheritance": true,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_time": {
+          "type": "DateTimeField",
+          "db_field": "updated_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "wall": {
+          "type": "ReferenceField",
+          "db_field": "wall",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "reference_model": "Wall",
+          "dbref": false
+        },
+        "wall_element_type": {
+          "type": "StringField",
+          "db_field": "wall_element_type",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "position": {
+          "type": "StringField",
+          "db_field": "position",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_x": {
+          "type": "FloatField",
+          "db_field": "position_x",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_y": {
+          "type": "FloatField",
+          "db_field": "position_y",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "scale_x": {
+          "type": "FloatField",
+          "db_field": "scale_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_y": {
+          "type": "FloatField",
+          "db_field": "scale_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_z": {
+          "type": "FloatField",
+          "db_field": "scale_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_x": {
+          "type": "FloatField",
+          "db_field": "rotation_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_y": {
+          "type": "FloatField",
+          "db_field": "rotation_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_z": {
+          "type": "FloatField",
+          "db_field": "rotation_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "_cls": {
+          "type": "StringField",
+          "db_field": "_cls",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "image_url": {
+          "type": "StringField",
+          "db_field": "image_url",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "width": {
+          "type": "FloatField",
+          "db_field": "width",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "height": {
+          "type": "FloatField",
+          "db_field": "height",
+          "required": true,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "GaussianSplat",
+      "collection": "gaussian_splat",
+      "allow_inheritance": true,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_time": {
+          "type": "DateTimeField",
+          "db_field": "updated_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "wall": {
+          "type": "ReferenceField",
+          "db_field": "wall",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "reference_model": "Wall",
+          "dbref": false
+        },
+        "wall_element_type": {
+          "type": "StringField",
+          "db_field": "wall_element_type",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "position": {
+          "type": "StringField",
+          "db_field": "position",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_x": {
+          "type": "FloatField",
+          "db_field": "position_x",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_y": {
+          "type": "FloatField",
+          "db_field": "position_y",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "scale_x": {
+          "type": "FloatField",
+          "db_field": "scale_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_y": {
+          "type": "FloatField",
+          "db_field": "scale_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_z": {
+          "type": "FloatField",
+          "db_field": "scale_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_x": {
+          "type": "FloatField",
+          "db_field": "rotation_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_y": {
+          "type": "FloatField",
+          "db_field": "rotation_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_z": {
+          "type": "FloatField",
+          "db_field": "rotation_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "_cls": {
+          "type": "StringField",
+          "db_field": "_cls",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "splat_url": {
+          "type": "StringField",
+          "db_field": "splat_url",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "cutout_scale": {
+          "type": "StringField",
+          "db_field": "cutout_scale",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "cutout_position": {
+          "type": "StringField",
+          "db_field": "cutout_position",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "GLTFmodel",
+      "collection": "g_l_t_fmodel",
+      "allow_inheritance": true,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_time": {
+          "type": "DateTimeField",
+          "db_field": "updated_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "wall": {
+          "type": "ReferenceField",
+          "db_field": "wall",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "reference_model": "Wall",
+          "dbref": false
+        },
+        "wall_element_type": {
+          "type": "StringField",
+          "db_field": "wall_element_type",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "position": {
+          "type": "StringField",
+          "db_field": "position",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_x": {
+          "type": "FloatField",
+          "db_field": "position_x",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_y": {
+          "type": "FloatField",
+          "db_field": "position_y",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "scale_x": {
+          "type": "FloatField",
+          "db_field": "scale_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_y": {
+          "type": "FloatField",
+          "db_field": "scale_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_z": {
+          "type": "FloatField",
+          "db_field": "scale_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_x": {
+          "type": "FloatField",
+          "db_field": "rotation_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_y": {
+          "type": "FloatField",
+          "db_field": "rotation_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_z": {
+          "type": "FloatField",
+          "db_field": "rotation_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "_cls": {
+          "type": "StringField",
+          "db_field": "_cls",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "gltf_url": {
+          "type": "StringField",
+          "db_field": "gltf_url",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "default_rotation": {
+          "type": "StringField",
+          "db_field": "default_rotation",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_z": {
+          "type": "FloatField",
+          "db_field": "position_z",
+          "required": true,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "Webpage",
+      "collection": "webpage",
+      "allow_inheritance": true,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_time": {
+          "type": "DateTimeField",
+          "db_field": "updated_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "wall": {
+          "type": "ReferenceField",
+          "db_field": "wall",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "reference_model": "Wall",
+          "dbref": false
+        },
+        "wall_element_type": {
+          "type": "StringField",
+          "db_field": "wall_element_type",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "position": {
+          "type": "StringField",
+          "db_field": "position",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_x": {
+          "type": "FloatField",
+          "db_field": "position_x",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_y": {
+          "type": "FloatField",
+          "db_field": "position_y",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "scale_x": {
+          "type": "FloatField",
+          "db_field": "scale_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_y": {
+          "type": "FloatField",
+          "db_field": "scale_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "scale_z": {
+          "type": "FloatField",
+          "db_field": "scale_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_x": {
+          "type": "FloatField",
+          "db_field": "rotation_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_y": {
+          "type": "FloatField",
+          "db_field": "rotation_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_z": {
+          "type": "FloatField",
+          "db_field": "rotation_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "_cls": {
+          "type": "StringField",
+          "db_field": "_cls",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "webpage_url": {
+          "type": "StringField",
+          "db_field": "webpage_url",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "width": {
+          "type": "FloatField",
+          "db_field": "width",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "height": {
+          "type": "FloatField",
+          "db_field": "height",
+          "required": true,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "LocationPreset",
+      "collection": "location_preset",
+      "allow_inheritance": false,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "room": {
+          "type": "ReferenceField",
+          "db_field": "room",
+          "required": true,
+          "unique": false,
+          "null": false,
+          "reference_model": "Room",
+          "dbref": false
+        },
+        "position_x": {
+          "type": "FloatField",
+          "db_field": "position_x",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_y": {
+          "type": "FloatField",
+          "db_field": "position_y",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "position_z": {
+          "type": "FloatField",
+          "db_field": "position_z",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "rotation_x": {
+          "type": "FloatField",
+          "db_field": "rotation_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_y": {
+          "type": "FloatField",
+          "db_field": "rotation_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "rotation_z": {
+          "type": "FloatField",
+          "db_field": "rotation_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "is_default": {
+          "type": "BooleanField",
+          "db_field": "is_default",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "Marker",
+      "collection": "marker",
+      "allow_inheritance": false,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "room": {
+          "type": "ReferenceField",
+          "db_field": "room",
+          "required": true,
+          "unique": false,
+          "null": false,
+          "reference_model": "Room",
+          "dbref": false
+        },
+        "marker_type": {
+          "type": "StringField",
+          "db_field": "marker_type",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "marker_value": {
+          "type": "StringField",
+          "db_field": "marker_value",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "target_position_x": {
+          "type": "FloatField",
+          "db_field": "target_position_x",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "target_position_y": {
+          "type": "FloatField",
+          "db_field": "target_position_y",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "target_position_z": {
+          "type": "FloatField",
+          "db_field": "target_position_z",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "target_rotation_x": {
+          "type": "FloatField",
+          "db_field": "target_rotation_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "target_rotation_y": {
+          "type": "FloatField",
+          "db_field": "target_rotation_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "target_rotation_z": {
+          "type": "FloatField",
+          "db_field": "target_rotation_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "target_preset": {
+          "type": "ReferenceField",
+          "db_field": "target_preset",
+          "required": false,
+          "unique": false,
+          "null": false,
+          "reference_model": "LocationPreset",
+          "dbref": false
+        },
+        "offset_x": {
+          "type": "FloatField",
+          "db_field": "offset_x",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "offset_y": {
+          "type": "FloatField",
+          "db_field": "offset_y",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "offset_z": {
+          "type": "FloatField",
+          "db_field": "offset_z",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "is_active": {
+          "type": "BooleanField",
+          "db_field": "is_active",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "RoomEffect",
+      "collection": "room_effect",
+      "allow_inheritance": false,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "room": {
+          "type": "ReferenceField",
+          "db_field": "room",
+          "required": true,
+          "unique": false,
+          "null": false,
+          "reference_model": "Room",
+          "dbref": false
+        },
+        "effect_type": {
+          "type": "StringField",
+          "db_field": "effect_type",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "target_id": {
+          "type": "StringField",
+          "db_field": "target_id",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "params": {
+          "type": "DictField",
+          "db_field": "params",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "description": {
+          "type": "StringField",
+          "db_field": "description",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "created_by": {
+          "type": "StringField",
+          "db_field": "created_by",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "created_time": {
+          "type": "DateTimeField",
+          "db_field": "created_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "expires_at": {
+          "type": "DateTimeField",
+          "db_field": "expires_at",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "active": {
+          "type": "BooleanField",
+          "db_field": "active",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "User",
+      "collection": "users",
+      "allow_inheritance": false,
+      "fields": {
+        "email": {
+          "type": "StringField",
+          "db_field": "email",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "name": {
+          "type": "StringField",
+          "db_field": "name",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "password": {
+          "type": "StringField",
+          "db_field": "password",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "phone": {
+          "type": "StringField",
+          "db_field": "phone",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "affiliation": {
+          "type": "StringField",
+          "db_field": "affiliation",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "user_type": {
+          "type": "ListField",
+          "db_field": "user_type",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "email_verified": {
+          "type": "BooleanField",
+          "db_field": "email_verified",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "LLMConfig",
+      "collection": "llm_configs",
+      "allow_inheritance": false,
+      "fields": {
+        "provider": {
+          "type": "StringField",
+          "db_field": "provider",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "api_base": {
+          "type": "StringField",
+          "db_field": "api_base",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "api_key": {
+          "type": "StringField",
+          "db_field": "api_key",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "model": {
+          "type": "StringField",
+          "db_field": "model",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "temperature": {
+          "type": "FloatField",
+          "db_field": "temperature",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "max_tokens": {
+          "type": "IntField",
+          "db_field": "max_tokens",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "is_active": {
+          "type": "BooleanField",
+          "db_field": "is_active",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_at": {
+          "type": "StringField",
+          "db_field": "updated_at",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "WhisperConfig",
+      "collection": "whisper_configs",
+      "allow_inheritance": false,
+      "fields": {
+        "provider": {
+          "type": "StringField",
+          "db_field": "provider",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "api_base": {
+          "type": "StringField",
+          "db_field": "api_base",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "api_key": {
+          "type": "StringField",
+          "db_field": "api_key",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "model": {
+          "type": "StringField",
+          "db_field": "model",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "language": {
+          "type": "StringField",
+          "db_field": "language",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "enabled": {
+          "type": "BooleanField",
+          "db_field": "enabled",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "updated_at": {
+          "type": "StringField",
+          "db_field": "updated_at",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    },
+    {
+      "model": "OnlineUser",
+      "collection": "online_user",
+      "allow_inheritance": false,
+      "fields": {
+        "_id": {
+          "type": "ObjectIdField",
+          "db_field": "_id",
+          "required": true,
+          "unique": false,
+          "null": false
+        },
+        "session_id": {
+          "type": "StringField",
+          "db_field": "session_id",
+          "required": true,
+          "unique": true,
+          "null": false
+        },
+        "camera_position": {
+          "type": "DictField",
+          "db_field": "camera_position",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "camera_rotation": {
+          "type": "DictField",
+          "db_field": "camera_rotation",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "left_hand": {
+          "type": "DictField",
+          "db_field": "left_hand",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "right_hand": {
+          "type": "DictField",
+          "db_field": "right_hand",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "hand_tracking_enabled": {
+          "type": "DictField",
+          "db_field": "hand_tracking_enabled",
+          "required": false,
+          "unique": false,
+          "null": false
+        },
+        "update_time": {
+          "type": "DateTimeField",
+          "db_field": "update_time",
+          "required": false,
+          "unique": false,
+          "null": false
+        }
+      }
+    }
+  ],
+  "documents": [
+    {
+      "model": "Room",
+      "collection": "room",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000001"
+        },
+        "name": "migration-room",
+        "description": "Synthetic gallery",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "walls": [
+          {
+            "$oid": "00000000000000000000000b"
+          },
+          {
+            "$oid": "00000000000000000000000c"
+          },
+          {
+            "$oid": "00000000000000000000000d"
+          }
+        ],
+        "boundary_min_x": {
+          "$numberDouble": "-10.0"
+        },
+        "boundary_max_x": {
+          "$numberDouble": "10.0"
+        },
+        "boundary_min_y": {
+          "$numberDouble": "0.0"
+        },
+        "boundary_max_y": {
+          "$numberDouble": "5.0"
+        },
+        "boundary_min_z": {
+          "$numberDouble": "-10.0"
+        },
+        "boundary_max_z": {
+          "$numberDouble": "10.0"
+        }
+      }
+    },
+    {
+      "model": "Room",
+      "collection": "room",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000002"
+        },
+        "name": "migration-other-room",
+        "description": "Isolation target",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "walls": [],
+        "boundary_min_x": {
+          "$numberDouble": "-10.0"
+        },
+        "boundary_max_x": {
+          "$numberDouble": "10.0"
+        },
+        "boundary_min_y": {
+          "$numberDouble": "0.0"
+        },
+        "boundary_max_y": {
+          "$numberDouble": "5.0"
+        },
+        "boundary_min_z": {
+          "$numberDouble": "-10.0"
+        },
+        "boundary_max_z": {
+          "$numberDouble": "10.0"
+        }
+      }
+    },
+    {
+      "model": "Wall",
+      "collection": "wall",
+      "document": {
+        "_id": {
+          "$oid": "00000000000000000000000b"
+        },
+        "name": "migration-rotated-wall",
+        "description": "Synthetic surface",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "room": {
+          "$oid": "000000000000000000000001"
+        },
+        "images": [
+          {
+            "$oid": "000000000000000000000015"
+          }
+        ],
+        "splats": [
+          {
+            "$oid": "000000000000000000000016"
+          }
+        ],
+        "gltfs": [],
+        "webpages": [],
+        "position": "0 1.5 -3",
+        "rotation": "0 37 0",
+        "width": {
+          "$numberDouble": "6.0"
+        },
+        "height": {
+          "$numberDouble": "4.0"
+        },
+        "depth": {
+          "$numberDouble": "0.2"
+        },
+        "image_url": "http://127.0.0.1:8766/image.png",
+        "video_url": "http://127.0.0.1:8766/video.mp4",
+        "surface_type": "wall"
+      }
+    },
+    {
+      "model": "Wall",
+      "collection": "wall",
+      "document": {
+        "_id": {
+          "$oid": "00000000000000000000000c"
+        },
+        "name": "migration-floor",
+        "description": "Synthetic surface",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "room": {
+          "$oid": "000000000000000000000001"
+        },
+        "images": [],
+        "splats": [],
+        "gltfs": [
+          {
+            "$oid": "000000000000000000000017"
+          }
+        ],
+        "webpages": [],
+        "position": "0 1.5 -3",
+        "rotation": "-90 0 0",
+        "width": {
+          "$numberDouble": "6.0"
+        },
+        "height": {
+          "$numberDouble": "4.0"
+        },
+        "depth": {
+          "$numberDouble": "0.2"
+        },
+        "image_url": "http://127.0.0.1:8766/image.png",
+        "video_url": "",
+        "surface_type": "floor"
+      }
+    },
+    {
+      "model": "Wall",
+      "collection": "wall",
+      "document": {
+        "_id": {
+          "$oid": "00000000000000000000000d"
+        },
+        "name": "migration-ceiling",
+        "description": "Synthetic surface",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "room": {
+          "$oid": "000000000000000000000001"
+        },
+        "images": [],
+        "splats": [],
+        "gltfs": [],
+        "webpages": [
+          {
+            "$oid": "000000000000000000000018"
+          },
+          {
+            "$oid": "000000000000000000000019"
+          }
+        ],
+        "position": "0 1.5 -3",
+        "rotation": "90 0 0",
+        "width": {
+          "$numberDouble": "6.0"
+        },
+        "height": {
+          "$numberDouble": "4.0"
+        },
+        "depth": {
+          "$numberDouble": "0.2"
+        },
+        "image_url": "http://127.0.0.1:8766/image.png",
+        "video_url": "",
+        "surface_type": "ceiling"
+      }
+    },
+    {
+      "model": "Image",
+      "collection": "image",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000015"
+        },
+        "_cls": "Image",
+        "name": "migration-image",
+        "description": "Synthetic artwork",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "wall": {
+          "$oid": "00000000000000000000000b"
+        },
+        "position": "0 0 0",
+        "position_x": {
+          "$numberDouble": "0.5"
+        },
+        "position_y": {
+          "$numberDouble": "0.25"
+        },
+        "scale_x": {
+          "$numberDouble": "0.8"
+        },
+        "scale_y": {
+          "$numberDouble": "1.2"
+        },
+        "scale_z": {
+          "$numberDouble": "1.0"
+        },
+        "rotation_x": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_y": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_z": {
+          "$numberDouble": "12.0"
+        },
+        "image_url": "http://127.0.0.1:8766/image.png",
+        "width": {
+          "$numberDouble": "1.0"
+        },
+        "height": {
+          "$numberDouble": "1.0"
+        },
+        "wall_element_type": "image"
+      }
+    },
+    {
+      "model": "GaussianSplat",
+      "collection": "gaussian_splat",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000016"
+        },
+        "_cls": "GaussianSplat",
+        "name": "migration-splat",
+        "description": "Synthetic artwork",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "wall": {
+          "$oid": "00000000000000000000000b"
+        },
+        "position": "0 0 0",
+        "position_x": {
+          "$numberDouble": "0.5"
+        },
+        "position_y": {
+          "$numberDouble": "0.25"
+        },
+        "scale_x": {
+          "$numberDouble": "0.8"
+        },
+        "scale_y": {
+          "$numberDouble": "1.2"
+        },
+        "scale_z": {
+          "$numberDouble": "1.0"
+        },
+        "rotation_x": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_y": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_z": {
+          "$numberDouble": "12.0"
+        },
+        "splat_url": "http://127.0.0.1:8766/cloud.splat",
+        "cutout_scale": "0.5 0.5 0.5",
+        "cutout_position": "0 0 0",
+        "wall_element_type": "gaussian_splat"
+      }
+    },
+    {
+      "model": "GLTFmodel",
+      "collection": "g_l_t_fmodel",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000017"
+        },
+        "_cls": "GLTFmodel",
+        "name": "migration-model",
+        "description": "Synthetic artwork",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "wall": {
+          "$oid": "00000000000000000000000c"
+        },
+        "position": "0 0 0",
+        "position_x": {
+          "$numberDouble": "0.5"
+        },
+        "position_y": {
+          "$numberDouble": "0.25"
+        },
+        "scale_x": {
+          "$numberDouble": "0.8"
+        },
+        "scale_y": {
+          "$numberDouble": "1.2"
+        },
+        "scale_z": {
+          "$numberDouble": "1.0"
+        },
+        "rotation_x": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_y": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_z": {
+          "$numberDouble": "12.0"
+        },
+        "gltf_url": "http://127.0.0.1:8766/triangle.glb",
+        "default_rotation": "0 180 0",
+        "wall_element_type": "gltf",
+        "position_z": {
+          "$numberDouble": "0.1"
+        }
+      }
+    },
+    {
+      "model": "Webpage",
+      "collection": "webpage",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000018"
+        },
+        "_cls": "Webpage",
+        "name": "migration-webpage",
+        "description": "Synthetic artwork",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "wall": {
+          "$oid": "00000000000000000000000d"
+        },
+        "position": "0 0 0",
+        "position_x": {
+          "$numberDouble": "0.5"
+        },
+        "position_y": {
+          "$numberDouble": "0.25"
+        },
+        "scale_x": {
+          "$numberDouble": "0.8"
+        },
+        "scale_y": {
+          "$numberDouble": "1.2"
+        },
+        "scale_z": {
+          "$numberDouble": "1.0"
+        },
+        "rotation_x": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_y": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_z": {
+          "$numberDouble": "12.0"
+        },
+        "webpage_url": "http://127.0.0.1:8766/frame-allowed.html",
+        "width": {
+          "$numberDouble": "2.0"
+        },
+        "height": {
+          "$numberDouble": "1.0"
+        },
+        "wall_element_type": "webpage"
+      }
+    },
+    {
+      "model": "Webpage",
+      "collection": "webpage",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000019"
+        },
+        "_cls": "Webpage",
+        "name": "migration-blocked-webpage",
+        "description": "Synthetic artwork",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "updated_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "wall": {
+          "$oid": "00000000000000000000000d"
+        },
+        "position": "0 0 0",
+        "position_x": {
+          "$numberDouble": "0.5"
+        },
+        "position_y": {
+          "$numberDouble": "0.25"
+        },
+        "scale_x": {
+          "$numberDouble": "0.8"
+        },
+        "scale_y": {
+          "$numberDouble": "1.2"
+        },
+        "scale_z": {
+          "$numberDouble": "1.0"
+        },
+        "rotation_x": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_y": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_z": {
+          "$numberDouble": "12.0"
+        },
+        "webpage_url": "http://127.0.0.1:8766/frame-blocked.html",
+        "width": {
+          "$numberDouble": "2.0"
+        },
+        "height": {
+          "$numberDouble": "1.0"
+        },
+        "wall_element_type": "webpage"
+      }
+    },
+    {
+      "model": "LocationPreset",
+      "collection": "location_preset",
+      "document": {
+        "_id": {
+          "$oid": "00000000000000000000001f"
+        },
+        "name": "Migration spawn",
+        "room": {
+          "$oid": "000000000000000000000001"
+        },
+        "position_x": {
+          "$numberDouble": "0.0"
+        },
+        "position_y": {
+          "$numberDouble": "1.6"
+        },
+        "position_z": {
+          "$numberDouble": "2.0"
+        },
+        "rotation_x": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_y": {
+          "$numberDouble": "0.0"
+        },
+        "rotation_z": {
+          "$numberDouble": "0.0"
+        },
+        "is_default": true,
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        }
+      }
+    },
+    {
+      "model": "Marker",
+      "collection": "marker",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000020"
+        },
+        "name": "Migration Hiro",
+        "room": {
+          "$oid": "000000000000000000000001"
+        },
+        "marker_type": "hiro",
+        "marker_value": "hiro",
+        "target_position_x": {
+          "$numberDouble": "0.0"
+        },
+        "target_position_y": {
+          "$numberDouble": "1.6"
+        },
+        "target_position_z": {
+          "$numberDouble": "0.0"
+        },
+        "target_rotation_x": {
+          "$numberDouble": "0.0"
+        },
+        "target_rotation_y": {
+          "$numberDouble": "0.0"
+        },
+        "target_rotation_z": {
+          "$numberDouble": "0.0"
+        },
+        "target_preset": {
+          "$oid": "00000000000000000000001f"
+        },
+        "offset_x": {
+          "$numberDouble": "0.0"
+        },
+        "offset_y": {
+          "$numberDouble": "0.0"
+        },
+        "offset_z": {
+          "$numberDouble": "0.0"
+        },
+        "is_active": true,
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        }
+      }
+    },
+    {
+      "model": "RoomEffect",
+      "collection": "room_effect",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000021"
+        },
+        "room": {
+          "$oid": "000000000000000000000001"
+        },
+        "effect_type": "pulse",
+        "target_id": "000000000000000000000015",
+        "params": {
+          "color": "#ffaa00",
+          "intensity": {
+            "$numberDouble": "0.5"
+          },
+          "duration": {
+            "$numberInt": "2"
+          }
+        },
+        "created_by": "synthetic-admin",
+        "created_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        },
+        "expires_at": {
+          "$date": {
+            "$numberLong": "1893456000000"
+          }
+        },
+        "active": true
+      }
+    },
+    {
+      "model": "User",
+      "collection": "users",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000029"
+        },
+        "email": "admin@migration.invalid",
+        "name": "Synthetic admin",
+        "password": "$2b$12$ZS22lmY6Xdz/b2jl2.FU3.Toyajxxht/Y9MZBgIeH0Fp/o/gNaTey",
+        "user_type": [
+          "admin"
+        ],
+        "email_verified": true
+      }
+    },
+    {
+      "model": "User",
+      "collection": "users",
+      "document": {
+        "_id": {
+          "$oid": "00000000000000000000002a"
+        },
+        "email": "visitor@migration.invalid",
+        "name": "Synthetic nonadmin",
+        "password": "$2b$12$ZS22lmY6Xdz/b2jl2.FU3.Toyajxxht/Y9MZBgIeH0Fp/o/gNaTey",
+        "user_type": [],
+        "email_verified": true
+      }
+    },
+    {
+      "model": "LLMConfig",
+      "collection": "llm_configs",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000033"
+        },
+        "provider": "openai",
+        "api_base": "http://127.0.0.1:8766/v1",
+        "api_key": "SYNTHETIC-SECRET-NOT-FOR-PUBLIC",
+        "model": "fixture-model",
+        "temperature": {
+          "$numberDouble": "0.3"
+        },
+        "max_tokens": {
+          "$numberInt": "1024"
+        },
+        "is_active": true,
+        "updated_at": "2026-10-29T00:00:00"
+      }
+    },
+    {
+      "model": "WhisperConfig",
+      "collection": "whisper_configs",
+      "document": {
+        "_id": {
+          "$oid": "000000000000000000000034"
+        },
+        "provider": "local",
+        "api_base": "http://127.0.0.1:8766/v1",
+        "api_key": "SYNTHETIC-STT-SECRET-NOT-FOR-PUBLIC",
+        "model": "whisper-1",
+        "language": "",
+        "enabled": true,
+        "updated_at": "2026-10-29T00:00:00"
+      }
+    },
+    {
+      "model": "OnlineUser",
+      "collection": "online_user",
+      "document": {
+        "_id": {
+          "$oid": "00000000000000000000003d"
+        },
+        "session_id": "synthetic-camera-session",
+        "camera_position": {
+          "x": {
+            "$numberInt": "0"
+          },
+          "y": {
+            "$numberDouble": "1.6"
+          },
+          "z": {
+            "$numberInt": "2"
+          }
+        },
+        "camera_rotation": {
+          "x": {
+            "$numberInt": "0"
+          },
+          "y": {
+            "$numberInt": "90"
+          },
+          "z": {
+            "$numberInt": "0"
+          }
+        },
+        "left_hand": {
+          "wrist": {
+            "x": {
+              "$numberInt": "0"
+            },
+            "y": {
+              "$numberInt": "1"
+            },
+            "z": {
+              "$numberInt": "0"
+            }
+          }
+        },
+        "right_hand": {},
+        "hand_tracking_enabled": {
+          "enabled": true,
+          "device": "fixture"
+        },
+        "update_time": {
+          "$date": {
+            "$numberLong": "1793232000000"
+          }
+        }
+      }
+    }
+  ],
+  "local_credentials": {
+    "password": "Migration-local-123!",
+    "admin": "admin@migration.invalid",
+    "nonadmin": "visitor@migration.invalid"
+  }
+}

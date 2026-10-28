@@ -1,0 +1,4040 @@
+{
+  "format_version": 1,
+  "captured_from": "registered Flask url_map; no declaration-count approximation",
+  "route_count": 155,
+  "admin_resources": [
+    {
+      "model": "Room",
+      "endpoint": "room",
+      "url": "/kwanri/room",
+      "collection": "room",
+      "auth": "admin session"
+    },
+    {
+      "model": "Wall",
+      "endpoint": "wall",
+      "url": "/kwanri/wall",
+      "collection": "wall",
+      "auth": "admin session"
+    },
+    {
+      "model": "Image",
+      "endpoint": "image",
+      "url": "/kwanri/image",
+      "collection": "image",
+      "auth": "admin session"
+    },
+    {
+      "model": "GaussianSplat",
+      "endpoint": "gaussiansplat",
+      "url": "/kwanri/gaussiansplat",
+      "collection": "gaussian_splat",
+      "auth": "admin session"
+    },
+    {
+      "model": "GLTFmodel",
+      "endpoint": "gltfmodel",
+      "url": "/kwanri/gltfmodel",
+      "collection": "g_l_t_fmodel",
+      "auth": "admin session"
+    },
+    {
+      "model": "Webpage",
+      "endpoint": "webpage",
+      "url": "/kwanri/webpage",
+      "collection": "webpage",
+      "auth": "admin session"
+    },
+    {
+      "model": "LocationPreset",
+      "endpoint": "locationpreset",
+      "url": "/kwanri/locationpreset",
+      "collection": "location_preset",
+      "auth": "admin session"
+    },
+    {
+      "model": "RoomEffect",
+      "endpoint": "roomeffect",
+      "url": "/kwanri/roomeffect",
+      "collection": "room_effect",
+      "auth": "admin session"
+    },
+    {
+      "model": "Marker",
+      "endpoint": "mm_marker_admin",
+      "url": "/kwanri/mm_marker_admin",
+      "collection": "marker",
+      "auth": "admin session"
+    },
+    {
+      "model": "LLMConfig",
+      "endpoint": "llmconfig",
+      "url": "/kwanri/llmconfig",
+      "collection": "llm_configs",
+      "auth": "admin session"
+    },
+    {
+      "model": "WhisperConfig",
+      "endpoint": "whisperconfig",
+      "url": "/kwanri/whisperconfig",
+      "collection": "whisper_configs",
+      "auth": "admin session"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.main_page",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 25,
+      "decorators": [
+        "bp.route('/')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "('Database unavailable. Please try again later.', 503)",
+        "render_template('link_list.html', all_rooms=all_rooms)"
+      ],
+      "source_explicit_statuses": [
+        503
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/api/apply-layout",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "llm_layout.apply_layout",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/llm_layout.py",
+      "line": 172,
+      "decorators": [
+        "bp.route('/apply-layout', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "data.get('arrangements', [])"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'Admin required'}), 403)",
+        "(jsonify({'error': 'arrangements required'}), 400)",
+        "jsonify({'results': results})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        403
+      ],
+      "implicit_return_status": 200,
+      "auth": "inline admin check; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/api/auto-effect",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "llm_layout.auto_effect",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/llm_layout.py",
+      "line": 212,
+      "decorators": [
+        "bp.route('/auto-effect', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "data.get('prompt', '')",
+        "data.get('prompt', '').strip()",
+        "data.get('room_id')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'Admin required'}), 403)",
+        "(jsonify({'error': 'Room not found'}), 404)",
+        "(jsonify({'error': 'prompt/instruction required'}), 400)",
+        "(jsonify({'error': 'room_id required'}), 400)",
+        "(jsonify({'error': explanation}), 500)",
+        "jsonify({'effects': results, 'explanation': explanation})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        403,
+        404,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "inline admin check; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/api/auto-layout",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "llm_layout.auto_layout",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/llm_layout.py",
+      "line": 46,
+      "decorators": [
+        "bp.route('/auto-layout', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "data.get('prompt', '')",
+        "data.get('prompt', '').strip()",
+        "data.get('room_id')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'Admin required'}), 403)",
+        "(jsonify({'error': 'No placeable elements found in room'}), 400)",
+        "(jsonify({'error': 'Room not found'}), 404)",
+        "(jsonify({'error': 'prompt/instruction required'}), 400)",
+        "(jsonify({'error': 'room_id required'}), 400)",
+        "(jsonify({'error': explanation}), 500)",
+        "jsonify({'arrangements': arrangements, 'explanation': explanation})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        403,
+        404,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "inline admin check; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/api/clear-effects",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "llm_layout.clear_effects",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/llm_layout.py",
+      "line": 315,
+      "decorators": [
+        "bp.route('/clear-effects', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "request.form.get('room_id')",
+        "request.json.get('room_id')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'Admin required'}), 403)",
+        "(jsonify({'error': 'room_id required'}), 400)",
+        "jsonify({'status': 'ok'})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        403
+      ],
+      "implicit_return_status": 200,
+      "auth": "inline admin check; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/api/transcribe",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "whisper.transcribe",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/whisper_views.py",
+      "line": 17,
+      "decorators": [
+        "bp.route('/transcribe', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "request.files['audio'].save(tmp_path)",
+        "request.form.get('audio_data', '')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'Transcription failed'}), 500)",
+        "(jsonify({'error': 'Whisper not enabled'}), 400)",
+        "(jsonify({'error': 'audio required'}), 400)",
+        "(jsonify({'error': str(e)}), 500)",
+        "jsonify({'text': result_text, 'language': config.language or 'auto'})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 400,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/api/whisper-config",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "endpoint": "whisper.whisper_config_endpoint",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/whisper_views.py",
+      "line": 59,
+      "decorators": [
+        "bp.route('/whisper-config', methods=['GET', 'PUT'])"
+      ],
+      "input_expressions": [
+        "data.get('api_base', 'https://api.openai.com/v1')",
+        "data.get('api_key', '')",
+        "data.get('enabled', False)",
+        "data.get('language', '')",
+        "data.get('model', 'whisper-1')",
+        "data.get('provider', 'openai')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'Admin required'}), 403)",
+        "jsonify({'provider': '', 'api_base': '', 'model': 'whisper-1', 'language': '', 'enabled': False})",
+        "jsonify({'provider': config.provider, 'api_base': config.api_base, 'model': config.model, 'language': config.language, 'enabled': config.enabled})",
+        "jsonify({'status': 'ok', 'enabled': config.enabled})"
+      ],
+      "source_explicit_statuses": [
+        403
+      ],
+      "implicit_return_status": 200,
+      "auth": "inline admin check; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        },
+        "PUT": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/ar-companion",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "ar_companion.companion_page",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/ar_companion_views.py",
+      "line": 10,
+      "decorators": [
+        "bp.route('')"
+      ],
+      "input_expressions": [
+        "request.args.get('room_id')"
+      ],
+      "response_expressions": [
+        "('Room not found', 404)",
+        "('room_id required', 400)",
+        "(f'Error: {e}', 500)",
+        "render_template('ar_companion.html', room_id=room_id, room_name=this_room.name, markers=marker_list)"
+      ],
+      "source_explicit_statuses": [
+        400,
+        404,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 400,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/ar-companion/status",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "ar_companion.status",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/ar_companion_views.py",
+      "line": 34,
+      "decorators": [
+        "bp.route('/status')"
+      ],
+      "input_expressions": [
+        "request.args.get('room_id')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'room_id required'}), 400)",
+        "jsonify({'room_id': room_id, 'phones_count': len(room.get('phones', set())), 'vision_pros_count': len(room.get('vision_pros', set())), 'has_pose': room.get('latest_pose') is not None})"
+      ],
+      "source_explicit_statuses": [
+        400
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 400,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/camera-data",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "main.receive_camera_data",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 128,
+      "decorators": [
+        "bp.route('/camera-data', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "data.get('handTrackingEnabled')",
+        "data.get('leftHand')",
+        "data.get('position')",
+        "data.get('rightHand')",
+        "data.get('rotation')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'position and rotation required'}), 400)",
+        "(jsonify({'error': 'rate limit exceeded'}), 429)",
+        "(jsonify({'error': 'server error'}), 500)",
+        "(jsonify({'error': 'userId required'}), 400)",
+        "jsonify({'status': 'success'})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        429,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 400,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/confirm/<token>",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "auth.confirm_email",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/auth.py",
+      "line": 113,
+      "decorators": [
+        "bp.route('/confirm/<token>')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "redirect(url_for('auth.register'))",
+        "redirect(url_for('auth.signin'))"
+      ],
+      "source_explicit_statuses": [
+        302
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/register"
+        }
+      }
+    },
+    {
+      "path": "/element",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.wall_element",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 224,
+      "decorators": [
+        "bp.route('/element')"
+      ],
+      "input_expressions": [
+        "request.args.get('avatar', 'shiba')",
+        "request.args.get('display_type')",
+        "request.args.get('type')",
+        "request.args.get('wall_element_id')"
+      ],
+      "response_expressions": [
+        "('Database unavailable', 503)",
+        "('Element not found', 404)",
+        "('define element type', 400)",
+        "('wall_element_id and type required', 400)",
+        "render_template('element.html', img_link=this_element.image_url, img_description=this_element.description)",
+        "render_template('element_aframe.html', aframe=this_element.to_aframe(), avatar=avatar, **extra)"
+      ],
+      "source_explicit_statuses": [
+        400,
+        404,
+        503
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 400,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/element/<element_id>/<element_type>",
+      "methods": [
+        "PATCH"
+      ],
+      "endpoint": "main.update_element",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 281,
+      "decorators": [
+        "bp.route('/element/<element_id>/<element_type>', methods=['PATCH'])",
+        "admin_required"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'Element not found'}), 404)",
+        "(jsonify({'error': 'JSON body required'}), 400)",
+        "(jsonify({'error': 'Unknown element type'}), 400)",
+        "(jsonify({'error': str(e)}), 500)",
+        "jsonify({'status': 'success', 'element_id': str(element._id)})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        404,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "admin session; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "PATCH": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/gesture-mark/api/gesture",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gesture_mark.api_gesture",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 221,
+      "decorators": [
+        "bp.route('/api/gesture', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "data.get('result_str', '')"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'JSON body required'}), 400)",
+        "jsonify({'status': 'ok', 'gesture': result_str})"
+      ],
+      "source_explicit_statuses": [
+        400
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 400,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/gesture-mark/api/state",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gesture_mark.api_state",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 233,
+      "decorators": [
+        "bp.route('/api/state')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "jsonify({'touchpoints': _latest_touchpoints[-100:], 'gesture_result': _gesture_result})"
+      ],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": [
+            "gesture_result",
+            "touchpoints"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/gesture-mark/api/touchpoint",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gesture_mark.api_touchpoint",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 203,
+      "decorators": [
+        "bp.route('/api/touchpoint', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "data.get('pressure', 0.5)",
+        "data.get('type', 'trace')",
+        "data.get('x', 0)",
+        "data.get('y', 0)"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'JSON body required'}), 400)",
+        "jsonify({'status': 'ok'})"
+      ],
+      "source_explicit_statuses": [
+        400
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 400,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/gesture-mark/stream",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gesture_mark.sse_stream",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 173,
+      "decorators": [
+        "bp.route('/stream')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "Response(generate(), mimetype='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})"
+      ],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed": {
+        "skipped": "SSE infinite response; source contract captured"
+      }
+    },
+    {
+      "path": "/gesture-mark/test",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gesture_mark.test_page",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 166,
+      "decorators": [
+        "bp.route('/test')"
+      ],
+      "input_expressions": [
+        "request.args.get('targets', 8, type=int)"
+      ],
+      "response_expressions": [
+        "render_template('gesture_mark_test.html', num_targets=num_targets)"
+      ],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/get-cameras",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.get_cameras",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 168,
+      "decorators": [
+        "bp.route('/get-cameras', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'rate limit exceeded'}), 429)",
+        "jsonify([])",
+        "jsonify(camera_positions)"
+      ],
+      "source_explicit_statuses": [
+        429
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": "array"
+        }
+      }
+    },
+    {
+      "path": "/health",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.health",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 35,
+      "decorators": [
+        "bp.route('/health')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'status': 'error', 'db': str(e)}), 503)",
+        "jsonify({'status': 'ok', 'db': 'connected'})"
+      ],
+      "source_explicit_statuses": [
+        503
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": [
+            "db",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/kwanri/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "admin.index",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gaussiansplat.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gaussiansplat.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gaussiansplat.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gaussiansplat.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gaussiansplat.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gaussiansplat.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gaussiansplat.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "gaussiansplat.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gaussiansplat.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gaussiansplat/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "gaussiansplat.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gaussiansplat/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gltfmodel.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gltfmodel.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gltfmodel.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gltfmodel.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gltfmodel.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "gltfmodel.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gltfmodel.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "gltfmodel.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "gltfmodel.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/gltfmodel/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "gltfmodel.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/gltfmodel/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "image.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "image.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "image.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "image.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "image.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "image.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "image.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "image.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "image.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/image/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "image.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/image/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "llmconfig.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "llmconfig.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "llmconfig.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "llmconfig.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "llmconfig.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "llmconfig.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "llmconfig.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "llmconfig.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "llmconfig.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/llmconfig/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "llmconfig.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/llmconfig/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "locationpreset.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "locationpreset.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "locationpreset.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "locationpreset.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "locationpreset.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "locationpreset.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "locationpreset.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "locationpreset.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "locationpreset.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/locationpreset/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "locationpreset.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/locationpreset/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "mm_marker_admin.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "mm_marker_admin.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "mm_marker_admin.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "mm_marker_admin.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "mm_marker_admin.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "mm_marker_admin.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "mm_marker_admin.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "mm_marker_admin.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "mm_marker_admin.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/mm_marker_admin/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "mm_marker_admin.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/mm_marker_admin/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "room.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "room.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "room.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "room.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "room.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "room.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "room.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "room.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "room.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/room/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "room.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/room/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "roomeffect.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "roomeffect.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "roomeffect.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "roomeffect.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "roomeffect.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "roomeffect.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "roomeffect.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "roomeffect.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "roomeffect.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/roomeffect/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "roomeffect.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/roomeffect/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/static/<path:filename>",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "admin.static",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 404,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "wall.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "wall.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "wall.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "wall.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "wall.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "wall.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "wall.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "wall.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "wall.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/wall/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "wall.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/wall/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "webpage.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "webpage.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "webpage.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "webpage.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "webpage.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "webpage.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "webpage.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "webpage.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "webpage.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/webpage/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "webpage.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/webpage/new/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "whisperconfig.index_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/action/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "whisperconfig.action_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/action/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/ajax/lookup/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "whisperconfig.ajax_lookup",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/ajax/lookup/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/ajax/update/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "whisperconfig.ajax_update",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/ajax/update/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/api/file/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "whisperconfig.api_file_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/api/file/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/delete/",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "whisperconfig.delete_view",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/delete/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/details/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "whisperconfig.details_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/details/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/edit/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "whisperconfig.edit_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/edit/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/edit/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/export/<export_type>/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "whisperconfig.export",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/export/synthetic-missing/"
+        }
+      }
+    },
+    {
+      "path": "/kwanri/whisperconfig/new/",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "whisperconfig.create_view",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "admin session; otherwise 302 signin?next=<request.url>",
+      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/new/"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next=http://localhost/kwanri/whisperconfig/new/"
+        }
+      }
+    },
+    {
+      "path": "/logout",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "auth.logout",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/auth.py",
+      "line": 142,
+      "decorators": [
+        "bp.route('/logout')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "redirect(url_for('main.main_page'))"
+      ],
+      "source_explicit_statuses": [
+        302
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/"
+        }
+      }
+    },
+    {
+      "path": "/marker/<marker_id>",
+      "methods": [
+        "DELETE"
+      ],
+      "endpoint": "marker.delete_marker",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/marker_views.py",
+      "line": 70,
+      "decorators": [
+        "bp.route('/<marker_id>', methods=['DELETE'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'Marker not found'}), 404)",
+        "err",
+        "jsonify({'status': 'deleted'})"
+      ],
+      "source_explicit_statuses": [
+        404
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "DELETE": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/marker/<marker_id>",
+      "methods": [
+        "PUT"
+      ],
+      "endpoint": "marker.update_marker",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/marker_views.py",
+      "line": 41,
+      "decorators": [
+        "bp.route('/<marker_id>', methods=['PUT'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'Marker not found'}), 404)",
+        "(jsonify({'error': str(e)}), 400)",
+        "err",
+        "jsonify(marker.to_dict())"
+      ],
+      "source_explicit_statuses": [
+        400,
+        404
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "PUT": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/marker/<marker_id>/config",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "marker.get_marker_config",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/marker_views.py",
+      "line": 21,
+      "decorators": [
+        "bp.route('/<marker_id>/config', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'Marker not found'}), 404)",
+        "jsonify(marker.to_dict())"
+      ],
+      "source_explicit_statuses": [
+        404
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": [
+            "id",
+            "is_active",
+            "marker_type",
+            "marker_value",
+            "name",
+            "offset",
+            "preset_name",
+            "target_position",
+            "target_rotation"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/marker/by-value/<marker_type>/<marker_value>",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "marker.get_marker_by_value",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/marker_views.py",
+      "line": 31,
+      "decorators": [
+        "bp.route('/by-value/<marker_type>/<marker_value>', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'Marker not found'}), 404)",
+        "jsonify(marker.to_dict())"
+      ],
+      "source_explicit_statuses": [
+        404
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": [
+            "id",
+            "is_active",
+            "marker_type",
+            "marker_value",
+            "name",
+            "offset",
+            "preset_name",
+            "target_position",
+            "target_rotation"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/marker/room/<room_id>/markers",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "marker.list_markers",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/marker_views.py",
+      "line": 14,
+      "decorators": [
+        "bp.route('/room/<room_id>/markers', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "jsonify([m.to_dict() for m in markers])"
+      ],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": "array"
+        }
+      }
+    },
+    {
+      "path": "/preset/<preset_id>",
+      "methods": [
+        "DELETE"
+      ],
+      "endpoint": "main.delete_preset",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 387,
+      "decorators": [
+        "bp.route('/preset/<preset_id>', methods=['DELETE'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'Preset not found'}), 404)",
+        "(jsonify({'error': 'admin login required'}), 403)",
+        "(jsonify({'error': str(e)}), 500)",
+        "jsonify({'status': 'success'})"
+      ],
+      "source_explicit_statuses": [
+        403,
+        404,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "inline admin check; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "DELETE": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/protected",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "auth.protected",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/auth.py",
+      "line": 137,
+      "decorators": [
+        "bp.route('/protected')",
+        "login_required"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "'Logged in as: ' + current_user.email"
+      ],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "auth": "authenticated; redirect signin",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin"
+        }
+      }
+    },
+    {
+      "path": "/register",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "auth.register",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/auth.py",
+      "line": 86,
+      "decorators": [
+        "bp.route('/register', methods=['GET', 'POST'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "redirect(url_for('auth.signin'))"
+      ],
+      "source_explicit_statuses": [
+        302
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin"
+        }
+      }
+    },
+    {
+      "path": "/room",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.room",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 49,
+      "decorators": [
+        "bp.route('/room')"
+      ],
+      "input_expressions": [
+        "request.args.get('ar')",
+        "request.args.get('debug')",
+        "request.args.get('preset')",
+        "request.args.get('room_id')"
+      ],
+      "response_expressions": [
+        "('Database unavailable', 503)",
+        "('Room not found', 404)",
+        "('room_id required', 400)",
+        "render_template('room_aframe.html', aframe_list=aframe_list, camera_d=3, avatar='shiba', visitor_capability_url=url_for('main.create_visitor_capability'), avatar_catalog=sorted(AVATAR_IDS), drag_enabled=drag_enabled, presets=preset_list, spawn_preset=selected, boundary=boundary, is_ar_marker=is_ar_marker, is_ar_companion=is_ar_companion, room_id=room_id, wall_list=wall_list, sync_debug=sync_debug)"
+      ],
+      "source_explicit_statuses": [
+        400,
+        404,
+        503
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 400,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/room/<room_id>/boundary",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.get_room_boundary",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 405,
+      "decorators": [
+        "bp.route('/room/<room_id>/boundary', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': 'Room not found'}), 404)",
+        "(jsonify({'error': str(e)}), 500)",
+        "jsonify({'min_x': room.boundary_min_x, 'max_x': room.boundary_max_x, 'min_y': room.boundary_min_y, 'max_y': room.boundary_max_y, 'min_z': room.boundary_min_z, 'max_z': room.boundary_max_z})"
+      ],
+      "source_explicit_statuses": [
+        404,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": [
+            "max_x",
+            "max_y",
+            "max_z",
+            "min_x",
+            "min_y",
+            "min_z"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/room/<room_id>/preset",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "main.create_preset",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 349,
+      "decorators": [
+        "bp.route('/room/<room_id>/preset', methods=['POST'])"
+      ],
+      "input_expressions": [
+        "data.get('description', '')",
+        "data.get('is_default')",
+        "data.get('is_default', False)",
+        "data.get('position_x', 0)",
+        "data.get('position_y', 1.6)",
+        "data.get('position_z', 0)",
+        "data.get('rotation_x', 0)",
+        "data.get('rotation_y', 0)",
+        "data.get('rotation_z', 0)"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'Room not found'}), 404)",
+        "(jsonify({'error': 'admin login required'}), 403)",
+        "(jsonify({'error': 'name required'}), 400)",
+        "(jsonify({'error': str(e)}), 500)",
+        "jsonify({'status': 'success', 'preset': preset.to_dict()})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        403,
+        404,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "inline admin check; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/room/<room_id>/presets",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.get_room_presets",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 338,
+      "decorators": [
+        "bp.route('/room/<room_id>/presets', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': str(e)}), 500)",
+        "jsonify([p.to_dict() for p in presets])"
+      ],
+      "source_explicit_statuses": [
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": "array"
+        }
+      }
+    },
+    {
+      "path": "/signin",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "endpoint": "auth.signin",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/auth.py",
+      "line": 58,
+      "decorators": [
+        "bp.route('/signin', methods=['GET', 'POST'])"
+      ],
+      "input_expressions": [
+        "request.args.get('next')",
+        "request.args.get('next', '')"
+      ],
+      "response_expressions": [
+        "abort(400)",
+        "redirect(next_page or url_for('main.main_page'))",
+        "redirect(signin_url)",
+        "render_template('auth/signin.html', form=form)"
+      ],
+      "source_explicit_statuses": [
+        302
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "text/html"
+        },
+        "POST": {
+          "status": 302,
+          "content_type": "text/html",
+          "location": "/signin?next="
+        }
+      }
+    },
+    {
+      "path": "/static/<path:filename>",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "static",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "auth": "public static file",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 404,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/stream/list",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "stream.list_streams",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/stream_views.py",
+      "line": 122,
+      "decorators": [
+        "bp.route('/list', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "jsonify(active)"
+      ],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 200,
+          "content_type": "application/json",
+          "json_shape": "array"
+        }
+      }
+    },
+    {
+      "path": "/stream/playlist/<stream_id>",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "stream.get_playlist",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/stream_views.py",
+      "line": 88,
+      "decorators": [
+        "bp.route('/playlist/<stream_id>', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "('Stream not found', 404)",
+        "Response(stream_with_context(generate()), mimetype='application/vnd.apple.mpegurl')",
+        "_invalid_stream_id_response()"
+      ],
+      "source_explicit_statuses": [
+        404
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 404,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/stream/push/<stream_id>",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "stream.push_chunk",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/stream_views.py",
+      "line": 28,
+      "decorators": [
+        "bp.route('/push/<stream_id>', methods=['POST'])",
+        "admin_required"
+      ],
+      "input_expressions": [
+        "request.form.get('idx', 0)"
+      ],
+      "response_expressions": [
+        "('chunk required', 400)",
+        "(str(e), 500)",
+        "_invalid_stream_id_response()",
+        "jsonify({'status': 'ok', 'idx': chunk_idx})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "admin session; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/stream/segment/<stream_id>/<segment>",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "stream.get_segment",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/stream_views.py",
+      "line": 106,
+      "decorators": [
+        "bp.route('/segment/<stream_id>/<segment>', methods=['GET'])"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "('Segment not found', 404)",
+        "(jsonify({'error': 'Invalid segment'}), 400)",
+        "_invalid_stream_id_response()",
+        "send_from_directory(segment_path.parent, segment)"
+      ],
+      "source_explicit_statuses": [
+        400,
+        404
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 404,
+          "content_type": "text/html"
+        }
+      }
+    },
+    {
+      "path": "/stream/start-rtsp",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "stream.start_rtsp",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/stream_views.py",
+      "line": 50,
+      "decorators": [
+        "bp.route('/start-rtsp', methods=['POST'])",
+        "admin_required"
+      ],
+      "input_expressions": [
+        "data.get('rtsp_url')",
+        "data.get('stream_id', 'cam1')",
+        "request.get_json(silent=True)"
+      ],
+      "response_expressions": [
+        "(jsonify({'error': 'rtsp_url required'}), 400)",
+        "(jsonify({'error': str(e)}), 500)",
+        "_invalid_stream_id_response()",
+        "jsonify({'status': 'started', 'stream_id': stream_id, 'url': playlist_url})"
+      ],
+      "source_explicit_statuses": [
+        400,
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "admin session; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/stream/stop/<stream_id>",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "stream.stop_stream_endpoint",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/stream_views.py",
+      "line": 73,
+      "decorators": [
+        "bp.route('/stop/<stream_id>', methods=['POST'])",
+        "admin_required"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify({'error': str(e)}), 500)",
+        "_invalid_stream_id_response()",
+        "jsonify({'status': 'stopped'})"
+      ],
+      "source_explicit_statuses": [
+        500
+      ],
+      "implicit_return_status": 200,
+      "auth": "admin session; JSON 403",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 403,
+          "content_type": "application/json",
+          "json_shape": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/visitor-capability",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "main.create_visitor_capability",
+      "automatic_methods": [
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 44,
+      "decorators": [
+        "bp.post('/visitor-capability')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [
+        "(jsonify(issue_visitor_capability()), 201)"
+      ],
+      "source_explicit_statuses": [
+        201
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "POST": {
+          "status": 201,
+          "content_type": "application/json",
+          "json_shape": [
+            "capability",
+            "visitorId"
+          ]
+        }
+      }
+    },
+    {
+      "path": "/wall",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main.wall",
+      "automatic_methods": [
+        "HEAD",
+        "OPTIONS"
+      ],
+      "source": "flask_server/app/metamuseum/views/main_views.py",
+      "line": 195,
+      "decorators": [
+        "bp.route('/wall')"
+      ],
+      "input_expressions": [
+        "request.args.get('refresh')",
+        "request.args.get('wall_id')"
+      ],
+      "response_expressions": [
+        "('Database unavailable', 503)",
+        "('Wall not found', 404)",
+        "('wall_id required', 400)",
+        "resp"
+      ],
+      "source_explicit_statuses": [
+        400,
+        404,
+        503
+      ],
+      "implicit_return_status": 200,
+      "auth": "public",
+      "observed_anonymous_missing_or_default_input": {
+        "GET": {
+          "status": 400,
+          "content_type": "text/html"
+        }
+      }
+    }
+  ],
+  "synthetic_login_observations": {
+    "real_bcrypt_admin_signin": 302,
+    "admin_kwanri": 200,
+    "real_bcrypt_nonadmin_signin": 302,
+    "nonadmin_kwanri": 302,
+    "admin_whisper_settings": 200,
+    "nonadmin_whisper_settings": 403,
+    "settings_excludes_api_key": true
+  }
+}

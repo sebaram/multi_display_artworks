@@ -1,0 +1,12 @@
+127.0.0.1 - - [29/Oct/2026 00:33:27] "GET /cloud.splat HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /frame-allowed.html HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /frame-blocked.html HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /image.png HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /playlist.m3u8 HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /segment00.ts HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /segment01.ts HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /segment02.ts HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /triangle.glb HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /video.mp4 HTTP/1.1" 200 -
+127.0.0.1 - - [29/Oct/2026 00:33:28] "GET /video.mp4 HTTP/1.1" 206 -
+PASS: 10 local files served with CORS; blocked/allowed frame policies; MP4 range206; valid GLB/splat structures; MP4 and HLS fully decoded

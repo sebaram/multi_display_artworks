@@ -1,0 +1,56 @@
+{
+  "generator": "generate_media.py; imageio-ffmpeg 0.7.0 bundled FFmpeg",
+  "note": "Observed output hashes; cross-platform encoders may differ. No downloaded media.",
+  "files": [
+    {
+      "path": "cloud.splat",
+      "size": 16384,
+      "sha256": "b434b1dca1f2d793b38990fa86196ca33185ffc450ce2d9b072fa99123b3fb5d"
+    },
+    {
+      "path": "frame-allowed.html",
+      "size": 209,
+      "sha256": "1462a485384a30f02151acbb234269056b12bf9e3c380da1548839c9d12d613b"
+    },
+    {
+      "path": "frame-blocked.html",
+      "size": 209,
+      "sha256": "342323d88a6b6232c823c588836a82ac209827b17ceca275a60ed098809536c3"
+    },
+    {
+      "path": "image.png",
+      "size": 409,
+      "sha256": "4a276a7a34536fc2a69929befc18b6e9de48ed57856a85c87a27ba882064f102"
+    },
+    {
+      "path": "playlist.m3u8",
+      "size": 181,
+      "sha256": "e704d77a59c76d59c666f51d331e734e63dc7874931f821973f59bbc5fa70625"
+    },
+    {
+      "path": "segment00.ts",
+      "size": 56212,
+      "sha256": "b26f8d3e5d2254186ce25547e2a96795eb4ccb96489471fee696e79f3d70e5af"
+    },
+    {
+      "path": "segment01.ts",
+      "size": 60724,
+      "sha256": "60b7d9878273049d3864b313d45bcefde6a5590a41342234ba6132d4a66d5fc8"
+    },
+    {
+      "path": "segment02.ts",
+      "size": 57716,
+      "sha256": "2c7810ca50c0411c1a65c92de3dd080ec8f4d5298bffad9ea360c804321908c0"
+    },
+    {
+      "path": "triangle.glb",
+      "size": 620,
+      "sha256": "f94a7fdebae16323a0a68bf753f2a5eb27c0d326c01cff5c1b4ad742ca578dc3"
+    },
+    {
+      "path": "video.mp4",
+      "size": 153172,
+      "sha256": "b3b06fcad8b996ac506f02d84384cf1dd6a30263a619b1dfae86b6935406f8c9"
+    }
+  ]
+}

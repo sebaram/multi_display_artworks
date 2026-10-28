@@ -1,0 +1,7 @@
+Command: .venv/Scripts/python.exe -m unittest discover -s backend/tests/fixtures -p test_fixture_guard.py
+Stage: tests written before isolated_db.py existed (expected red, 2026-10-29)
+ImportError: Failed to import test module: test_fixture_guard
+ModuleNotFoundError: No module named 'isolated_db'
+Ran 1 test in 0.000s
+FAILED (errors=1)
+After isolated_db.py implementation: 3 tests passed; wrong DB, external URI/port, missing/wrong marker and wrong actual server refused before drop_database.

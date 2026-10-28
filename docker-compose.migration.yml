@@ -1,0 +1,17 @@
+name: metamuseum-migration
+services:
+  mongo:
+    image: mongo:7
+    container_name: metamuseum-migration-mongo
+    ports:
+      - "127.0.0.1:27028:27017"
+    volumes:
+      - migration-mongo:/data/db
+      - ./backend/tests/fixtures/mongo-init.js:/docker-entrypoint-initdb.d/00-migration-marker.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+volumes:
+  migration-mongo:

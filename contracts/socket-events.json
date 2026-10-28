@@ -1,0 +1,536 @@
+{
+  "format_version": 1,
+  "namespace": "/",
+  "registered_handlers": [
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 104,
+      "decorators": [
+        "sio.on('connect')"
+      ],
+      "input_expressions": [
+        "auth.get('visitorCapability')"
+      ],
+      "response_expressions": [
+        "False",
+        "None"
+      ],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "connect",
+      "emits": [],
+      "auth": "Missing visitorCapability permits device-only connection; invalid capability rejects; valid signed capability binds visitorId"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 114,
+      "decorators": [
+        "sio.on('disconnect')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "disconnect",
+      "emits": [
+        "sio.emit('user_left', event, room=event['room_id'])"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 230,
+      "decorators": [
+        "sio.on('expression')"
+      ],
+      "input_expressions": [
+        "data.get('expression', '')",
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "expression",
+      "emits": [
+        "sio.emit('expression', {'userId': user_id, 'expression': data.get('expression', ''), 'room_id': room_id}, room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 155,
+      "decorators": [
+        "sio.on('gesture_mark.clear')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "gesture_mark.clear",
+      "emits": [
+        "sio.emit('gesture_mark.clear', {}, room='gesture_mark')"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 134,
+      "decorators": [
+        "sio.on('gesture_mark.gesture')"
+      ],
+      "input_expressions": [
+        "data.get('result_str', '')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "gesture_mark.gesture",
+      "emits": [
+        "sio.emit('gesture_mark.gesture', {'result_str': result_str, 'timestamp': time.time()}, room='gesture_mark', skip_sid=request.sid)"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 107,
+      "decorators": [
+        "sio.on('gesture_mark.join')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "gesture_mark.join",
+      "emits": [
+        "sio.emit('gesture_mark.state', {'touchpoints': _latest_touchpoints[-100:], 'gesture_result': _gesture_result}, room=request.sid)"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 144,
+      "decorators": [
+        "sio.on('gesture_mark.target_select')"
+      ],
+      "input_expressions": [
+        "data.get('step', 0)",
+        "data.get('target_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "gesture_mark.target_select",
+      "emits": [
+        "sio.emit('gesture_mark.target_select', {'target_id': target_id, 'step': step, 'timestamp': time.time()}, room='gesture_mark', skip_sid=request.sid)"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/views/gesture_mark_views.py",
+      "line": 119,
+      "decorators": [
+        "sio.on('gesture_mark.touchpoint')"
+      ],
+      "input_expressions": [
+        "data.get('pressure', 0.5)",
+        "data.get('type', 'trace')",
+        "data.get('x', 0)",
+        "data.get('y', 0)"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "gesture_mark.touchpoint",
+      "emits": [
+        "sio.emit('gesture_mark.touchpoint', point, room='gesture_mark', skip_sid=request.sid)"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/ar_proxy.py",
+      "line": 55,
+      "decorators": [
+        "sio.on('join_ar_room')"
+      ],
+      "input_expressions": [
+        "data.get('device', 'phone')",
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "join_ar_room",
+      "emits": [
+        "emit('joined', {'status': 'ok', 'room_id': room_id, 'device': device_type, 'phones_count': len(room['phones']), 'vision_pros_count': len(room['vision_pros'])})",
+        "emit('pose_update', room['latest_pose'])"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 128,
+      "decorators": [
+        "sio.on('join_position_room')"
+      ],
+      "input_expressions": [
+        "data.get('position', '0 1.6 0')",
+        "data.get('profile')",
+        "data.get('room_id')",
+        "data.get('rotation', '0 0 0')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "join_position_room",
+      "emits": [
+        "sio.emit('room_state', {'users': existing_users, 'room_id': room_id}, room=request.sid)",
+        "sio.emit('user_joined', {'userId': presence['userId'], 'displayName': presence['displayName'], 'avatarId': presence['avatarId'], 'color': presence['color'], 'room_id': room_id}, room=room_id, skip_sid=request.sid)",
+        "sio.emit('voice.displaced', {'room_id': room_id}, room=displaced_sid)",
+        "sio.emit('voice.leave', {'room_id': room_id, 'userId': visitor_id}, room=room_id, skip_sid=request.sid)",
+        "sio.emit('position_update', dict(presence, room_id=room_id), room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/ar_proxy.py",
+      "line": 87,
+      "decorators": [
+        "sio.on('leave_ar_room')"
+      ],
+      "input_expressions": [
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "leave_ar_room",
+      "emits": [],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 176,
+      "decorators": [
+        "sio.on('leave_position_room')"
+      ],
+      "input_expressions": [
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "leave_position_room",
+      "emits": [
+        "sio.emit('user_left', event, room=room_id)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/ar_proxy.py",
+      "line": 96,
+      "decorators": [
+        "sio.on('marker_update')"
+      ],
+      "input_expressions": [
+        "data.get('marker_id')",
+        "data.get('pose', {})",
+        "data.get('room_id')",
+        "data.get('update_type')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "marker_update",
+      "emits": [
+        "sio.emit('pose_update', room['latest_pose'], room=room_id, skip_sid=request.sid)",
+        "sio.emit('pose_update', room['latest_pose'], room=room_id, skip_sid=request.sid)",
+        "sio.emit('pose_update', room['latest_pose'], room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 188,
+      "decorators": [
+        "sio.on('position_update')"
+      ],
+      "input_expressions": [
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "position_update",
+      "emits": [
+        "sio.emit('position_update', broadcast_data, room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 202,
+      "decorators": [
+        "sio.on('profile_update')"
+      ],
+      "input_expressions": [
+        "data.get('profile')",
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "profile_update",
+      "emits": [
+        "sio.emit('profile_updated', event, room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 214,
+      "decorators": [
+        "sio.on('request_room_state')"
+      ],
+      "input_expressions": [
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "request_room_state",
+      "emits": [
+        "sio.emit('room_state', {'users': existing_users, 'room_id': room_id}, room=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/ar_proxy.py",
+      "line": 155,
+      "decorators": [
+        "sio.on('request_sync')"
+      ],
+      "input_expressions": [
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "request_sync",
+      "emits": [
+        "emit('sync_state', {'latest_pose': room['latest_pose'], 'phones_count': len(room['phones']), 'vision_pros_count': len(room['vision_pros'])})"
+      ],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/ar_proxy.py",
+      "line": 144,
+      "decorators": [
+        "sio.on('set_marker_config')"
+      ],
+      "input_expressions": [
+        "data.get('markers', [])",
+        "data.get('room_id')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "set_marker_config",
+      "emits": [],
+      "auth": "Legacy AR/gesture device profile; no visitor capability/admin requirement; do not grant new wall input rights"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 244,
+      "decorators": [
+        "sio.on('voice.admin_toggle')"
+      ],
+      "input_expressions": [
+        "data.get('enabled', False)"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.admin_toggle",
+      "emits": [
+        "sio.emit('voice_admin_toggle', {'enabled': enabled, 'room_id': room_id}, room=room_id)"
+      ],
+      "auth": "Room presence plus existing admin session"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 291,
+      "decorators": [
+        "sio.on('voice.answer')"
+      ],
+      "input_expressions": [
+        "data.get('sdp')",
+        "data.get('type')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.answer",
+      "emits": [
+        "sio.emit('voice.answer', {'room_id': room_id, 'from': user_id, 'target': target_id, 'sdp': data.get('sdp'), 'type': data.get('type')}, room=target_sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 262,
+      "decorators": [
+        "sio.on('voice.get_state')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.get_state",
+      "emits": [
+        "sio.emit('voice_admin_toggle', {'enabled': room_voice_enabled.get(room_id, False), 'room_id': room_id}, room=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 308,
+      "decorators": [
+        "sio.on('voice.ice')"
+      ],
+      "input_expressions": [
+        "data.get('candidate')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.ice",
+      "emits": [
+        "sio.emit('voice.ice', {'room_id': room_id, 'from': user_id, 'target': target_id, 'candidate': data.get('candidate')}, room=target_sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 324,
+      "decorators": [
+        "sio.on('voice.join')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.join",
+      "emits": [
+        "sio.emit('voice.join', {'room_id': room_id, 'userId': user_id}, room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 336,
+      "decorators": [
+        "sio.on('voice.leave')"
+      ],
+      "input_expressions": [],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.leave",
+      "emits": [
+        "sio.emit('voice.leave', {'room_id': room_id, 'userId': user_id}, room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 348,
+      "decorators": [
+        "sio.on('voice.mute')"
+      ],
+      "input_expressions": [
+        "data.get('muted')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.mute",
+      "emits": [
+        "sio.emit('voice.mute', {'room_id': room_id, 'userId': user_id, 'muted': bool(data.get('muted'))}, room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 274,
+      "decorators": [
+        "sio.on('voice.offer')"
+      ],
+      "input_expressions": [
+        "data.get('sdp')",
+        "data.get('type')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.offer",
+      "emits": [
+        "sio.emit('voice.offer', {'room_id': room_id, 'from': user_id, 'target': target_id, 'sdp': data.get('sdp'), 'type': data.get('type')}, room=target_sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    },
+    {
+      "source": "flask_server/app/metamuseum/core/position_sync.py",
+      "line": 361,
+      "decorators": [
+        "sio.on('voice.transcript')"
+      ],
+      "input_expressions": [
+        "data.get('language', 'auto')",
+        "data.get('text', '')"
+      ],
+      "response_expressions": [],
+      "source_explicit_statuses": [],
+      "implicit_return_status": 200,
+      "namespace": "/",
+      "event": "voice.transcript",
+      "emits": [
+        "sio.emit('voice.transcript', {'room_id': room_id, 'userId': user_id, 'text': data.get('text', ''), 'language': data.get('language', 'auto')}, room=room_id, skip_sid=request.sid)"
+      ],
+      "auth": "Presence bound to socket SID and actual room; join requires capability visitorId and existing Room"
+    }
+  ],
+  "registration_note": "AR registers first, then position_sync. Final connect/disconnect are position_sync handlers; final disconnect explicitly cleans both AR and presence state. gesture_mark registration is module-global and happens once.",
+  "position_limits": {
+    "max_pose_hz": 20,
+    "stationary_heartbeat_ms": 1000,
+    "interpolation_delay_ms": 100,
+    "buffer_samples": 8
+  },
+  "new_wall_events": "Specified separately in approved design; absent from legacy capture."
+}

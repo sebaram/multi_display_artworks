@@ -145,7 +145,7 @@ def test_all_legacy_events_and_public_state_routes_are_registered(settings):
     http = create_app(settings)
     combined = create_realtime_app(http)
     contract = json.loads((Path(__file__).parents[2] / 'contracts/socket-events.json').read_text())
-    assert set(http.state.sio.handlers['/']) == {item['event'] for item in contract['registered_handlers']}
+    assert set(http.state.sio.handlers['/']) == {item['event'] for item in contract['registered_handlers']} | set(contract['new_wall_runtime']['client_events'])
     # These device-only routes must work without database access.
     client = TestClient(combined)
     assert client.get('/gesture-mark/api/state').json() == {'touchpoints': [], 'gesture_result': ''}

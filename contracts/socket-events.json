@@ -681,5 +681,18 @@
     "interpolation_delay_ms": 100,
     "buffer_samples": 8
   },
-  "new_wall_events": "Specified separately in approved design; absent from legacy capture."
+  "new_wall_events": "Fixed contract in contracts/wall-design-api.md; additive to the unchanged legacy capture.",
+  "new_wall_runtime": {
+    "client_events": ["wall.clock", "wall.interaction", "wall.playback_command"],
+    "server_events": ["wall.snapshot", "wall.interaction_state", "wall.design_applied", "wall.design_removed", "wall.playback_state"],
+    "snapshot": "Valid presence join/reconnect emits {room_id,server_time_ms,walls:[{design:AppliedWallDesign,interaction:InteractionState}]} to that SID",
+    "clock_ack": "{server_time_ms}; client estimates offset with request midpoint and RTT",
+    "interaction": "{wall_id,binding_revision,client_seq,kind:move|leave,uv?:{u,v}}; capability plus actual room membership and interactive design required; finite UV in [0,1] maps x=u-.5,y=.5-v",
+    "interaction_state": "{wall_id,binding_revision,runtime_id,sequence,server_time_ms,pointer:{x,y},seed,animation_epoch_ms,active_until_ms}; sender also receives authoritative echo",
+    "interaction_ack": "{ok:true} or {ok:false,status,detail}; stale binding/client sequence 409, invalid input 422, rate limit 429, denied membership/design 403",
+    "limits": "20 Hz per SID/wall accepted moves and 20 Hz coalesced pointer broadcasts per wall; latest accepted pointer wins; 3000 ms idle or owner leave/displacement/disconnect resets center; no pointer Mongo writes",
+    "playback_command": "{wall_id,binding_revision,expected_playback_revision,action:play|pause|seek,position_seconds?}; authenticated CSRF/Origin administrator handshake, freshly loaded role and current room membership required",
+    "playback_ack": "{ok:true,state:PlaybackState} or {ok:false,status,detail}; binding and playback revisions use Mongo CAS; canonical clock is persisted, including zero rate",
+    "lifecycle": "Handlers register through Realtime.on; snapshots use tracked shielded DB offloads with post-await membership checks; owned coalescer is cancelled/drained by Realtime.shutdown before Mongo closes"
+  }
 }

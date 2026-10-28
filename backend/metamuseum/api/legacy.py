@@ -11,6 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from ..auth import admin_from_session, require_admin
 from ..models import LocationPreset, Marker
 from ..services import gallery as service
+from .admin import notify_wall_change
 
 router = APIRouter(include_in_schema=False)
 LEGACY_RESOURCES = {'room':'rooms', 'wall':'walls', 'image':'images', 'gaussiansplat':'splats',
@@ -145,7 +146,7 @@ def delete_marker(identifier: str):
     return {'status':'deleted'}
 
 
-def admin_mutation(resource, action, data, identifier, *, form=False):
+def admin_mutation(resource, action, data, identifier, *, form=False, request=None):
     slug = LEGACY_RESOURCES.get(resource, resource)
     model = service.model_for(slug)
     if action == 'action':
@@ -159,8 +160,13 @@ def admin_mutation(resource, action, data, identifier, *, form=False):
             service.ensure_deletable(service.get(slug, selected))
         for selected in identifiers:
             service.delete(slug, selected)
+            if slug == 'walls':
+                notify_wall_change(request, selected)
     elif action == 'delete':
-        service.delete(slug, identifier or data.get('id'))
+        selected = identifier or data.get('id')
+        service.delete(slug, selected)
+        if slug == 'walls':
+            notify_wall_change(request, selected)
     elif action in {'new', 'edit', 'ajax/update'}:
         values = dict(data)
         if action == 'ajax/update':
@@ -193,7 +199,9 @@ def admin_mutation(resource, action, data, identifier, *, form=False):
                     raise HTTPException(422, 'invalid_form_field') from None
         if action != 'new' and not identifier:
             raise HTTPException(400, 'id_required')
-        service.save(slug, values, identifier if action != 'new' else None)
+        document = service.save(slug, values, identifier if action != 'new' else None)
+        if slug == 'walls' and 'room' in values:
+            notify_wall_change(request, str(document.pk), str(document.room.pk))
         if action == 'ajax/update':
             return {'status':'success'}
     else:
@@ -215,4 +223,4 @@ async def legacy_admin_mutation(resource: str, action: str, request: Request):
     if not isinstance(data, dict):
         raise HTTPException(422, 'object_required')
     return await run_in_threadpool(admin_mutation, resource, action.strip('/'), data,
-                                   request.query_params.get('id'), form=is_form)
+                                   request.query_params.get('id'), form=is_form, request=request)

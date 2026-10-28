@@ -53,6 +53,8 @@ class Realtime:
         self.voice = Voice(self)
         self.ar = AR(self, http_app)
         self.gesture = Gesture(self, http_app)
+        from .wall_interactions import WallInteractions
+        self.wall_interactions = WallInteractions(self)
         self._register()
 
     def get_room_visitor(self, sid: str, room_id: str) -> VisitorIdentity | None:
@@ -121,6 +123,7 @@ class Realtime:
         """Drain handlers before Mongo closes; cancel overdue async work boundedly."""
         self.stopping = True
         self.pending_joins.clear()
+        await self.wall_interactions.stop()
         tasks = (self.handler_tasks | self.database_tasks) - {asyncio.current_task()}
         if tasks:
             _, pending = await asyncio.wait(tasks, timeout=drain_timeout)
@@ -142,9 +145,14 @@ class Realtime:
         return await self.database_call(_room_exists, room)
 
     async def broadcast(self, event, data, *, room_id, skip_sid=None):
+        if event in ('wall.design_applied', 'wall.design_removed'):
+            self.wall_interactions.design_changed(event, data)
         await self.sio.emit(event, data, room=presence_room(room_id), skip_sid=skip_sid)
+        if event in ('wall.design_applied', 'wall.design_removed'):
+            await self.wall_interactions.design_announced(event, data)
 
     async def _left(self, event, sid):
+        self.wall_interactions.left(sid, event['room_id'])
         await self.voice.left(event['room_id'], event['userId'], sid)
         await self.broadcast('user_left', event, room_id=event['room_id'])
 
@@ -213,10 +221,14 @@ class Realtime:
                 data.get('profile'), data.get('position', '0 1.6 0'), data.get('rotation', '0 0 0'))
             await sio.enter_room(sid, presence_room(room))
             if displaced:
+                self.wall_interactions.left(displaced, room)
                 await sio.leave_room(displaced, presence_room(room))
                 await sio.emit('voice.displaced', {'room_id': room}, to=displaced)
                 await self.voice.left(room, identity.visitor_id, sid)
             await sio.emit('room_state', {'users': existing, 'room_id': room}, to=sid)
+            await self.wall_interactions.joined(sid, room)
+            if not self.get_room_visitor(sid, room) or self.stopping:
+                return
             await self.broadcast('user_joined', {key: public[key] for key in ['userId', 'displayName', 'avatarId', 'color']} | {'room_id': room}, room_id=room, skip_sid=sid)
             if displaced:
                 await self.broadcast('position_update', public | {'room_id': room}, room_id=room, skip_sid=sid)

@@ -9,7 +9,7 @@ export default function AIPanel({
 }: {
   roomId: string;
   onPreview: (arrangements: any[]) => void;
-  onApplied: () => void;
+  onApplied: () => Promise<void> | void;
   onClose: () => void;
 }) {
   const [prompt, setPrompt] = useState(""),
@@ -98,7 +98,7 @@ export default function AIPanel({
                   room_id: roomId,
                   arrangements: draft.arrangements,
                 });
-                onApplied();
+                await onApplied();
                 setStatus("배치를 저장했습니다.");
                 setDraft(undefined);
               } catch (e) {

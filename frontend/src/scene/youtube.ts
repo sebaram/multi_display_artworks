@@ -115,6 +115,9 @@ export function mountYouTube({
         if (clock) {
           syncYouTubePlayer(player, clock);
           playing = clock.playing;
+        } else {
+          playing = false;
+          player.pauseVideo();
         }
       }, 250);
       life.add(() => clearInterval(timer));

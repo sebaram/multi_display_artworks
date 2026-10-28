@@ -29,6 +29,7 @@ it("consumes live snapshot/apply/remove and rejects stale shared wall state with
   const host = document.createElement("div");
   document.body.append(host);
   let receive: (event: string, payload: any) => void = () => {};
+  const emit = vi.fn();
   const wall = {
     id: "wall",
     position: "0 0 0",
@@ -49,7 +50,7 @@ it("consumes live snapshot/apply/remove and rejects stale shared wall state with
       startRealtime(_scene, _data, events) {
         receive = events;
         return {
-          client: { emit: vi.fn(), request: vi.fn() },
+          client: { emit, request: vi.fn() },
           dispose: vi.fn(),
         };
       },
@@ -99,6 +100,17 @@ it("consumes live snapshot/apply/remove and rejects stale shared wall state with
   });
   receive("wall.design_applied", { ...design, revision: 3 });
   expect(renderer.setConfig).toHaveBeenLastCalledWith(config);
+  host
+    .querySelector(".wall-surface")!
+    .dispatchEvent(
+      new CustomEvent("mousemove", {
+        detail: { intersection: { uv: { x: 0.8, y: 0.7 } } },
+      }),
+    );
+  expect(emit).toHaveBeenLastCalledWith(
+    "wall.interaction",
+    expect.objectContaining({ binding_revision: 3 }),
+  );
   receive("wall.interaction_state", {
     wall_id: "wall",
     binding_revision: 2,

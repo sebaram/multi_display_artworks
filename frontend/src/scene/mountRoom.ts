@@ -254,7 +254,7 @@ export function mountRoom({
       lastPointer = Date.now();
       realtime?.client.emit("wall.interaction", {
         wall_id: wall.id,
-        binding_revision: binding.revision,
+        binding_revision: walls.get(wall.id)?.binding.revision,
         client_seq: ++sequence,
         kind: "move",
         uv: { u: uv.x, v: uv.y },
@@ -265,7 +265,7 @@ export function mountRoom({
     const leave = () =>
       realtime?.client.emit("wall.interaction", {
         wall_id: wall.id,
-        binding_revision: binding.revision,
+        binding_revision: walls.get(wall.id)?.binding.revision,
         client_seq: ++sequence,
         kind: "leave",
       });
@@ -339,7 +339,13 @@ export function mountRoom({
           }),
         );
       else if (element.wall_element_type === "gltf")
-        root.append(entity('a-entity',{'gltf-model':safeMediaUrl(element.gltf_url),rotation:element.default_rotation||'0 0 0',class:'gltf-source'}));
+        root.append(
+          entity("a-entity", {
+            "gltf-model": safeMediaUrl(element.gltf_url),
+            rotation: element.default_rotation || "0 0 0",
+            class: "gltf-source",
+          }),
+        );
       else if (element.wall_element_type === "gaussian_splat") {
         if (AFRAME?.components?.gaussian_splatting) {
           let cutout = "";
@@ -629,6 +635,25 @@ export function mountRoom({
   });
   return {
     scene,
+    getCameraPose() {
+      const position =
+        camera.object3D?.position || vector(camera.getAttribute("position"));
+      const rotation = camera.object3D?.rotation
+        ? {
+            x: (camera.object3D.rotation.x * 180) / Math.PI,
+            y: (camera.object3D.rotation.y * 180) / Math.PI,
+            z: (camera.object3D.rotation.z * 180) / Math.PI,
+          }
+        : vector(camera.getAttribute("rotation"));
+      return {
+        position_x: position.x,
+        position_y: position.y,
+        position_z: position.z,
+        rotation_x: rotation.x,
+        rotation_y: rotation.y,
+        rotation_z: rotation.z,
+      };
+    },
     getYouTubeClock(wallId: string, layerId: string) {
       const layer = walls
         .get(wallId)
@@ -669,6 +694,12 @@ export function mountRoom({
       for (const patch of patches) {
         const entry = elementNodes.get(patch.id);
         if (!entry) continue;
+        if (patch.wall && patch.wall !== entry.wall.id) {
+          const destination = structures.get(patch.wall);
+          if (!destination) continue;
+          destination.node.append(entry.node);
+          entry.wall = destination.wall;
+        }
         entry.data = { ...entry.data, ...patch };
         entry.node.setAttribute(
           "position",
@@ -686,12 +717,20 @@ export function mountRoom({
         if (image && patch.image_url)
           image.setAttribute("src", safeMediaUrl(patch.image_url));
         if (patch.gltf_url)
-          entry.node.querySelector('.gltf-source')?.setAttribute("gltf-model", safeMediaUrl(patch.gltf_url));
+          entry.node
+            .querySelector(".gltf-source")
+            ?.setAttribute("gltf-model", safeMediaUrl(patch.gltf_url));
       }
     },
     teleport(preset: any) {
       camera.setAttribute("position", preset.position);
       camera.setAttribute("rotation", preset.rotation);
+      const rotation = vector(preset.rotation);
+      const look = camera.components?.["look-controls"];
+      if (look?.yawObject)
+        look.yawObject.rotation.y = (rotation.y * Math.PI) / 180;
+      if (look?.pitchObject)
+        look.pitchObject.rotation.x = (rotation.x * Math.PI) / 180;
     },
     sound(enabled: boolean) {
       locallyMuted = !enabled;

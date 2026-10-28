@@ -51,7 +51,7 @@ function Layout() {
   const room = ["/room", "/wall", "/element"].includes(location.pathname);
   return (
     <>
-      <a className="skip-link" href="#main-content">
+      <a className="skip-link" href="#main-content" tabIndex={0}>
         본문으로 건너뛰기
       </a>
       {!room && (
@@ -72,7 +72,7 @@ function Layout() {
           </nav>
         </header>
       )}
-      <div id="main-content">
+      <div id="main-content" tabIndex={-1}>
         <Suspense
           fallback={
             <div className="loading" role="status">

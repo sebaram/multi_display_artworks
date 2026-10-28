@@ -9,6 +9,7 @@ import { startRealtime } from "../../scene/realtime";
 import AIPanel from "./AIPanel";
 import { loadAR, mountAR } from "../../scene/ar";
 import YouTubePanel from "./YouTubePanel";
+import SharedPlayback from "./SharedPlayback";
 const resources: Record<string, string> = {
   image: "images",
   gaussian_splat: "splats",
@@ -52,8 +53,7 @@ export default function Room({
 }) {
   const [ai, setAI] = useState(false);
   const [youtube, setYouTube] = useState<
-    | { wallId: string; layerId: string; videoId: string; title: string }
-    | undefined
+    { wallId: string; layerId: string; route: string } | undefined
   >();
   const [liveDesigns, setLiveDesigns] = useState<Record<string, any>>({});
   const [params] = useSearchParams();
@@ -73,19 +73,31 @@ export default function Room({
     [status, setStatus] = useState(""),
     [list, setList] = useState(false),
     [sound, setSound] = useState(false);
+  const [sceneData, setSceneData] = useState<RoomScene>();
+  const [captureLocation, setCaptureLocation] = useState(false),
+    [locationName, setLocationName] = useState(""),
+    [savingLocation, setSavingLocation] = useState(false),
+    [locationError, setLocationError] = useState("");
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const aiPreview = useRef<ElementDTO[]>([]);
   const roomId = params.get("room_id"),
     wallId = params.get("wall_id"),
     elementId = params.get("wall_element_id"),
     type = params.get("type") || "image";
   const query = params.toString();
+  const route = `${mode}?${query}`;
+  const routeRef = useRef(route);
+  routeRef.current = route;
+  const designFor = (wall: WallDTO) =>
+    liveDesigns[wall.id] === undefined ? wall.design : liveDesigns[wall.id];
+  const videoWalls =
+    data?.walls.filter(
+      (wall) => designFor(wall)?.config?.state?.videoLayers?.length,
+    ) || [];
   const youtubeLayers =
     data?.walls.flatMap((wall) =>
-      (
-        (liveDesigns[wall.id] === undefined
-          ? wall.design
-          : liveDesigns[wall.id]
-        )?.config?.state?.videoLayers || []
-      )
+      (designFor(wall)?.config?.state?.videoLayers || [])
         .filter((layer: any) => layer.youtube?.id)
         .map((layer: any) => ({
           wallId: wall.id,
@@ -94,14 +106,31 @@ export default function Room({
           title: layer.youtube.title || layer.name || "YouTube",
         })),
     ) || [];
+  const youtubeSource =
+    youtube?.route === route
+      ? youtubeLayers.find(
+          (layer) =>
+            layer.wallId === youtube.wallId &&
+            layer.layerId === youtube.layerId,
+        )
+      : undefined;
   useEffect(() => {
     let live = true;
     setLoading(true);
     setError("");
     setData(undefined);
+    setSceneData(undefined);
     setReady(false);
     setDrafts({});
     setLiveDesigns({});
+    setYouTube(undefined);
+    setAI(false);
+    setSound(false);
+    setCaptureLocation(false);
+    setLocationName("");
+    setLocationError("");
+    setSavingLocation(false);
+    aiPreview.current = [];
     async function fetchData() {
       let value: RoomScene;
       if (mode === "room") {
@@ -123,6 +152,7 @@ export default function Room({
       }
       if (live) {
         setData(value);
+        setSceneData(value);
         setLoading(false);
       }
     }
@@ -137,7 +167,8 @@ export default function Room({
     };
   }, [mode, roomId, wallId, elementId, type, query, session.is_admin]);
   useEffect(() => {
-    if (!data || !host.current) return;
+    if (!sceneData || !host.current) return;
+    const data = sceneData;
     let cancelled = false;
     void loadAFrame()
       .then(async () => {
@@ -160,7 +191,7 @@ export default function Room({
                 ...d,
                 [id]: {
                   ...(d[id] ||
-                    data.walls
+                    (dataRef.current || data).walls
                       .flatMap((w) => w.elements)
                       .find((e) => e.id === id)!),
                   ...patch,
@@ -179,10 +210,15 @@ export default function Room({
       instance.current?.dispose();
       instance.current = null;
     };
-  }, [data]);
+  }, [sceneData]);
   const elements = data?.walls.flatMap((w) => w.elements) || [],
     original = elements.find((e) => e.id === selected),
     draft = selected ? drafts[selected] || original : undefined;
+  function closeAI() {
+    instance.current?.update(aiPreview.current);
+    aiPreview.current = [];
+    setAI(false);
+  }
   function patch(p: Partial<ElementDTO>) {
     if (!selected || !draft) return;
     const next = { ...draft, ...p };
@@ -282,10 +318,27 @@ export default function Room({
         ))}
       </div>
       <div className="room-bottom">
+        {session.is_admin &&
+          videoWalls.map((wall) => (
+            <SharedPlayback
+              key={wall.id}
+              wallId={wall.id}
+              title={wall.name || "월"}
+              command={(id, action, position) =>
+                instance.current?.playbackCommand(id, action, position) || false
+              }
+            />
+          ))}
         {youtubeLayers.map((layer) => (
           <button
             key={`${layer.wallId}-${layer.layerId}`}
-            onClick={() => setYouTube(layer)}
+            onClick={() =>
+              setYouTube({
+                wallId: layer.wallId,
+                layerId: layer.layerId,
+                route,
+              })
+            }
           >
             ▶ {layer.title}
           </button>
@@ -321,6 +374,81 @@ export default function Room({
             </option>
           ))}
         </select>
+        {session.is_admin && mode === "room" && (
+          <button
+            disabled={!ready}
+            onClick={() => {
+              setCaptureLocation(!captureLocation);
+              setLocationError("");
+            }}
+          >
+            현재 위치 저장
+          </button>
+        )}
+        {captureLocation && data && (
+          <form
+            className="location-capture"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const pose = instance.current?.getCameraPose();
+              if (!pose) return;
+              const targetRoom = data.roomId,
+                targetRoute = route;
+              setSavingLocation(true);
+              setLocationError("");
+              try {
+                const result = await write(
+                  `/room/${targetRoom}/preset`,
+                  "POST",
+                  { name: locationName.trim(), ...pose, is_default: false },
+                );
+                if (
+                  routeRef.current !== targetRoute ||
+                  dataRef.current?.roomId !== targetRoom
+                )
+                  return;
+                setData((current) =>
+                  current?.roomId === targetRoom
+                    ? {
+                        ...current,
+                        presets: [...current.presets, result.preset],
+                      }
+                    : current,
+                );
+                setCaptureLocation(false);
+                setLocationName("");
+                setStatus("현재 위치를 저장했습니다.");
+              } catch (reason) {
+                if (routeRef.current === targetRoute)
+                  setLocationError((reason as Error).message);
+              } finally {
+                if (routeRef.current === targetRoute) setSavingLocation(false);
+              }
+            }}
+          >
+            <label>
+              장소 이름
+              <input
+                required
+                maxLength={160}
+                value={locationName}
+                onChange={(event) => setLocationName(event.target.value)}
+              />
+            </label>
+            <div className="form-actions">
+              <button
+                className="primary"
+                disabled={savingLocation || !locationName.trim()}
+              >
+                위치 저장
+              </button>
+              <button type="button" onClick={() => setCaptureLocation(false)}>
+                취소
+              </button>
+            </div>
+            {locationError && <p role="alert">{locationError}</p>}
+          </form>
+        )}
         <Link to={`/room?room_id=${data?.roomId || roomId}&ar=marker`}>
           마커 AR
         </Link>
@@ -328,7 +456,9 @@ export default function Room({
           폰 연동 AR
         </Link>
         {session.is_admin && (
-          <button onClick={() => setAI(!ai)}>AI 큐레이션</button>
+          <button onClick={() => (ai ? closeAI() : setAI(true))}>
+            AI 큐레이션
+          </button>
         )}
         {session.is_admin && (
           <Link to={`/wall-editor?wall_id=${data?.walls[0]?.id || ""}`}>
@@ -370,32 +500,57 @@ export default function Room({
       {ai && data && (
         <AIPanel
           roomId={data.roomId}
-          onClose={() => setAI(false)}
-          onApplied={() => location.reload()}
+          onClose={closeAI}
+          onApplied={async () => {
+            const saved = await api<RoomScene>(
+              `/api/v1/rooms/${data.roomId}/scene?${query}`,
+            );
+            instance.current?.update(
+              saved.walls.flatMap((wall) => wall.elements),
+            );
+            setData(saved);
+            setDrafts({});
+            aiPreview.current = [];
+          }}
           onPreview={(arrangements) => {
-            const patches = arrangements.map((a) => ({
-              ...elements.find((e) => e.id === a.element_id)!,
-              ...a,
-              id: a.element_id,
-            }));
+            instance.current?.update(aiPreview.current);
+            const patches = arrangements.flatMap((a) => {
+              const element = elements.find((e) => e.id === a.element_id);
+              const wall = data.walls.find((wall) => wall.name === a.wall_name);
+              return element && wall
+                ? [
+                    {
+                      ...(drafts[element.id] || element),
+                      ...a,
+                      id: element.id,
+                      wall: wall.id,
+                    },
+                  ]
+                : [];
+            });
+            aiPreview.current = patches.map(
+              (patch) =>
+                drafts[patch.id] ||
+                elements.find((element) => element.id === patch.id)!,
+            );
             instance.current?.update(patches);
-            setDrafts((d) => ({
-              ...d,
-              ...Object.fromEntries(patches.map((p) => [p.id, p])),
-            }));
           }}
         />
       )}
-      {youtube && (
+      {youtubeSource && (
         <YouTubePanel
-          {...youtube}
+          key={`${route}:${youtubeSource.wallId}:${youtubeSource.layerId}:${youtubeSource.videoId}`}
+          {...youtubeSource}
           isAdmin={session.is_admin}
           getClock={() =>
-            instance.current?.getYouTubeClock(youtube.wallId, youtube.layerId)
+            instance.current?.getYouTubeClock(
+              youtubeSource.wallId,
+              youtubeSource.layerId,
+            )
           }
           command={(action, position) =>
             instance.current?.playbackCommand(
-              youtube.wallId,
+              youtubeSource.wallId,
               action,
               position,
             ) || false
@@ -476,11 +631,15 @@ export default function Room({
                       .filter((f) => draft[f] !== undefined)
                       .map((f) => [f, draft[f]]),
                   );
-                  await write(
-                    `/api/v1/admin/${resources[draft.wall_element_type]}/${draft.id}`,
-                    "PATCH",
-                    body,
-                  );
+                  const saved: ElementDTO = {
+                    ...draft,
+                    ...(await write(
+                      `/api/v1/admin/${resources[draft.wall_element_type]}/${draft.id}`,
+                      "PATCH",
+                      body,
+                    )),
+                  };
+                  instance.current?.update([saved]);
                   setStatus("저장했습니다.");
                   setDrafts((d) => {
                     const next = { ...d };
@@ -488,15 +647,18 @@ export default function Room({
                     return next;
                   });
                   if (data)
-                    setData({
-                      ...data,
-                      walls: data.walls.map((w) => ({
-                        ...w,
-                        elements: w.elements.map((e) =>
-                          e.id === draft.id ? draft : e,
-                        ),
-                      })),
-                    });
+                    setData(
+                      (current) =>
+                        current && {
+                          ...current,
+                          walls: current.walls.map((w) => ({
+                            ...w,
+                            elements: w.elements.map((e) =>
+                              e.id === draft.id ? saved : e,
+                            ),
+                          })),
+                        },
+                    );
                 } catch (err) {
                   setStatus(
                     `저장하지 못했습니다. 입력은 유지됩니다. ${(err as Error).message}`,

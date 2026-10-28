@@ -15,3 +15,27 @@ export function captureErrors(page: Page) {
   page.on("pageerror", (error) => errors.push(error.message));
   return errors;
 }
+export async function mutate(
+  page: Page,
+  path: string,
+  method: string,
+  body?: unknown,
+) {
+  return page.evaluate(
+    async ({ path, method, body }) => {
+      const { csrf_token } = await (await fetch("/api/v1/auth/csrf")).json();
+      const response = await fetch(path, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrf_token,
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      if (!response.ok)
+        throw Error(`${response.status} ${await response.text()}`);
+      return response.status === 204 ? null : response.json();
+    },
+    { path, method, body },
+  );
+}

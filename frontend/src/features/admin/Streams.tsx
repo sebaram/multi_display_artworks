@@ -295,19 +295,47 @@ export default function Streams() {
     </main>
   );
 }
-function StreamPlayer({ url }: { url: string }) {
+export function StreamPlayer({ url }: { url: string }) {
   const video = useRef<HTMLVideoElement>(null);
+  const [error, setError] = useState("");
+  const [waiting, setWaiting] = useState(true);
   useEffect(() => {
     if (!video.current) return;
     const element = video.current;
     let hls: Hls | undefined;
-    if (element.canPlayType("application/vnd.apple.mpegurl")) element.src = url;
-    else if (Hls.isSupported()) {
-      hls = new Hls();
-      hls.loadSource(url);
-      hls.attachMedia(element);
+    let retry: ReturnType<typeof setTimeout>;
+    let attempts = 0;
+    const controller = new AbortController();
+    setWaiting(true);
+    setError("");
+    async function connect() {
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw Error(`HLS 준비 중 (${response.status})`);
+        if (controller.signal.aborted) return;
+        if (Hls.isSupported()) {
+          hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(element);
+        } else if (element.canPlayType("application/vnd.apple.mpegurl"))
+          element.src = url;
+        else throw Error("이 브라우저는 HLS 재생을 지원하지 않습니다.");
+        setWaiting(false);
+      } catch (reason) {
+        if (controller.signal.aborted) return;
+        if (++attempts < 30) retry = setTimeout(() => void connect(), 1000);
+        else {
+          setWaiting(false);
+          setError(
+            `스트림에 연결하지 못했습니다. ${(reason as Error).message}`,
+          );
+        }
+      }
     }
+    void connect();
     return () => {
+      controller.abort();
+      clearTimeout(retry);
       hls?.destroy();
       element.pause();
       element.removeAttribute("src");
@@ -315,12 +343,20 @@ function StreamPlayer({ url }: { url: string }) {
     };
   }, [url]);
   return (
-    <video
-      ref={video}
-      controls
-      playsInline
-      className="stream-preview"
-      aria-label="HLS 스트림 재생 확인"
-    />
+    <>
+      {waiting && <p role="status">HLS 영상을 준비하고 있습니다…</p>}
+      {error && (
+        <p role="status" className="error">
+          {error}
+        </p>
+      )}
+      <video
+        ref={video}
+        controls
+        playsInline
+        className="stream-preview"
+        aria-label="HLS 스트림 재생 확인"
+      />
+    </>
   );
 }

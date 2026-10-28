@@ -44,7 +44,7 @@ def test_cookie_flags_logout_csrf_and_safe_next(client):
         assert signin(client, csrf, next=target).status_code == 400
     assert signin(client, csrf, next="/kwanri").status_code == 200
     assert client.post("/api/v1/auth/signout").status_code == 403
-    assert client.get("/logout").status_code == 405
+    assert client.get("/logout").status_code == 200
     assert client.get("/api/v1/auth/session").json()["authenticated"]
 
 

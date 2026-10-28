@@ -3,9 +3,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import http_exception_handler
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
+from starlette.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .auth import router
 from .config import Settings
@@ -30,6 +33,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                session_cookie=settings.session_cookie, max_age=settings.session_max_age,
                                same_site="lax", https_only=settings.session_secure)
     application.include_router(router)
+    from .api import admin, gallery, legacy
+    application.include_router(gallery.router)
+    application.include_router(admin.router)
+    application.include_router(legacy.router)
+    # Existing media URLs keep their /static prefix, independently of the React build.
+    if settings.media_root and settings.media_root.is_dir():
+        application.mount('/static', StaticFiles(directory=settings.media_root), name='legacy-static')
+    if settings.frontend_root and (settings.frontend_root / 'assets').is_dir():
+        application.mount('/assets', StaticFiles(directory=settings.frontend_root / 'assets'), name='frontend-assets')
 
     @application.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error: RequestValidationError):
@@ -47,6 +59,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except PyMongoError:
             raise HTTPException(503, "database_unavailable") from None
         return HealthRead(status="ok")
+
+    @application.exception_handler(StarletteHTTPException)
+    async def frontend_file(request: Request, error: StarletteHTTPException):
+        from starlette.responses import FileResponse
+        path = request.url.path.lstrip('/')
+        root = settings.frontend_root
+        if (error.status_code == 404 and request.method in {'GET', 'HEAD'} and root
+                and path != 'api' and not path.startswith(('api/', 'static/'))):
+            target = (root / path).resolve()
+            if target.is_relative_to(root.resolve()) and target.is_file():
+                return FileResponse(target)
+        return await http_exception_handler(request, error)
 
     return application
 

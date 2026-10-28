@@ -30,3 +30,25 @@ Fixtures include two rooms for room-isolation tests; rotated wall, floor and cei
 ## Known baseline deficiencies (not successful migration features)
 
 Executed baseline suites have no failures: Python50pass, JS125pass. That does not establish complete parity. The approved design separately identifies inspector selection, drag coordinates/lifecycle cleanup, Wall.image_url rendering, HLS segment routing, recorder MIME negotiation, cross-wall AI reverse refs, effect typing/initialization/expiry and visitor STT status as required fixes. Source inspection confirms splat cutout is explicitly disabled and Webpage renders a placeholder in3D. Legacy signin does not call form validation and request_loader logs form data; these must be corrected in the migration, not copied as desired contracts. No live provider, physical XR/AR device, iframe composition, browser playback, clipping or GPU performance success is claimed here.
+
+## Task 2 HTTP mapping
+
+These mappings cover gallery/admin HTTP behavior, not all 155 captured rules. Socket.IO, camera fallback, streaming, AI/STT, companion and gesture services belong to later tasks.
+
+| Captured surface | Migration behavior / verification |
+| --- | --- |
+| `/`, `/room?room_id=`, `/wall?wall_id=`, `/element?wall_element_id=&type=` | Serve built React `index.html` when configured; preserve the requested path and all query flags. Missing/malformed IDs return400; absent documents404. Test `test_all_legacy_routes_have_mapped_behavior`. |
+| Room/wall/artwork bootstrap | `/api/v1/rooms`, `/api/v1/rooms/{id}/scene`, `/api/v1/walls/{id}`, `/api/v1/elements/{type}/{id}` return typed JSON without scene HTML. Public movement controls remain enabled outside AR. |
+| Wall refresh | `/wall` returns content-derived ETag including persisted wall/artwork state; matching `If-None-Match` returns304. Test `test_wall_refresh_etag_tracks_element_mutations`. |
+| `/kwanri[/<resource>[/new|edit|details]]` | Same visible links serve React. Anonymous/nonadmin HTML redirects302 to signin. Marker resource retains captured `mm_marker_admin` alias. Tests exercise all11 aliases. |
+| Admin CRUD | Explicit11-resource registry under `/api/v1/admin`; no User or arbitrary collection CRUD. Flat DTO IDs; provider keys masked, including admin reads. All11 create/read/patch/delete paths tested with real Mongo. |
+| Admin new/edit/delete/action/ajax-update POST | Compatibility adapters accept JSON or URL-encoded data, retain admin/origin/CSRF enforcement, update relationships and reject referenced parent deletion. Bulk delete prevalidates selected documents. `action=delete` is supported; other actions fail400. |
+| Generated admin export/file/ajax-lookup | Retired with410 after admin authorization. Default Flask-Admin internals are replaced by metadata/reference controls; no exact unused internal-protocol parity is claimed. Old `/kwanri/static` assets are no longer required by React. |
+| PATCH `/element/{id}/{type}` | Existing success wrapper `{status,element_id}` retained; validated transform/cutout fields go through the same persistence service as canonical CRUD. |
+| `/room/{id}/presets`, POST `/room/{id}/preset`, DELETE `/preset/{id}` | Existing array/create/delete wrappers retained; default spawn uniqueness and referenced-preset deletion checks enforced. |
+| `/room/{id}/boundary` | Existing public boundary object retained; editing uses canonical room CRUD with finite, ordered bounds. |
+| `/marker/room/{id}/markers`, `/marker/{id}/config`, `/marker/by-value/{type}/{value}`, PUT/DELETE `/marker/{id}` | Existing marker DTO/wrappers retained; mutation authorization and preset room consistency enforced. |
+| `/signin`, `/logout` | GET serves React UI; logout GET does not change authentication. Signin form submits CSRF JSON to `/api/v1/auth/signin`; old POST `/signin` form protocol is migrated, not duplicated. Signout remains CSRF POST. |
+| Existing stored media URLs | No URL rewriting in DTOs. Configured `media_root` serves `/static`; configured frontend build assets/vendor files are served independently. Unknown `/api/` never falls through to SPA. |
+
+Before a React build exists, recognized HTML routes return an explicit UI-unavailable page. Browser functionality is verified separately after the real build; the fallback is not a gallery UI acceptance claim.

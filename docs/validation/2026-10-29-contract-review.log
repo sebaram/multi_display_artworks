@@ -1,0 +1,6 @@
+Task0 review round1 focused verification
+Command: .venv/Scripts/python.exe -m pytest backend/tests/fixtures/test_contract_introspection.py backend/tests/fixtures/test_fixture_guard.py -q
+Result: 6 passed, 5 subtests passed in 0.06s
+Command: .venv_legacy/Scripts/python.exe backend/tests/fixtures/verify_marker_authorization.py
+Result: PASS: real MongoDB marker PUT/DELETE guest403, nonadmin403, admin200; update persisted and delete removed marker
+Contract regeneration used lazy legacy registration/model serialization and did not reset or query MongoDB. Focused marker integration ran only after foundation explicitly released the test database.

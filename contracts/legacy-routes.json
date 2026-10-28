@@ -98,6 +98,7 @@
         "bp.route('/')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "('Database unavailable. Please try again later.', 503)",
         "render_template('link_list.html', all_rooms=all_rooms)"
@@ -129,7 +130,12 @@
         "bp.route('/apply-layout', methods=['POST'])"
       ],
       "input_expressions": [
-        "data.get('arrangements', [])"
+        "data.get",
+        "data.get('arrangements', [])",
+        "request.json"
+      ],
+      "input_fields": [
+        "arrangements"
       ],
       "response_expressions": [
         "(jsonify({'error': 'Admin required'}), 403)",
@@ -167,9 +173,16 @@
         "bp.route('/auto-effect', methods=['POST'])"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('prompt', '')",
+        "data.get('prompt', '').strip",
         "data.get('prompt', '').strip()",
-        "data.get('room_id')"
+        "data.get('room_id')",
+        "request.json"
+      ],
+      "input_fields": [
+        "prompt",
+        "room_id"
       ],
       "response_expressions": [
         "(jsonify({'error': 'Admin required'}), 403)",
@@ -212,9 +225,16 @@
         "bp.route('/auto-layout', methods=['POST'])"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('prompt', '')",
+        "data.get('prompt', '').strip",
         "data.get('prompt', '').strip()",
-        "data.get('room_id')"
+        "data.get('room_id')",
+        "request.json"
+      ],
+      "input_fields": [
+        "prompt",
+        "room_id"
       ],
       "response_expressions": [
         "(jsonify({'error': 'Admin required'}), 403)",
@@ -258,8 +278,16 @@
         "bp.route('/clear-effects', methods=['POST'])"
       ],
       "input_expressions": [
+        "request.form",
+        "request.form.get",
         "request.form.get('room_id')",
+        "request.is_json",
+        "request.json",
+        "request.json.get",
         "request.json.get('room_id')"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [
         "(jsonify({'error': 'Admin required'}), 403)",
@@ -297,8 +325,20 @@
         "bp.route('/transcribe', methods=['POST'])"
       ],
       "input_expressions": [
+        "'audio' in request.files",
+        "'audio' not in request.files",
+        "'audio_data' not in request.form",
+        "request.files",
+        "request.files['audio']",
+        "request.files['audio'].save",
         "request.files['audio'].save(tmp_path)",
+        "request.form",
+        "request.form.get",
         "request.form.get('audio_data', '')"
+      ],
+      "input_fields": [
+        "audio",
+        "audio_data"
       ],
       "response_expressions": [
         "(jsonify({'error': 'Transcription failed'}), 500)",
@@ -340,12 +380,23 @@
         "bp.route('/whisper-config', methods=['GET', 'PUT'])"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('api_base', 'https://api.openai.com/v1')",
         "data.get('api_key', '')",
         "data.get('enabled', False)",
         "data.get('language', '')",
         "data.get('model', 'whisper-1')",
-        "data.get('provider', 'openai')"
+        "data.get('provider', 'openai')",
+        "request.json",
+        "request.method"
+      ],
+      "input_fields": [
+        "api_base",
+        "api_key",
+        "enabled",
+        "language",
+        "model",
+        "provider"
       ],
       "response_expressions": [
         "(jsonify({'error': 'Admin required'}), 403)",
@@ -391,7 +442,12 @@
         "bp.route('')"
       ],
       "input_expressions": [
+        "request.args",
+        "request.args.get",
         "request.args.get('room_id')"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [
         "('Room not found', 404)",
@@ -429,7 +485,12 @@
         "bp.route('/status')"
       ],
       "input_expressions": [
+        "request.args",
+        "request.args.get",
         "request.args.get('room_id')"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [
         "(jsonify({'error': 'room_id required'}), 400)",
@@ -465,11 +526,28 @@
         "bp.route('/camera-data', methods=['POST'])"
       ],
       "input_expressions": [
+        "'userId' not in data",
+        "data.get",
         "data.get('handTrackingEnabled')",
         "data.get('leftHand')",
         "data.get('position')",
         "data.get('rightHand')",
-        "data.get('rotation')"
+        "data.get('rotation')",
+        "data['handTrackingEnabled']",
+        "data['leftHand']",
+        "data['position']",
+        "data['rightHand']",
+        "data['rotation']",
+        "data['userId']",
+        "request.json"
+      ],
+      "input_fields": [
+        "handTrackingEnabled",
+        "leftHand",
+        "position",
+        "rightHand",
+        "rotation",
+        "userId"
       ],
       "response_expressions": [
         "(jsonify({'error': 'position and rotation required'}), 400)",
@@ -511,6 +589,7 @@
         "bp.route('/confirm/<token>')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "redirect(url_for('auth.register'))",
         "redirect(url_for('auth.signin'))"
@@ -544,10 +623,19 @@
         "bp.route('/element')"
       ],
       "input_expressions": [
+        "request.args",
+        "request.args.get",
         "request.args.get('avatar', 'shiba')",
         "request.args.get('display_type')",
         "request.args.get('type')",
-        "request.args.get('wall_element_id')"
+        "request.args.get('wall_element_id')",
+        "request.url_root"
+      ],
+      "input_fields": [
+        "avatar",
+        "display_type",
+        "type",
+        "wall_element_id"
       ],
       "response_expressions": [
         "('Database unavailable', 503)",
@@ -586,7 +674,41 @@
         "bp.route('/element/<element_id>/<element_type>', methods=['PATCH'])",
         "admin_required"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "'cutout_position' in data",
+        "'cutout_scale' in data",
+        "'position_x' in data",
+        "'position_y' in data",
+        "'rotation_x' in data",
+        "'rotation_y' in data",
+        "'rotation_z' in data",
+        "'scale_x' in data",
+        "'scale_y' in data",
+        "'scale_z' in data",
+        "data['cutout_position']",
+        "data['cutout_scale']",
+        "data['position_x']",
+        "data['position_y']",
+        "data['rotation_x']",
+        "data['rotation_y']",
+        "data['rotation_z']",
+        "data['scale_x']",
+        "data['scale_y']",
+        "data['scale_z']",
+        "request.json"
+      ],
+      "input_fields": [
+        "cutout_position",
+        "cutout_scale",
+        "position_x",
+        "position_y",
+        "rotation_x",
+        "rotation_y",
+        "rotation_z",
+        "scale_x",
+        "scale_y",
+        "scale_z"
+      ],
       "response_expressions": [
         "(jsonify({'error': 'Element not found'}), 404)",
         "(jsonify({'error': 'JSON body required'}), 400)",
@@ -626,7 +748,12 @@
         "bp.route('/api/gesture', methods=['POST'])"
       ],
       "input_expressions": [
-        "data.get('result_str', '')"
+        "data.get",
+        "data.get('result_str', '')",
+        "request.json"
+      ],
+      "input_fields": [
+        "result_str"
       ],
       "response_expressions": [
         "(jsonify({'error': 'JSON body required'}), 400)",
@@ -663,6 +790,7 @@
         "bp.route('/api/state')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "jsonify({'touchpoints': _latest_touchpoints[-100:], 'gesture_result': _gesture_result})"
       ],
@@ -695,10 +823,18 @@
         "bp.route('/api/touchpoint', methods=['POST'])"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('pressure', 0.5)",
         "data.get('type', 'trace')",
         "data.get('x', 0)",
-        "data.get('y', 0)"
+        "data.get('y', 0)",
+        "request.json"
+      ],
+      "input_fields": [
+        "pressure",
+        "type",
+        "x",
+        "y"
       ],
       "response_expressions": [
         "(jsonify({'error': 'JSON body required'}), 400)",
@@ -735,6 +871,7 @@
         "bp.route('/stream')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "Response(generate(), mimetype='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})"
       ],
@@ -761,7 +898,12 @@
         "bp.route('/test')"
       ],
       "input_expressions": [
+        "request.args",
+        "request.args.get",
         "request.args.get('targets', 8, type=int)"
+      ],
+      "input_fields": [
+        "targets"
       ],
       "response_expressions": [
         "render_template('gesture_mark_test.html', num_targets=num_targets)"
@@ -791,7 +933,10 @@
       "decorators": [
         "bp.route('/get-cameras', methods=['GET'])"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "request.remote_addr"
+      ],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': 'rate limit exceeded'}), 429)",
         "jsonify([])",
@@ -826,6 +971,7 @@
         "bp.route('/health')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'status': 'error', 'db': str(e)}), 503)",
         "jsonify({'status': 'ok', 'db': 'connected'})"
@@ -2548,8 +2694,7 @@
         "HEAD",
         "OPTIONS"
       ],
-      "auth": "admin session; otherwise 302 signin?next=<request.url>",
-      "payload_contract": "Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302",
+      "auth": "public static file",
       "observed_anonymous_missing_or_default_input": {
         "GET": {
           "status": 404,
@@ -3200,6 +3345,7 @@
         "bp.route('/logout')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "redirect(url_for('main.main_page'))"
       ],
@@ -3231,6 +3377,7 @@
         "bp.route('/<marker_id>', methods=['DELETE'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': 'Marker not found'}), 404)",
         "err",
@@ -3240,7 +3387,7 @@
         404
       ],
       "implicit_return_status": 200,
-      "auth": "public",
+      "auth": "admin helper require_admin; JSON 403",
       "observed_anonymous_missing_or_default_input": {
         "DELETE": {
           "status": 403,
@@ -3265,7 +3412,30 @@
       "decorators": [
         "bp.route('/<marker_id>', methods=['PUT'])"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "'target_preset_id' in data",
+        "data['target_preset_id']",
+        "data[field]",
+        "field in data",
+        "request.json"
+      ],
+      "input_fields": [
+        "description",
+        "is_active",
+        "marker_type",
+        "marker_value",
+        "name",
+        "offset_x",
+        "offset_y",
+        "offset_z",
+        "target_position_x",
+        "target_position_y",
+        "target_position_z",
+        "target_preset_id",
+        "target_rotation_x",
+        "target_rotation_y",
+        "target_rotation_z"
+      ],
       "response_expressions": [
         "(jsonify({'error': 'Marker not found'}), 404)",
         "(jsonify({'error': str(e)}), 400)",
@@ -3277,7 +3447,7 @@
         404
       ],
       "implicit_return_status": 200,
-      "auth": "public",
+      "auth": "admin helper require_admin; JSON 403",
       "observed_anonymous_missing_or_default_input": {
         "PUT": {
           "status": 403,
@@ -3304,6 +3474,7 @@
         "bp.route('/<marker_id>/config', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': 'Marker not found'}), 404)",
         "jsonify(marker.to_dict())"
@@ -3347,6 +3518,7 @@
         "bp.route('/by-value/<marker_type>/<marker_value>', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': 'Marker not found'}), 404)",
         "jsonify(marker.to_dict())"
@@ -3390,6 +3562,7 @@
         "bp.route('/room/<room_id>/markers', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "jsonify([m.to_dict() for m in markers])"
       ],
@@ -3419,6 +3592,7 @@
         "bp.route('/preset/<preset_id>', methods=['DELETE'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': 'Preset not found'}), 404)",
         "(jsonify({'error': 'admin login required'}), 403)",
@@ -3459,6 +3633,7 @@
         "login_required"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "'Logged in as: ' + current_user.email"
       ],
@@ -3490,6 +3665,7 @@
         "bp.route('/register', methods=['GET', 'POST'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "redirect(url_for('auth.signin'))"
       ],
@@ -3527,10 +3703,18 @@
         "bp.route('/room')"
       ],
       "input_expressions": [
+        "request.args",
+        "request.args.get",
         "request.args.get('ar')",
         "request.args.get('debug')",
         "request.args.get('preset')",
         "request.args.get('room_id')"
+      ],
+      "input_fields": [
+        "ar",
+        "debug",
+        "preset",
+        "room_id"
       ],
       "response_expressions": [
         "('Database unavailable', 503)",
@@ -3568,6 +3752,7 @@
         "bp.route('/room/<room_id>/boundary', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': 'Room not found'}), 404)",
         "(jsonify({'error': str(e)}), 500)",
@@ -3609,6 +3794,8 @@
         "bp.route('/room/<room_id>/preset', methods=['POST'])"
       ],
       "input_expressions": [
+        "'name' not in data",
+        "data.get",
         "data.get('description', '')",
         "data.get('is_default')",
         "data.get('is_default', False)",
@@ -3617,7 +3804,20 @@
         "data.get('position_z', 0)",
         "data.get('rotation_x', 0)",
         "data.get('rotation_y', 0)",
-        "data.get('rotation_z', 0)"
+        "data.get('rotation_z', 0)",
+        "data['name']",
+        "request.json"
+      ],
+      "input_fields": [
+        "description",
+        "is_default",
+        "name",
+        "position_x",
+        "position_y",
+        "position_z",
+        "rotation_x",
+        "rotation_y",
+        "rotation_z"
       ],
       "response_expressions": [
         "(jsonify({'error': 'Room not found'}), 404)",
@@ -3660,6 +3860,7 @@
         "bp.route('/room/<room_id>/presets', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': str(e)}), 500)",
         "jsonify([p.to_dict() for p in presets])"
@@ -3694,8 +3895,14 @@
         "bp.route('/signin', methods=['GET', 'POST'])"
       ],
       "input_expressions": [
+        "request.args",
+        "request.args.get",
         "request.args.get('next')",
-        "request.args.get('next', '')"
+        "request.args.get('next', '')",
+        "request.method"
+      ],
+      "input_fields": [
+        "next"
       ],
       "response_expressions": [
         "abort(400)",
@@ -3754,6 +3961,7 @@
         "bp.route('/list', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "jsonify(active)"
       ],
@@ -3784,6 +3992,7 @@
         "bp.route('/playlist/<stream_id>', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "('Stream not found', 404)",
         "Response(stream_with_context(generate()), mimetype='application/vnd.apple.mpegurl')",
@@ -3817,7 +4026,16 @@
         "admin_required"
       ],
       "input_expressions": [
+        "'chunk' not in request.files",
+        "request.files",
+        "request.files['chunk']",
+        "request.form",
+        "request.form.get",
         "request.form.get('idx', 0)"
+      ],
+      "input_fields": [
+        "chunk",
+        "idx"
       ],
       "response_expressions": [
         "('chunk required', 400)",
@@ -3857,6 +4075,7 @@
         "bp.route('/segment/<stream_id>/<segment>', methods=['GET'])"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "('Segment not found', 404)",
         "(jsonify({'error': 'Invalid segment'}), 400)",
@@ -3892,9 +4111,15 @@
         "admin_required"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('rtsp_url')",
         "data.get('stream_id', 'cam1')",
+        "request.get_json",
         "request.get_json(silent=True)"
+      ],
+      "input_fields": [
+        "rtsp_url",
+        "stream_id"
       ],
       "response_expressions": [
         "(jsonify({'error': 'rtsp_url required'}), 400)",
@@ -3934,6 +4159,7 @@
         "admin_required"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify({'error': str(e)}), 500)",
         "_invalid_stream_id_response()",
@@ -3969,6 +4195,7 @@
         "bp.post('/visitor-capability')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [
         "(jsonify(issue_visitor_capability()), 201)"
       ],
@@ -4004,8 +4231,14 @@
         "bp.route('/wall')"
       ],
       "input_expressions": [
+        "request.args",
+        "request.args.get",
         "request.args.get('refresh')",
         "request.args.get('wall_id')"
+      ],
+      "input_fields": [
+        "refresh",
+        "wall_id"
       ],
       "response_expressions": [
         "('Database unavailable', 503)",
@@ -4036,5 +4269,64 @@
     "admin_whisper_settings": 200,
     "nonadmin_whisper_settings": 403,
     "settings_excludes_api_key": true
+  },
+  "marker_authorization_observations": {
+    "database": "guarded metamuseum_test",
+    "actors": "real persisted synthetic User documents; Flask session user_loader",
+    "results": {
+      "guest": {
+        "PUT": {
+          "status": 403,
+          "json_fields": [
+            "error"
+          ]
+        },
+        "DELETE": {
+          "status": 403,
+          "json_fields": [
+            "error"
+          ]
+        }
+      },
+      "nonadmin": {
+        "PUT": {
+          "status": 403,
+          "json_fields": [
+            "error"
+          ]
+        },
+        "DELETE": {
+          "status": 403,
+          "json_fields": [
+            "error"
+          ]
+        }
+      },
+      "admin": {
+        "PUT": {
+          "status": 200,
+          "json_fields": [
+            "id",
+            "is_active",
+            "marker_type",
+            "marker_value",
+            "name",
+            "offset",
+            "preset_name",
+            "target_position",
+            "target_rotation"
+          ]
+        },
+        "DELETE": {
+          "status": 200,
+          "json_fields": [
+            "status"
+          ]
+        }
+      }
+    },
+    "admin_put_persisted": true,
+    "admin_delete_removed": true,
+    "guest_and_nonadmin_left_marker_unchanged": true
   }
 }

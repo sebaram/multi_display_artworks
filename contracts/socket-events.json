@@ -9,7 +9,12 @@
         "sio.on('connect')"
       ],
       "input_expressions": [
-        "auth.get('visitorCapability')"
+        "auth.get",
+        "auth.get('visitorCapability')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "visitorCapability"
       ],
       "response_expressions": [
         "False",
@@ -28,7 +33,10 @@
       "decorators": [
         "sio.on('disconnect')"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "request.sid"
+      ],
+      "input_fields": [],
       "response_expressions": [],
       "source_explicit_statuses": [],
       "implicit_return_status": 200,
@@ -46,8 +54,14 @@
         "sio.on('expression')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('expression', '')",
-        "data.get('room_id')"
+        "data.get('room_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "expression",
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -66,6 +80,7 @@
         "sio.on('gesture_mark.clear')"
       ],
       "input_expressions": [],
+      "input_fields": [],
       "response_expressions": [],
       "source_explicit_statuses": [],
       "implicit_return_status": 200,
@@ -83,7 +98,12 @@
         "sio.on('gesture_mark.gesture')"
       ],
       "input_expressions": [
-        "data.get('result_str', '')"
+        "data.get",
+        "data.get('result_str', '')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "result_str"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -101,7 +121,10 @@
       "decorators": [
         "sio.on('gesture_mark.join')"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "request.sid"
+      ],
+      "input_fields": [],
       "response_expressions": [],
       "source_explicit_statuses": [],
       "implicit_return_status": 200,
@@ -119,8 +142,14 @@
         "sio.on('gesture_mark.target_select')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('step', 0)",
-        "data.get('target_id')"
+        "data.get('target_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "step",
+        "target_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -139,10 +168,18 @@
         "sio.on('gesture_mark.touchpoint')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('pressure', 0.5)",
         "data.get('type', 'trace')",
         "data.get('x', 0)",
-        "data.get('y', 0)"
+        "data.get('y', 0)",
+        "request.sid"
+      ],
+      "input_fields": [
+        "pressure",
+        "type",
+        "x",
+        "y"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -161,8 +198,14 @@
         "sio.on('join_ar_room')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('device', 'phone')",
-        "data.get('room_id')"
+        "data.get('room_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "device",
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -182,10 +225,18 @@
         "sio.on('join_position_room')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('position', '0 1.6 0')",
         "data.get('profile')",
         "data.get('room_id')",
-        "data.get('rotation', '0 0 0')"
+        "data.get('rotation', '0 0 0')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "position",
+        "profile",
+        "room_id",
+        "rotation"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -208,7 +259,12 @@
         "sio.on('leave_ar_room')"
       ],
       "input_expressions": [
-        "data.get('room_id')"
+        "data.get",
+        "data.get('room_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -225,7 +281,12 @@
         "sio.on('leave_position_room')"
       ],
       "input_expressions": [
-        "data.get('room_id')"
+        "data.get",
+        "data.get('room_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -244,10 +305,18 @@
         "sio.on('marker_update')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('marker_id')",
         "data.get('pose', {})",
         "data.get('room_id')",
-        "data.get('update_type')"
+        "data.get('update_type')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "marker_id",
+        "pose",
+        "room_id",
+        "update_type"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -268,7 +337,12 @@
         "sio.on('position_update')"
       ],
       "input_expressions": [
-        "data.get('room_id')"
+        "data.get",
+        "data.get('room_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -287,8 +361,14 @@
         "sio.on('profile_update')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('profile')",
-        "data.get('room_id')"
+        "data.get('room_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "profile",
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -307,7 +387,12 @@
         "sio.on('request_room_state')"
       ],
       "input_expressions": [
-        "data.get('room_id')"
+        "data.get",
+        "data.get('room_id')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -326,7 +411,11 @@
         "sio.on('request_sync')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('room_id')"
+      ],
+      "input_fields": [
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -345,8 +434,13 @@
         "sio.on('set_marker_config')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('markers', [])",
         "data.get('room_id')"
+      ],
+      "input_fields": [
+        "markers",
+        "room_id"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -363,7 +457,11 @@
         "sio.on('voice.admin_toggle')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('enabled', False)"
+      ],
+      "input_fields": [
+        "enabled"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -382,8 +480,13 @@
         "sio.on('voice.answer')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('sdp')",
         "data.get('type')"
+      ],
+      "input_fields": [
+        "sdp",
+        "type"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -401,7 +504,10 @@
       "decorators": [
         "sio.on('voice.get_state')"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "request.sid"
+      ],
+      "input_fields": [],
       "response_expressions": [],
       "source_explicit_statuses": [],
       "implicit_return_status": 200,
@@ -419,7 +525,11 @@
         "sio.on('voice.ice')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('candidate')"
+      ],
+      "input_fields": [
+        "candidate"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -437,7 +547,10 @@
       "decorators": [
         "sio.on('voice.join')"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "request.sid"
+      ],
+      "input_fields": [],
       "response_expressions": [],
       "source_explicit_statuses": [],
       "implicit_return_status": 200,
@@ -454,7 +567,10 @@
       "decorators": [
         "sio.on('voice.leave')"
       ],
-      "input_expressions": [],
+      "input_expressions": [
+        "request.sid"
+      ],
+      "input_fields": [],
       "response_expressions": [],
       "source_explicit_statuses": [],
       "implicit_return_status": 200,
@@ -472,7 +588,12 @@
         "sio.on('voice.mute')"
       ],
       "input_expressions": [
-        "data.get('muted')"
+        "data.get",
+        "data.get('muted')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "muted"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -491,8 +612,13 @@
         "sio.on('voice.offer')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('sdp')",
         "data.get('type')"
+      ],
+      "input_fields": [
+        "sdp",
+        "type"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],
@@ -511,8 +637,14 @@
         "sio.on('voice.transcript')"
       ],
       "input_expressions": [
+        "data.get",
         "data.get('language', 'auto')",
-        "data.get('text', '')"
+        "data.get('text', '')",
+        "request.sid"
+      ],
+      "input_fields": [
+        "language",
+        "text"
       ],
       "response_expressions": [],
       "source_explicit_statuses": [],

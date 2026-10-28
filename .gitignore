@@ -26,3 +26,4 @@ frontend/tests/fixtures/media/
 /mongo-data/
 .coverage
 /debug.log
+*.egg-info/

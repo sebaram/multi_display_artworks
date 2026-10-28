@@ -6,6 +6,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from contract_introspection import auth_policy, input_contract
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path[:0] = [str(ROOT/'flask_server'), str(ROOT/'flask_server/app')]
@@ -24,12 +25,15 @@ def describe(fn):
     fn = inspect.unwrap(fn)
     source = inspect.getsource(fn)
     tree = ast.parse(inspect.cleandoc(source))
-    inputs = sorted({ast.unparse(n) for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and (ast.unparse(n.func).startswith(('request.', 'data.', 'auth.')) or n.func.attr == 'get_json')})
+    inputs,fields = input_contract(inspect.cleandoc(source))
     returns = sorted({ast.unparse(n.value) for n in ast.walk(tree) if isinstance(n, ast.Return) and n.value})
     statuses=sorted({int(n.value.elts[-1].value) for n in ast.walk(tree) if isinstance(n,ast.Return) and isinstance(n.value,ast.Tuple) and isinstance(n.value.elts[-1],ast.Constant) and isinstance(n.value.elts[-1].value,int)})
     if any('redirect(' in value for value in returns):statuses.append(302)
-    return {'source': str(Path(inspect.getfile(fn)).relative_to(ROOT)).replace('\\','/'), 'line': inspect.getsourcelines(fn)[1], 'decorators': [ast.unparse(x) for x in tree.body[0].decorator_list], 'input_expressions': inputs, 'response_expressions': returns, 'source_explicit_statuses': sorted(set(statuses)), 'implicit_return_status':200}
+    return {'source': str(Path(inspect.getfile(fn)).relative_to(ROOT)).replace('\\','/'), 'line': inspect.getsourcelines(fn)[1], 'decorators': [ast.unparse(x) for x in tree.body[0].decorator_list], 'input_expressions': inputs, 'input_fields':fields, 'response_expressions': returns, 'source_explicit_statuses': sorted(set(statuses)), 'implicit_return_status':200}
 
+previous_routes_path=ROOT/'contracts/legacy-routes.json'
+previous_routes=json.loads(previous_routes_path.read_text(encoding='utf8')) if previous_routes_path.exists() else {}
+previous_by_key={(row['path'],row['endpoint']):row for row in previous_routes.get('routes',[])}
 routes=[]
 for rule in sorted(app.url_map.iter_rules(), key=lambda x:(x.rule,x.endpoint)):
     fn = app.view_functions[rule.endpoint]
@@ -37,18 +41,22 @@ for rule in sorted(app.url_map.iter_rules(), key=lambda x:(x.rule,x.endpoint)):
     row={'path':rule.rule,'methods':sorted(rule.methods-{'HEAD','OPTIONS'}),'endpoint':rule.endpoint,'automatic_methods':sorted(rule.methods & {'HEAD','OPTIONS'})}
     if custom:
         row.update(describe(fn))
-        decorators=' '.join(row['decorators'])
         source=inspect.getsource(inspect.unwrap(fn))
-        row['auth']='admin session; JSON 403' if 'admin_required' in decorators else 'authenticated; redirect signin' if 'login_required' in decorators else 'inline admin check; JSON 403' if 'current_user.is_admin' in source and ('403' in source) else 'public'
+        row['auth']=auth_policy(inspect.cleandoc(source),rule.endpoint,rule.rule)
+    elif rule.endpoint=='static' or rule.endpoint.endswith('.static'):
+        row['auth']='public static file'
     elif rule.rule.startswith('/kwanri'):
         row['auth']='admin session; otherwise 302 signin?next=<request.url>'
         row['payload_contract']='Flask-Admin generated HTML/form CRUD; model schema in legacy-bson.json; GET list/new/edit/details, POST forms/AJAX/action/delete; success200 or302, access denial302'
     else:
         row['auth']='public static file'
+    row.update({key:value for key,value in previous_by_key.get((rule.rule,rule.endpoint),{}).items() if key.startswith('observed')})
     routes.append(row)
 admin=app.extensions['admin'][0]
 resources=[{'model':v.model.__name__, 'endpoint':v.endpoint, 'url':v.url, 'collection':v.model._get_collection_name(), 'auth':'admin session'} for v in admin._views if hasattr(v,'model')]
-dump('legacy-routes.json', {'format_version':1,'captured_from':'registered Flask url_map; no declaration-count approximation','route_count':len(routes),'admin_resources':resources,'routes':routes})
+route_contract={'format_version':1,'captured_from':'registered Flask url_map; no declaration-count approximation','route_count':len(routes),'admin_resources':resources,'routes':routes}
+route_contract.update({key:value for key,value in previous_routes.items() if key.endswith('_observations')})
+dump('legacy-routes.json', route_contract)
 
 sio=app.extensions['socketio']
 handlers=[]

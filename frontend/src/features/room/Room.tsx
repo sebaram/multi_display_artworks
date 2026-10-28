@@ -81,6 +81,12 @@ export default function Room({
   const dataRef = useRef(data);
   dataRef.current = data;
   const aiPreview = useRef<ElementDTO[]>([]);
+  const aiOwner = useRef<{
+    route: string;
+    query: string;
+    roomId: string;
+    scene: ReturnType<typeof mountRoom>;
+  } | null>(null);
   const roomId = params.get("room_id"),
     wallId = params.get("wall_id"),
     elementId = params.get("wall_element_id"),
@@ -125,6 +131,7 @@ export default function Room({
     setLiveDesigns({});
     setYouTube(undefined);
     setAI(false);
+    aiOwner.current = null;
     setSound(false);
     setCaptureLocation(false);
     setLocationName("");
@@ -207,6 +214,7 @@ export default function Room({
       .catch((e) => setError(e.message));
     return () => {
       cancelled = true;
+      aiOwner.current = null;
       instance.current?.dispose();
       instance.current = null;
     };
@@ -214,8 +222,30 @@ export default function Room({
   const elements = data?.walls.flatMap((w) => w.elements) || [],
     original = elements.find((e) => e.id === selected),
     draft = selected ? drafts[selected] || original : undefined;
+  const panelOwner = aiOwner.current;
+  function ownsAI(owner: typeof panelOwner) {
+    return (
+      !!owner &&
+      aiOwner.current === owner &&
+      routeRef.current === owner.route &&
+      dataRef.current?.roomId === owner.roomId &&
+      instance.current === owner.scene
+    );
+  }
+  function openAI() {
+    if (!data || !instance.current) return;
+    aiOwner.current = {
+      route,
+      query,
+      roomId: data.roomId,
+      scene: instance.current,
+    };
+    setAI(true);
+  }
   function closeAI() {
-    instance.current?.update(aiPreview.current);
+    if (ownsAI(aiOwner.current))
+      aiOwner.current?.scene.update(aiPreview.current);
+    aiOwner.current = null;
     aiPreview.current = [];
     setAI(false);
   }
@@ -456,7 +486,7 @@ export default function Room({
           폰 연동 AR
         </Link>
         {session.is_admin && (
-          <button onClick={() => (ai ? closeAI() : setAI(true))}>
+          <button disabled={!ready} onClick={() => (ai ? closeAI() : openAI())}>
             AI 큐레이션
           </button>
         )}
@@ -502,18 +532,24 @@ export default function Room({
           roomId={data.roomId}
           onClose={closeAI}
           onApplied={async () => {
+            const owner = panelOwner;
+            if (!owner || !ownsAI(owner)) return;
             const saved = await api<RoomScene>(
-              `/api/v1/rooms/${data.roomId}/scene?${query}`,
+              `/api/v1/rooms/${owner.roomId}/scene?${owner.query}`,
             );
-            instance.current?.update(
-              saved.walls.flatMap((wall) => wall.elements),
+            if (!ownsAI(owner)) return;
+            owner.scene.update(saved.walls.flatMap((wall) => wall.elements));
+            setData((current) =>
+              ownsAI(owner) && current?.roomId === owner.roomId
+                ? saved
+                : current,
             );
-            setData(saved);
-            setDrafts({});
+            setDrafts((current) => (ownsAI(owner) ? {} : current));
             aiPreview.current = [];
           }}
           onPreview={(arrangements) => {
-            instance.current?.update(aiPreview.current);
+            if (!panelOwner || !ownsAI(panelOwner)) return;
+            panelOwner.scene.update(aiPreview.current);
             const patches = arrangements.flatMap((a) => {
               const element = elements.find((e) => e.id === a.element_id);
               const wall = data.walls.find((wall) => wall.name === a.wall_name);
@@ -533,7 +569,7 @@ export default function Room({
                 drafts[patch.id] ||
                 elements.find((element) => element.id === patch.id)!,
             );
-            instance.current?.update(patches);
+            panelOwner.scene.update(patches);
           }}
         />
       )}

@@ -25,6 +25,17 @@ class Settings(BaseSettings):
     wall_media_root: Path = Path('wall_media')
     wall_media_max_file_bytes: int = Field(default=2 * 1024**3, gt=0)
     wall_media_quota_bytes: int = Field(default=20 * 1024**3, gt=0)
+    provider_timeout_seconds: float = Field(default=30, gt=0, le=120)
+    integration_max_bytes: int = Field(default=16 * 1024**2, gt=0, le=32 * 1024**2)
+    stream_root: Path = Path('streams')
+    ffmpeg_path: str = 'ffmpeg'
+    mail_server: str = 'localhost'
+    mail_port: int = Field(default=25, ge=1, le=65535)
+    mail_username: str = Field(default='', repr=False)
+    mail_password: str = Field(default='', repr=False)
+    mail_default_sender: str = 'noreply@uvrlab.org'
+    mail_use_tls: bool = False
+    mail_use_ssl: bool = False
 
     @model_validator(mode="after")
     def secure_production_cookie(self):

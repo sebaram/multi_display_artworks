@@ -1,7 +1,7 @@
 """Legacy MongoEngine persistence schema, without Flask or rendering dependencies."""
 from datetime import datetime
 from bson import ObjectId
-from mongoengine import (Document, ObjectIdField, StringField, BooleanField, IntField, FloatField,
+from mongoengine import (Document, ObjectIdField, StringField, BooleanField, IntField, FloatField, ValidationError,
                          ListField, DateTimeField, ReferenceField, DictField)
 
 class User(Document):
@@ -65,12 +65,16 @@ class WhisperConfig(Document):
     """Whisper API configuration for voice transcription."""
     provider = StringField(required=True, choices=['openai', 'minimax', 'local'])
     api_base = StringField(required=True)
-    api_key = StringField(required=True)
+    api_key = StringField(required=False)
     model = StringField(default='whisper-1')
     language = StringField(default='')
     enabled = BooleanField(default=False)
     updated_at = StringField(default=lambda: datetime.utcnow().isoformat())
     meta = {'collection': 'whisper_configs', 'allow_inheritance': False}
+
+    def clean(self):
+        if self.provider != 'local' and not self.api_key:
+            raise ValidationError('API key required for remote STT', field_name='api_key')
 
     def save(self, *args, **kwargs):
         self.updated_at = datetime.utcnow().isoformat()

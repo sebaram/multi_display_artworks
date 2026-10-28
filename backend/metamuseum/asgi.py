@@ -27,17 +27,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             await run_in_threadpool(cleanup, settings)
             yield
         finally:
-            if hasattr(app.state, 'realtime'):
-                await app.state.realtime.shutdown()
+            try:
+                if hasattr(app.state, 'realtime'):
+                    await app.state.realtime.shutdown()
+            finally:
+                await run_in_threadpool(app.state.streams.close)
             await run_in_threadpool(disconnect_database)
 
     application = FastAPI(title="MetaMuseum API", version="1.0.0", lifespan=lifespan)
     application.state.settings = settings
+    from .services.streams import StreamManager
+    from .services.providers import RateLimiter
+    application.state.streams = StreamManager(settings.stream_root, settings.ffmpeg_path)
+    application.state.integration_limiter = RateLimiter()
     application.add_middleware(SessionMiddleware, secret_key=settings.secret_key,
                                session_cookie=settings.session_cookie, max_age=settings.session_max_age,
                                same_site="lax", https_only=settings.session_secure)
     application.include_router(router)
-    from .api import admin, gallery, legacy, wall_designs, wall_media
+    from .api import admin, gallery, legacy, wall_designs, wall_media, integrations
+    application.middleware('http')(integrations.bounded_integration_body)
+    application.include_router(integrations.router)
     application.include_router(wall_designs.router)
     application.include_router(wall_media.router)
     application.include_router(gallery.router)

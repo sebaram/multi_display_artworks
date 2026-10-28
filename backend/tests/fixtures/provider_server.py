@@ -1,15 +1,17 @@
 """A real loopback upstream: records provider wire data, never contacts the internet."""
 import json
 import socket
+import ssl
 import threading
 import time
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import StreamRequestHandler, ThreadingTCPServer
+from pathlib import Path
 
 
 @contextmanager
-def provider_server(result=None, *, mode='success', model_text=None):
+def provider_server(result=None, *, mode='success', model_text=None, tls=False):
     requests = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -65,10 +67,16 @@ def provider_server(result=None, *, mode='success', model_text=None):
                 entry['peer_closed'].set()
 
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    if tls:
+        # Original test-only self-signed certificate/key, never a deployment credential.
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        here = Path(__file__).parent
+        context.load_cert_chain(here/'localhost.cert.pem', here/'localhost.key.pem')
+        server.socket = context.wrap_socket(server.socket, server_side=True)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        yield f'http://127.0.0.1:{server.server_port}/v1', requests
+        yield f'{"https" if tls else "http"}://127.0.0.1:{server.server_port}/v1', requests
     finally:
         server.shutdown()
         server.server_close()

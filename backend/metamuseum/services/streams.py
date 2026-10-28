@@ -4,7 +4,7 @@ import re
 import shutil
 import subprocess
 import threading
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -24,7 +24,7 @@ def validate_stream_id(value):
 
 def redact(line):
     # FFmpeg may print input credentials, query tokens, and local paths.
-    return re.sub(r'(?:rtsp|rtsps|https?|file)://\S+', '[source]', line)[:500]
+    return re.sub(r'(?:rtsps?|https?|file)://\S+', '[source]', line, flags=re.IGNORECASE)[:500]
 
 
 @dataclass
@@ -46,6 +46,7 @@ class StreamManager:
         self.ffmpeg = ffmpeg
         self.max_streams = max_streams
         self.sessions = {}
+        self.failures = OrderedDict()
         self.lock = threading.RLock()
 
     def _path(self, stream_id):
@@ -56,10 +57,12 @@ class StreamManager:
 
     def _spawn(self, stream_id, inputs, *, kind, mime=''):
         path = self._path(stream_id)
+        self._reap_failed()
         if stream_id in self.sessions:
             raise HTTPException(409, 'stream_already_exists')
         if len(self.sessions) >= self.max_streams:
             raise HTTPException(429, 'stream_limit_exceeded')
+        self.failures.pop(stream_id, None)
         if path.exists():
             shutil.rmtree(path)
         path.mkdir(parents=True)
@@ -83,6 +86,7 @@ class StreamManager:
             for raw in iter(lambda: process.stderr.readline(8192), b''):
                 session.errors.append(redact(raw.decode(errors='replace').strip()))
             process.stderr.close()
+            process.wait()
 
         reader = threading.Thread(target=read_errors, daemon=True, name='ffmpeg-diagnostics')
         reader.start()
@@ -109,7 +113,7 @@ class StreamManager:
             writer = threading.Thread(target=feed, daemon=True, name='ffmpeg-phone-input')
             writer.start()
             session.threads.append(writer)
-        return self.status(stream_id)
+        return self._status(stream_id)
 
     def start_rtsp(self, stream_id, url):
         try:
@@ -120,6 +124,7 @@ class StreamManager:
             valid = False
         if not valid:
             raise HTTPException(422, 'invalid_rtsp_url')
+        url = parsed._replace(scheme=parsed.scheme.lower()).geturl()
         with self.lock:
             return self._spawn(stream_id, ['-rtsp_transport', 'tcp', '-timeout', '5000000', '-i', url], kind='rtsp')
 
@@ -134,9 +139,12 @@ class StreamManager:
             raise HTTPException(422, 'invalid_stream_chunk')
         mime = mime.split(';')[0].lower()
         with self.lock:
+            self._reap_failed()
             session = self.sessions.get(stream_id)
             if session is None:
                 if index != 0:
+                    if stream_id in self.failures:
+                        raise HTTPException(502, 'stream_conversion_failed')
                     raise HTTPException(409, 'first_chunk_required')
                 container = ('webm' if data.startswith(b'\x1aE\xdf\xa3') else
                              'mp4' if len(data) >= 12 and data[4:8] == b'ftyp' else None)
@@ -168,8 +176,20 @@ class StreamManager:
             except queue.Full:
                 raise HTTPException(429, 'stream_input_backpressure') from None
 
-    def status(self, stream_id):
+    def _reap_failed(self):
+        for stream_id, session in list(self.sessions.items()):
+            code = session.process.poll()
+            if code is not None and code != 0:
+                self.stop(stream_id)
+                self.failures[stream_id] = dict(stream_id=stream_id, has_playlist=False, ffmpeg_running=False,
+                    url=None, state='failed', diagnostics=list(session.errors))
+                while len(self.failures) > 16:
+                    self.failures.popitem(last=False)
+
+    def _status(self, stream_id):
         path = self._path(stream_id)
+        if stream_id in self.failures:
+            return dict(self.failures[stream_id])
         session = self.sessions.get(stream_id)
         has_playlist = (path/'playlist.m3u8').is_file()
         running = bool(session and session.process.poll() is None)
@@ -178,11 +198,19 @@ class StreamManager:
                     state='running' if running else 'stopped',
                     diagnostics=list(session.errors) if session and not running else [])
 
+    def status(self, stream_id):
+        with self.lock:
+            self._reap_failed()
+            return self._status(stream_id)
+
     def list(self):
         with self.lock:
-            return [self.status(name) for name in self.sessions]
+            self._reap_failed()
+            return [self._status(name) for name in [*self.sessions, *self.failures]]
 
     def playlist(self, stream_id):
+        with self.lock:
+            self._reap_failed()
         path = self._path(stream_id)/'playlist.m3u8'
         try:
             content = path.read_text(encoding='utf8')
@@ -198,6 +226,8 @@ class StreamManager:
         return '\n'.join(result)+'\n'
 
     def segment(self, stream_id, name):
+        with self.lock:
+            self._reap_failed()
         if not SAFE_SEGMENT.fullmatch(name):
             raise HTTPException(400, 'invalid_segment')
         root = self._path(stream_id)
@@ -209,6 +239,7 @@ class StreamManager:
     def stop(self, stream_id):
         path = self._path(stream_id)
         with self.lock:
+            self.failures.pop(stream_id, None)
             session = self.sessions.get(stream_id)
             if session:
                 process = session.process
@@ -234,5 +265,12 @@ class StreamManager:
         return {'status': 'stopped'}
 
     def close(self):
+        errors = []
         for name in list(self.sessions):
-            self.stop(name)
+            try:
+                self.stop(name)
+            except Exception as error:
+                errors.append(error)
+        self.failures.clear()
+        if errors:
+            raise RuntimeError('stream_shutdown_failed') from None

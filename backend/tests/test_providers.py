@@ -1,12 +1,15 @@
 import importlib.util
 import json
+import threading
+import time
 from datetime import datetime, timedelta
 from types import SimpleNamespace
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
 
-from fixtures.provider_server import provider_server, smtp_server
+from fixtures.provider_server import provider_server, smtp_server, stalled_transport_server
 
 
 def test_integrations_routes_are_registered(settings):
@@ -54,6 +57,49 @@ def test_provider_failures_are_bounded_and_redacted(mode, status):
             service.call_llm(config, 'system', 'user', timeout=.05 if mode in {'timeout','trickle'} else 1)
     assert error.value.status_code == status
     assert 'secret' not in str(error.value.detail)
+
+
+@pytest.mark.parametrize('mode', ['header_trickle', 'trickle'])
+def test_provider_absolute_deadline_closes_transport_and_worker(mode):
+    service = provider_service()
+    with provider_server({'arrangements': []}, mode=mode) as (url, requests):
+        started = time.monotonic()
+        with pytest.raises(HTTPException) as error:
+            service.request_json(url, b'{}', {'Content-Type':'application/json'}, timeout=.1)
+        elapsed = time.monotonic()-started
+        assert error.value.status_code == 504
+        assert elapsed < .4, f'{mode} held the worker for {elapsed:.3f}s'
+        assert requests[0]['peer_closed'].wait(.5), 'upstream transport was left open'
+        assert not any(t.name == 'provider-deadline' and t.is_alive() for t in threading.enumerate())
+
+
+@pytest.mark.parametrize('phase', ['tls', 'upload'])
+def test_provider_deadline_aborts_stalled_handshake_and_upload(phase):
+    service = provider_service()
+    with stalled_transport_server(phase) as (url, peer_closed):
+        started = time.monotonic()
+        with pytest.raises(HTTPException) as error:
+            service.request_json(url, b'x'*(16*1024*1024) if phase == 'upload' else b'{}', {}, timeout=.1)
+        elapsed = time.monotonic()-started
+        assert error.value.status_code == 504
+        assert elapsed < .4
+        assert peer_closed.wait(.75), 'deadline did not close the stalled transport'
+        assert not any(t.name == 'provider-deadline' and t.is_alive() for t in threading.enumerate())
+
+
+def test_provider_https_preserves_certificate_verification(monkeypatch):
+    service = provider_service()
+    expected = {'arrangements': [], 'explanation': 'trusted localhost TLS fixture'}
+    with provider_server(expected, tls=True) as (url, requests):
+        config = SimpleNamespace(provider='openai', api_base=url, api_key='fixture-only',
+                                 model='fixture', temperature=.3, max_tokens=64)
+        monkeypatch.delenv('SSL_CERT_FILE', raising=False)
+        with pytest.raises(HTTPException) as error:
+            service.call_llm(config, 'system', 'user', timeout=1)
+        assert error.value.status_code == 502 and not requests
+        monkeypatch.setenv('SSL_CERT_FILE', str(Path(__file__).parent/'fixtures/localhost.cert.pem'))
+        assert service.call_llm(config, 'system', 'user', timeout=1) == expected
+        assert len(requests) == 1
 
 
 @pytest.mark.parametrize('filename,mime', [('audio.webm','audio/webm'), ('audio.m4a','audio/mp4')])

@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import json
 import subprocess
 import time
 from pathlib import Path
@@ -130,6 +131,75 @@ def test_phone_rejects_wrong_container_order_and_failed_source(tmp_path, ffmpeg)
         assert not status['ffmpeg_running']
         assert 'fixture-password' not in str(status) and '?secret=token' not in str(status)
         assert status['diagnostics']
+    finally:
+        manager.close()
+
+
+@pytest.mark.parametrize('failed_kind', ['file', 'phone'])
+def test_failed_ffmpeg_releases_capacity_files_and_workers(tmp_path, ffmpeg, failed_kind):
+    manager = stream_service()(tmp_path/'streams', ffmpeg, max_streams=1)
+    source = tmp_path/'valid.mp4'
+    subprocess.run([ffmpeg, '-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=160x120:rate=15',
+                    '-t', '3', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', str(source)], check=True)
+    try:
+        if failed_kind == 'file':
+            manager.start_source('failed-wall', str(tmp_path/'missing.mp4'))
+        else:
+            manager.push('failed-wall', b'\x1aE\xdf\xa3'+b'invalid-webm'*200, 0, 'video/webm')
+            manager.finish_input('failed-wall')
+        failed = manager.sessions['failed-wall']
+        failed.process.wait(timeout=10)
+        manager.start_source('replacement', str(source), realtime=True)
+        assert set(manager.sessions) == {'replacement'}
+        assert not failed.path.exists()
+        assert all(not thread.is_alive() for thread in failed.threads)
+        status = manager.status('failed-wall')
+        assert status['state'] == 'failed' and status['diagnostics']
+        assert not status['has_playlist'] and not status['ffmpeg_running']
+        manager.stop('replacement')
+        manager.start_source('failed-wall', str(source), realtime=True)
+        assert manager.status('failed-wall')['ffmpeg_running']
+    finally:
+        manager.close()
+
+
+@pytest.mark.parametrize('scheme', ['RTSP', 'rTsP', 'RTSPS', 'rTsPs'])
+def test_rtsp_scheme_is_normalized_and_failure_diagnostics_hide_secrets(tmp_path, ffmpeg, scheme):
+    from metamuseum.services.streams import redact
+    manager = stream_service()(tmp_path/'streams', ffmpeg)
+    try:
+        manager.start_rtsp('case-wall', f'{scheme}://fixture-user:fixture-password@127.0.0.1:1/missing?secret=fixture-token')
+        session = manager.sessions['case-wall']
+        session.process.wait(timeout=10)
+        status = manager.status('case-wall')
+        diagnostics = json.dumps([status, manager.list(),
+            redact(f'Did you mean file:{scheme}://fixture-user:fixture-password@127.0.0.1:1/missing?secret=fixture-token?')])
+        for secret in ['fixture-user', 'fixture-password', 'fixture-token']:
+            assert secret not in diagnostics
+        command = session.process.args
+        assert command[command.index('-i')+1].startswith(scheme.lower()+'://')
+        assert len(status['diagnostics']) <= 8
+        assert all(len(line) <= 500 for line in status['diagnostics'])
+    finally:
+        manager.close()
+
+
+def test_failed_stream_diagnostics_are_bounded_without_retaining_processes(tmp_path, ffmpeg):
+    manager = stream_service()(tmp_path/'streams', ffmpeg, max_streams=1)
+    workers = []
+    try:
+        for index in range(18):
+            name = f'failed-{index}'
+            manager.start_source(name, str(tmp_path/'missing.mp4'))
+            session = manager.sessions[name]
+            workers.extend(session.threads)
+            session.process.wait(timeout=10)
+        statuses = manager.list()
+        assert len(statuses) == 16
+        assert all(item['state'] == 'failed' for item in statuses)
+        assert not manager.sessions
+        assert not list((tmp_path/'streams').iterdir())
+        assert all(not thread.is_alive() for thread in workers)
     finally:
         manager.close()
 

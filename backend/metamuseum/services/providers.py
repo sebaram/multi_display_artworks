@@ -13,7 +13,7 @@ import uuid
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from email.message import EmailMessage
-from threading import Lock
+from threading import Event, Lock, Timer
 from urllib.parse import urlsplit
 
 from fastapi import HTTPException
@@ -46,8 +46,77 @@ def endpoint(base, suffix):
 def request_json(url, payload, headers, timeout):
     request = urllib.request.Request(url, data=payload, headers=headers, method='POST')
     deadline = time.monotonic()+timeout
+    expired, transport_lock, transports = Event(), Lock(), []
+
+    def remaining():
+        value = deadline-time.monotonic()
+        if expired.is_set() or value <= 0:
+            raise TimeoutError()
+        return value
+
+    def own(sock):
+        with transport_lock:
+            transports.append(sock)
+            sock.settimeout(remaining())
+        return sock
+
+    def abort():
+        expired.set()
+        with transport_lock:
+            sockets = list(transports)
+        for sock in sockets:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            sock.close()
+
+    def connect_socket(address, timeout=None, source_address=None):
+        # Own the socket before connect/TLS/HTTP reads so the deadline can abort I/O.
+        last_error = None
+        for family, kind, protocol, _, target in socket.getaddrinfo(*address, type=socket.SOCK_STREAM):
+            remaining()
+            sock = own(socket.socket(family, kind, protocol))
+            try:
+                if source_address:
+                    sock.bind(source_address)
+                sock.connect(target)
+                return sock
+            except OSError as error:
+                sock.close()
+                last_error = error
+        if expired.is_set():
+            raise TimeoutError()
+        raise last_error or OSError('provider_address_unavailable')
+
+    class HTTPSConnection(http.client.HTTPSConnection):
+        def connect(self):
+            http.client.HTTPConnection.connect(self)
+            # Register the TLS socket before its handshake, rather than after wrap_socket blocks.
+            self.sock = own(self._context.wrap_socket(self.sock,
+                server_hostname=self._tunnel_host or self.host, do_handshake_on_connect=False))
+            self.sock.do_handshake()
+
+    def connection(kind, *args, **kwargs):
+        kwargs['timeout'] = remaining()
+        result = kind(*args, **kwargs)
+        result._create_connection = connect_socket
+        return result
+
+    class HTTPHandler(urllib.request.HTTPHandler):
+        def http_open(self, req):
+            return self.do_open(lambda *args, **kwargs: connection(http.client.HTTPConnection, *args, **kwargs), req)
+
+    class HTTPSHandler(urllib.request.HTTPSHandler):
+        def https_open(self, req):
+            return self.do_open(lambda *args, **kwargs: connection(HTTPSConnection, *args, **kwargs), req,
+                                context=self._context)
+
+    timer = Timer(timeout, abort)
+    timer.name, timer.daemon = 'provider-deadline', True
+    timer.start()
     try:
-        with urllib.request.build_opener(_NoRedirect).open(request, timeout=timeout) as response:
+        with urllib.request.build_opener(_NoRedirect, HTTPHandler, HTTPSHandler).open(request, timeout=remaining()) as response:
             body = bytearray()
             while True:
                 if time.monotonic() >= deadline:
@@ -66,16 +135,26 @@ def request_json(url, payload, headers, timeout):
         return result
     except (TimeoutError, socket.timeout):
         raise HTTPException(504, 'provider_timeout') from None
-    except urllib.error.HTTPError:
+    except urllib.error.HTTPError as error:
+        error.close()
+        if expired.is_set():
+            raise HTTPException(504, 'provider_timeout') from None
         raise HTTPException(502, 'provider_http_error') from None
     except urllib.error.URLError as error:
-        if isinstance(error.reason, (TimeoutError, socket.timeout)):
+        if expired.is_set() or isinstance(error.reason, (TimeoutError, socket.timeout)):
             raise HTTPException(504, 'provider_timeout') from None
         raise HTTPException(502, 'provider_unavailable') from None
     except (ValueError, UnicodeError):
         raise HTTPException(502, 'provider_invalid_json') from None
     except (OSError, http.client.HTTPException):
+        if expired.is_set():
+            raise HTTPException(504, 'provider_timeout') from None
         raise HTTPException(502, 'provider_unavailable') from None
+    finally:
+        timer.cancel()
+        timer.join()
+        for sock in transports:
+            sock.close()
 
 
 def call_llm(config, system, user, *, timeout=30):

@@ -25,6 +25,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             yield
         finally:
+            if hasattr(app.state, 'sio'):
+                await app.state.sio.shutdown()
             await run_in_threadpool(disconnect_database)
 
     application = FastAPI(title="MetaMuseum API", version="1.0.0", lifespan=lifespan)
@@ -75,6 +77,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return application
 
 
+def create_realtime_app(http_app: FastAPI):
+    from .realtime import create_realtime_app as wrap
+    return wrap(http_app)
+
+
 class _ConfiguredApplication:
     """Delay required environment loading until ASGI startup, allowing clean imports."""
     def __init__(self):
@@ -82,7 +89,7 @@ class _ConfiguredApplication:
 
     async def __call__(self, scope, receive, send):
         if self.application is None:
-            self.application = create_app()
+            self.application = create_realtime_app(create_app())
         await self.application(scope, receive, send)
 
 

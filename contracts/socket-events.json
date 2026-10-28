@@ -658,6 +658,23 @@
     }
   ],
   "registration_note": "AR registers first, then position_sync. Final connect/disconnect are position_sync handlers; final disconnect explicitly cleans both AR and presence state. gesture_mark registration is module-global and happens once.",
+  "asgi_runtime": {
+    "entrypoint": "metamuseum.asgi:app",
+    "http_factory": "create_app(settings) -> FastAPI",
+    "combined_factory": "create_realtime_app(http_app) -> socketio.ASGIApp",
+    "server": "socketio.AsyncServer(async_mode='asgi'); one worker",
+    "visitor_auth": {"visitorCapability": "Existing signed visitor capability; optional for AR/gesture devices, required for presence"},
+    "admin_auth": {"visitorCapability": "Required to join presence", "csrfToken": "Current /api/v1/auth/csrf value", "cookie": "Configured signed SessionMiddleware cookie", "Origin": "Explicit configured allowed origin"},
+    "admin_authorization": "CSRF/origin/cookie checked at handshake; verified administrator is reloaded in threadpool for every voice.admin_toggle",
+    "room_identity": "http_app.state.realtime.get_room_visitor(sid, room_id) -> VisitorIdentity | None; absent after leave, disconnect or displacement",
+    "room_broadcast": "await http_app.state.realtime.broadcast(event, payload, room_id=room_id, skip_sid=None)",
+    "transport_rooms": "Presence and AR use separate internal prefixes; always use realtime.broadcast for gallery-room broadcasts",
+    "device_authorization": "No-capability AR/gesture connections accepted; no presence or wall-input identity. AR membership requires an existing Room; only joined phones send marker_update; configuration/sync requires same AR-room membership",
+    "callback_ack": "Legacy handlers retain their null acknowledgement, including denied or malformed events",
+    "http_device_routes": ["GET /ar-companion/status?room_id=...", "GET /gesture-mark/stream", "GET /gesture-mark/api/state", "POST /gesture-mark/api/touchpoint", "POST /gesture-mark/api/gesture"],
+    "sse_wire": "Raw touchpoint JSON; recognized gestures are {datatype:'gesture_result',result_str,timestamp}; comments provide initial connection and keepalive",
+    "cleanup": "Single disconnect handler removes visitor/admin, AR SID membership and every presence; emits voice.leave and user_left. SSE finally removes bounded subscriber queue"
+  },
   "position_limits": {
     "max_pose_hz": 20,
     "stationary_heartbeat_ms": 1000,

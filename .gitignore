@@ -27,3 +27,5 @@ frontend/tests/fixtures/media/
 .coverage
 /debug.log
 *.egg-info/
+/.test-tmp-*/
+/frontend/.tmp/

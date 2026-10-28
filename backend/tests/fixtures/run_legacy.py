@@ -2,6 +2,7 @@
 import os
 import sys
 from pathlib import Path
+from legacy_source import legacy_root
 from isolated_db import connect, assert_test_instance, URI, DATABASE
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -15,4 +16,4 @@ if __name__ == '__main__':
     guard = InstanceGuard()
     guard.client = connect()
     import pytest
-    raise SystemExit(pytest.main([str(ROOT / 'flask_server/tests'), '-ra', *sys.argv[1:]], plugins=[guard]))
+    raise SystemExit(pytest.main([str(legacy_root() / 'tests'), '-ra', *sys.argv[1:]], plugins=[guard]))

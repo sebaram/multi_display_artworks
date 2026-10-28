@@ -6,14 +6,12 @@ import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 const root=resolve(fileURLToPath(new URL('../../../../',import.meta.url)));
 const frontendRequire=createRequire(join(root,'frontend/package.json'));
-let chromium;
-try { ({chromium}=frontendRequire('playwright')); }
-catch { ({chromium}=createRequire(join(root,'flask_server/package.json'))('playwright')); }
+const {chromium}=frontendRequire('playwright');
 const output=resolve(root,process.env.WALL_ENGINE_SPIKE_OUTPUT||'frontend/test-results/wall-engine-spike');mkdirSync(output,{recursive:true});
 const scratch=join(root,'.superpowers/sdd/2026-10-29-fastapi-react-interactive-walls');
 const sourceCandidate=process.env.WALL_SOURCE_REFERENCE||join(scratch,'reference');
 const sourceReference=existsSync(join(sourceCandidate,'wall.html'))?resolve(sourceCandidate):null;
-const aframeCandidate=process.env.WALL_AFRAME_SCRIPT||[join(root,'frontend/node_modules/aframe/dist/aframe-master.min.js'),join(scratch,'runtime/aframe-1.6.0.min.js')].find(existsSync);
+const aframeCandidate=process.env.WALL_AFRAME_SCRIPT||join(root,'frontend/public/vendor/aframe-1.6.0.min.js');
 const aframeScript=aframeCandidate&&existsSync(aframeCandidate)?resolve(aframeCandidate):null;
 if(process.env.WALL_SOURCE_REFERENCE&&!sourceReference)throw new Error('WALL_SOURCE_REFERENCE must point to the pinned source checkout containing wall.html');
 if(process.env.WALL_AFRAME_SCRIPT&&!aframeScript)throw new Error('WALL_AFRAME_SCRIPT must point to A-Frame 1.6.0 JavaScript');

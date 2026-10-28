@@ -6,10 +6,11 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from legacy_source import legacy_root
 from contract_introspection import auth_policy, input_contract
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path[:0] = [str(ROOT/'flask_server'), str(ROOT/'flask_server/app')]
+sys.path[:0] = [str(legacy_root()), str(legacy_root()/'app')]
 os.environ.update(MONGODB_URI='mongodb://127.0.0.1:27028/metamuseum_test?directConnection=true', MONGODB_DB='metamuseum_test', SECRET_KEY='migration-local-secret', SECURITY_PASSWORD_SALT='migration-local-salt')
 from bson import ObjectId, json_util
 from metamuseum import create_app

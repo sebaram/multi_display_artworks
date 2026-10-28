@@ -18,7 +18,19 @@ def provider_server(result=None, *, mode='success', model_text=None):
 
         def do_POST(self):
             body = self.rfile.read(int(self.headers.get('Content-Length', 0)))
-            requests.append({'path': self.path, 'headers': dict(self.headers), 'body': body})
+            entry = {'path': self.path, 'headers': dict(self.headers), 'body': body, 'peer_closed': threading.Event()}
+            requests.append(entry)
+            if mode == 'header_trickle':
+                try:
+                    self.wfile.write(b'HTTP/1.1 200 OK\r\nX-Unfinished: ')
+                    self.wfile.flush()
+                    for _ in range(100):
+                        self.wfile.write(b'x')
+                        self.wfile.flush()
+                        time.sleep(.02)
+                except (OSError, ValueError):
+                    entry['peer_closed'].set()
+                return
             if mode == 'disconnect':
                 self.close_connection = True
                 self.connection.shutdown(socket.SHUT_RDWR)
@@ -50,7 +62,7 @@ def provider_server(result=None, *, mode='success', model_text=None):
                 else:
                     self.wfile.write(payload)
             except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-                pass
+                entry['peer_closed'].set()
 
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -93,5 +105,35 @@ def smtp_server():
     thread.start()
     try:
         yield server.server_address[1], deliveries
+    finally:
+        server.shutdown(); server.server_close(); thread.join(timeout=2)
+
+
+@contextmanager
+def stalled_transport_server(phase):
+    """Hold a real TLS handshake or request upload until the client closes it."""
+    peer_closed = threading.Event()
+
+    class Handler(StreamRequestHandler):
+        def handle(self):
+            self.request.settimeout(2)
+            try:
+                received = self.request.recv(65536)
+                if phase == 'upload':
+                    while b'\r\n\r\n' not in received:
+                        received += self.request.recv(4096)
+                    time.sleep(.25)
+                while self.request.recv(65536):
+                    pass
+                peer_closed.set()
+            except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+                peer_closed.set()
+
+    server = ThreadingTCPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        scheme = 'https' if phase == 'tls' else 'http'
+        yield f'{scheme}://127.0.0.1:{server.server_address[1]}/v1', peer_closed
     finally:
         server.shutdown(); server.server_close(); thread.join(timeout=2)

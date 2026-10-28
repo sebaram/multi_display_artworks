@@ -3,11 +3,12 @@ import json
 import os
 import sys
 from pathlib import Path
+from legacy_source import legacy_root
 from isolated_db import connect, URI, DATABASE
 from seed import seed
 
 ROOT=Path(__file__).resolve().parents[3]
-sys.path[:0]=[str(ROOT/'flask_server'),str(ROOT/'flask_server/app')]
+sys.path[:0]=[str(legacy_root()),str(legacy_root()/'app')]
 os.environ.update(MONGODB_URI=URI,MONGODB_DB=DATABASE,SECRET_KEY='migration-local-secret',SECURITY_PASSWORD_SALT='migration-local-salt')
 client_db=connect()
 seed(client_db)

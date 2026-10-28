@@ -4,12 +4,13 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from legacy_source import legacy_root
 from bson import BSON, json_util
 
 os.environ.setdefault('SECRET_KEY','migration-local-secret')
 os.environ.setdefault('SECURITY_PASSWORD_SALT','migration-local-salt')
 ROOT = Path(__file__).resolve().parents[3]
-sys.path[:0] = [str(ROOT/'flask_server'), str(ROOT/'flask_server/app')]
+sys.path[:0] = [str(legacy_root()), str(legacy_root()/'app')]
 
 class GoldenBsonTests(unittest.TestCase):
     def test_bson_and_legacy_model_round_trip(self):

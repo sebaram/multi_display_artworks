@@ -1,5 +1,5 @@
 """Contract extraction regressions; no application imports or database access."""
-import ast
+import json
 import unittest
 from pathlib import Path
 from contract_introspection import auth_policy, input_contract
@@ -7,8 +7,8 @@ from contract_introspection import auth_policy, input_contract
 ROOT = Path(__file__).resolve().parents[3]
 
 def endpoint_source(filename, function):
-    tree=ast.parse((ROOT/filename).read_text(encoding='utf8'))
-    return ast.unparse(next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name==function))
+    fixture = Path(__file__).with_name('legacy-contract-functions.json')
+    return json.loads(fixture.read_text(encoding='utf8'))['functions'][filename + ':' + function]
 
 class ContractIntrospectionTests(unittest.TestCase):
     def test_marker_helper_requires_admin(self):

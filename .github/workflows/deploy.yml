@@ -1,149 +1,106 @@
-name: Deploy
-
+name: Validate migration
 on:
   push:
-    branches: [master]
+    branches: [master, 'codex/**']
+  pull_request:
   workflow_dispatch:
-
-# Never let two deploys race for the same container.
+permissions:
+  contents: read
 concurrency:
-  group: metamuseum-deploy
+  group: metamuseum-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
-  build:
-    name: Build and smoke test
+  quality:
     runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports: ['27028:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+    env:
+      SECRET_KEY: ci-local-session-secret
+      SECURITY_PASSWORD_SALT: ci-local-confirmation-salt
+      MONGODB_URI: mongodb://127.0.0.1:27028/metamuseum_test?directConnection=true
+      MONGODB_DB: metamuseum_test
+      ENVIRONMENT: test
+      ALLOWED_ORIGINS: '["http://127.0.0.1:5173","http://localhost:5173","http://127.0.0.1:8000"]'
+      MEDIA_ROOT: backend/metamuseum/static
+      FRONTEND_ROOT: frontend/dist
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build image
-        run: docker build -t metamuseum:ci ./flask_server
-
-      - name: Start real MongoDB test environment
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked dependencies and FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          pip install --require-hashes -r backend/requirements-dev.lock
+          pip install --no-deps -e backend
+          npm --prefix frontend ci
+          cd frontend && npx playwright install --with-deps chromium firefox webkit
+      - name: Mark isolated Mongo instance
+        run: docker exec -i ${{ job.services.mongo.id }} mongosh --quiet < backend/tests/fixtures/mongo-init.js
+      - name: Python integration and compatibility
+        run: python -m pytest backend/tests -q
+      - name: React, legacy behavior, renderer, types and build
+        run: |
+          npm --prefix frontend test
+          npm --prefix frontend run build
+          npm --prefix frontend audit --audit-level=high
+      - name: Seed synthetic browser fixtures
+        run: |
+          python backend/tests/fixtures/seed.py
+          python scripts/import_wall_presets.py
+          python frontend/tests/fixtures/generate_media.py
+      - name: Browser tests against actual API and Socket.IO
+        run: |
+          python frontend/tests/fixtures/server.py > /tmp/metamuseum-media.log 2>&1 &
+          uvicorn metamuseum.asgi:app --host 127.0.0.1 --port 8000 > /tmp/metamuseum-api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/health
+          npm --prefix frontend run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-diagnostics
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            /tmp/metamuseum-*.log
+      - name: Build clean runtime image
+        run: docker build -t metamuseum:ci .
+      - name: Runtime smoke against real Mongo
         run: |
           docker network create metamuseum_ci
-          docker run -d --name ci_mongo --network metamuseum_ci \
-            --network-alias mongo mongo:7
-          for i in $(seq 1 30); do
-            if docker exec ci_mongo mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -qx '1'; then
-              echo "MongoDB is ready"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::MongoDB did not become ready within 60s"
-          docker logs ci_mongo
-          exit 1
-
-      - name: Smoke test app against MongoDB
-        run: |
-          docker run -d --name ci_smoke --network metamuseum_ci \
+          docker run -d --name ci_mongo --network metamuseum_ci --network-alias mongo mongo:7
+          docker run -d --name ci_smoke --network metamuseum_ci -p 127.0.0.1:5000:5000 \
             -e MONGODB_URI=mongodb://mongo:27017/metamuseum \
-            -e SECRET_KEY=ci -e SECURITY_PASSWORD_SALT=ci \
-            metamuseum:ci
+            -e SECRET_KEY=ci -e SECURITY_PASSWORD_SALT=ci metamuseum:ci
           for i in $(seq 1 30); do
-            if docker exec ci_smoke curl -fsS http://127.0.0.1:5000/health; then
-              echo "app booted and /health is green"
-              exit 0
-            fi
+            if curl -fsS http://127.0.0.1:5000/health; then break; fi
             sleep 2
           done
-          echo "::error::app did not become healthy within 60s"
-          docker logs ci_smoke
-          exit 1
-
-      - name: Run integration tests against MongoDB
-        run: |
-          docker run --rm --network metamuseum_ci \
-            -e MONGODB_URI=mongodb://mongo:27017/metamuseum_test \
-            -e MONGODB_DB=metamuseum_test \
-            -e SECRET_KEY=ci -e SECURITY_PASSWORD_SALT=ci \
-            -v "$GITHUB_WORKSPACE/flask_server:/app" -w /app \
-            python:3.12-slim \
-            sh -c 'pip install --no-cache-dir -r requirements-dev.txt && pytest tests -v'
-
-      - name: Clean up CI containers
+          curl -fsS http://127.0.0.1:5000/health
+          curl -fsS http://127.0.0.1:5000/ | grep -q 'id="root"'
+          curl -fsS -X POST http://127.0.0.1:5000/visitor-capability | grep -q 'capability'
+          docker exec ci_smoke python -c "import importlib.util; assert all(importlib.util.find_spec(m) is None for m in ['flask','flask_admin','flask_socketio','eventlet'])"
+          docker exec ci_smoke ffmpeg -version
+      - name: Runtime diagnostics and cleanup
         if: always()
         run: |
+          docker logs ci_smoke 2>/dev/null || true
           docker rm -f ci_smoke ci_mongo 2>/dev/null || true
           docker network rm metamuseum_ci 2>/dev/null || true
-
-  deploy:
-    name: Deploy to production
-    needs: build
-    runs-on: [self-hosted, jy-server]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check host data root
-        # Secrets and DB-referenced media live on the host. Without them the
-        # container starts but serves a broken site, so fail loudly instead.
-        run: |
-          missing=0
-          for p in /var/www/metamuseum/data/metamuseum.env \
-                   /var/www/metamuseum/data/static_splat \
-                   /var/www/metamuseum/data/static_image \
-                   /var/www/metamuseum/data/static_gltf/matisse_dance.glb; do
-            if [ ! -e "$p" ]; then
-              echo "::error::missing $p"
-              missing=1
-            fi
-          done
-          if [ "$missing" = "1" ]; then
-            echo "::error::run scripts/init_host_data.sh on the host first"
-            exit 1
-          fi
-
-      - name: Tag current image for rollback
-        run: |
-          if docker image inspect metamuseum:latest >/dev/null 2>&1; then
-            docker tag metamuseum:latest metamuseum:rollback
-            echo "tagged current image as :rollback"
-          else
-            echo "no existing image — first deploy"
-          fi
-
-      - name: Build and start
-        run: docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
-
-      - name: Smoke test
-        run: |
-          ok=0
-          for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:51736/health || true)
-            if [ "$code" = "200" ]; then ok=1; echo "healthy after $((i * 2))s"; break; fi
-            sleep 2
-          done
-          if [ "$ok" != "1" ]; then
-            echo "::error::/health did not return 200 within 60s"
-            docker compose -f docker-compose.prod.yml logs --tail=50 app
-            exit 1
-          fi
-          # /health only proves the DB connection; check a real page renders too.
-          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:51736/ || true)
-          if [ "$code" != "200" ]; then
-            echo "::error::index page returned $code"
-            docker compose -f docker-compose.prod.yml logs --tail=50 app
-            exit 1
-          fi
-          echo "index page OK"
-
-      - name: Roll back
-        if: failure()
-        run: |
-          if docker image inspect metamuseum:rollback >/dev/null 2>&1; then
-            echo "::warning::deploy failed — rolling back to previous image"
-            docker tag metamuseum:rollback metamuseum:latest
-            docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans
-          else
-            echo "::error::no rollback image available"
-          fi
-
-      - name: Prune dangling images and cap build cache
-        if: success()
-        run: |
-          docker image prune -f
-          # Every deploy builds an image, so BuildKit's cache grows without
-          # bound — it had reached 14 GB before this cap was added.
-          docker builder prune -f --max-used-space 5GB

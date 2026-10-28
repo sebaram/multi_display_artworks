@@ -24,6 +24,8 @@ For live frontend editing, also run `npm --prefix frontend run dev` and open htt
 
 Alternatively, set the two secrets in `.env` and use `docker compose up -d --build`; this starts a separate development MongoDB and the app on5000. Existing production accounts remain valid. The session cookie changed, so users sign in again once.
 
+Screenshots from the final container: [catalog](docs/validation/catalog.png) · [wall editor](docs/validation/wall-editor.png).
+
 ## Wall designs
 
 Open a wall's design action while signed in as an administrator, or visit `/wall-editor?wall_id=<id>`. The standalone designer is at `/wall-editor`.

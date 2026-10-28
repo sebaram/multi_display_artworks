@@ -6,7 +6,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from legacy_source import legacy_root
+from legacy_source import legacy_root, source_path
 from contract_introspection import auth_policy, input_contract
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -30,7 +30,7 @@ def describe(fn):
     returns = sorted({ast.unparse(n.value) for n in ast.walk(tree) if isinstance(n, ast.Return) and n.value})
     statuses=sorted({int(n.value.elts[-1].value) for n in ast.walk(tree) if isinstance(n,ast.Return) and isinstance(n.value,ast.Tuple) and isinstance(n.value.elts[-1],ast.Constant) and isinstance(n.value.elts[-1].value,int)})
     if any('redirect(' in value for value in returns):statuses.append(302)
-    return {'source': str(Path(inspect.getfile(fn)).relative_to(ROOT)).replace('\\','/'), 'line': inspect.getsourcelines(fn)[1], 'decorators': [ast.unparse(x) for x in tree.body[0].decorator_list], 'input_expressions': inputs, 'input_fields':fields, 'response_expressions': returns, 'source_explicit_statuses': sorted(set(statuses)), 'implicit_return_status':200}
+    return {'source': source_path(inspect.getfile(fn)), 'line': inspect.getsourcelines(fn)[1], 'decorators': [ast.unparse(x) for x in tree.body[0].decorator_list], 'input_expressions': inputs, 'input_fields':fields, 'response_expressions': returns, 'source_explicit_statuses': sorted(set(statuses)), 'implicit_return_status':200}
 
 previous_routes_path=ROOT/'contracts/legacy-routes.json'
 previous_routes=json.loads(previous_routes_path.read_text(encoding='utf8')) if previous_routes_path.exists() else {}

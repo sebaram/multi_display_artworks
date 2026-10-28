@@ -6,14 +6,14 @@ flask_server/tests/test_seed.py::test_seed_creates_data_in_real_database
     warnings.warn(
 
 flask_server/tests/test_authorization.py::test_anonymous_client_cannot_update_element
-  C:\dev\multi_display_artworks\.venv_legacy\Lib\site-packages\engineio\async_drivers\eventlet.py:1: EventletDeprecationWarning: 
+  C:\dev\multi_display_artworks\.venv_legacy\Lib\site-packages\engineio\async_drivers\eventlet.py:1: EventletDeprecationWarning:
   Eventlet is deprecated. It is currently being maintained in bugfix mode, and
   we strongly recommend against using it for new projects.
-  
+
   If you are already using Eventlet, we recommend migrating to a different
   framework.  For more detail see
   https://eventlet.readthedocs.io/en/latest/asyncio/migration.html
-  
+
     from eventlet.green.threading import Event
 
 flask_server/tests/test_authorization.py: 18 warnings

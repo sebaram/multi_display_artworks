@@ -144,9 +144,10 @@ class Realtime:
     async def room_exists(self, room):
         return await self.database_call(_room_exists, room)
 
-    async def broadcast(self, event, data, *, room_id, skip_sid=None):
+    async def broadcast(self, event, data, *, room_id, skip_sid=None, physical_wall_move=False):
         if event in ('wall.design_applied', 'wall.design_removed'):
-            self.wall_interactions.design_changed(event, data)
+            if not self.wall_interactions.design_changed(event, data, physical_move=physical_wall_move):
+                return
         await self.sio.emit(event, data, room=presence_room(room_id), skip_sid=skip_sid)
         if event in ('wall.design_applied', 'wall.design_removed'):
             await self.wall_interactions.design_announced(event, data)

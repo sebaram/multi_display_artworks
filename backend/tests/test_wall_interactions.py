@@ -2,6 +2,7 @@
 import asyncio
 import copy
 import json
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
@@ -183,6 +184,146 @@ async def test_suspended_snapshot_cannot_restore_removed_binding_or_left_visitor
     release.set()
     await pending
     assert not any(event == 'wall.snapshot' for event, _ in emitted)
+    await rt.wall_interactions.stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('delayed', ['apply', 'remove'])
+async def test_obsolete_design_notifications_cannot_change_cache_or_transport(controlled, delayed):
+    rt = controlled
+    emitted = []
+    async def emit(event, data, **kwargs): emitted.append((event, copy.deepcopy(data)))
+    rt.sio.emit = emit
+    await rt.broadcast('wall.design_applied', design(revision=2), room_id='room')
+    removed = {'wall_id':'wall','room_id':'room','revision':3,'server_time_ms':2000}
+    await rt.broadcast('wall.design_removed', removed, room_id='room')
+    if delayed == 'remove':
+        await rt.broadcast('wall.design_applied', design(revision=4), room_id='room')
+    emitted.clear()
+    await rt.broadcast('wall.design_applied' if delayed == 'apply' else 'wall.design_removed',
+        design(revision=2) if delayed == 'apply' else removed, room_id='room')
+    assert rt.wall_interactions.state('wall') is None if delayed == 'apply' else rt.wall_interactions.state('wall')['binding_revision'] == 4
+    assert emitted == []
+    sid = await member(rt)
+    async def stale_lookup(*args): return [design(revision=2)]
+    rt.database_call = stale_lookup
+    await rt.wall_interactions.joined(sid, 'room')
+    snapshot = [data for event, data in emitted if event == 'wall.snapshot'][-1]
+    assert snapshot['walls'] == [] if delayed == 'apply' else snapshot['walls'][0]['design']['revision'] == 4
+    assert (await rt.sio.handlers['/']['wall.interaction'](sid, {**move(),'binding_revision':2}))['ok'] is False
+    await rt.wall_interactions.stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('adapter', ['api', 'legacy'])
+async def test_concurrent_apply_and_wall_move_publish_actual_room(controlled, monkeypatch, adapter):
+    from metamuseum.api import admin, legacy, wall_designs
+    from metamuseum.services import gallery, wall_designs as storage
+    rt = controlled
+    await rt.broadcast('wall.design_applied', design(), room_id='room')
+    old_sid, new_sid = await member(rt, 'old'), await member(rt, 'new', 'moved-room')
+    state = {'room':'room', 'binding':design()}
+    entered, moved, release = asyncio.Event(), asyncio.Event(), threading.Event()
+    loop = asyncio.get_running_loop()
+    def apply(wall, body):
+        captured_room = state['room']
+        loop.call_soon_threadsafe(entered.set)
+        assert release.wait(2), 'Controlled apply was not released'
+        state['binding'] = design(room=captured_room, revision=2)
+        return copy.deepcopy(state['binding'])
+    def save(resource, values, identifier):
+        state['room'] = values['room']
+        loop.call_soon_threadsafe(moved.set)
+        return SimpleNamespace(pk=identifier, room=SimpleNamespace(pk=state['room']))
+    def binding(wall):
+        return {**copy.deepcopy(state['binding']), 'room_id':state['room']}
+    monkeypatch.setattr(storage, 'apply', apply)
+    monkeypatch.setattr(storage, 'get_binding', binding)
+    monkeypatch.setattr(gallery, 'save', save)
+    monkeypatch.setattr(gallery, 'dto', lambda doc: {'id':str(doc.pk), 'room':str(doc.room.pk)})
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(realtime=rt)))
+    body = SimpleNamespace(model_dump=lambda: {'expected_revision':1, 'config':{}})
+    from starlette.concurrency import run_in_threadpool
+    applying = asyncio.create_task(wall_designs.apply('wall', body, request))
+    await entered.wait()
+    if adapter == 'api':
+        moving = asyncio.create_task(run_in_threadpool(admin.patch, 'walls', 'wall', request, {'room':'moved-room'}))
+    else:
+        moving = asyncio.create_task(run_in_threadpool(legacy.admin_mutation, 'wall', 'edit', {'room':'moved-room'}, 'wall', request=request))
+    try:
+        try:
+            await asyncio.wait_for(moved.wait(), .1)
+        except TimeoutError:
+            pass  # With the shared boundary, movement waits for apply publication.
+    finally:
+        release.set()
+        await asyncio.gather(applying, moving)
+    assert rt.wall_interactions.bindings['wall']['room_id'] == state['room'] == 'moved-room'
+    assert rt.wall_interactions.bindings['wall']['revision'] == 2
+    data = {**move(), 'binding_revision':2}
+    assert (await rt.sio.handlers['/']['wall.interaction'](old_sid, data))['status'] == 403
+    assert (await rt.sio.handlers['/']['wall.interaction'](new_sid, data))['ok']
+    await rt.wall_interactions.stop()
+
+
+@pytest.mark.asyncio
+async def test_move_authority_rejects_delayed_old_room_publication(controlled):
+    rt = controlled
+    await rt.broadcast('wall.design_applied', design(revision=2), room_id='room')
+    async def current(*args): return design(room='moved-room', revision=2)
+    rt.database_call = current
+    await rt.wall_interactions.wall_changed('wall', 'moved-room')
+    emitted = []
+    async def emit(event, data, **kwargs): emitted.append((event, data))
+    rt.sio.emit = emit
+    await rt.broadcast('wall.design_applied', design(revision=2), room_id='room')
+    assert rt.wall_interactions.bindings['wall']['room_id'] == 'moved-room'
+    assert not emitted
+    await rt.wall_interactions.stop()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_http_waiter_cannot_release_running_wall_mutation(controlled, monkeypatch):
+    from metamuseum.api import admin, wall_designs
+    from metamuseum.services import gallery, wall_designs as storage
+    from starlette.concurrency import run_in_threadpool
+    rt = controlled
+    await rt.broadcast('wall.design_applied', design(), room_id='room')
+    state = {'room':'room','binding':design()}
+    entered, moved, release = asyncio.Event(), asyncio.Event(), threading.Event()
+    loop = asyncio.get_running_loop()
+    def apply(wall, body):
+        captured = state['room']
+        loop.call_soon_threadsafe(entered.set)
+        assert release.wait(2)
+        state['binding'] = design(room=captured, revision=2)
+        return copy.deepcopy(state['binding'])
+    def save(resource, values, identifier):
+        state['room'] = values['room']
+        loop.call_soon_threadsafe(moved.set)
+        return SimpleNamespace(pk=identifier, room=SimpleNamespace(pk=state['room']))
+    monkeypatch.setattr(storage, 'apply', apply)
+    monkeypatch.setattr(storage, 'get_binding', lambda wall: {**copy.deepcopy(state['binding']), 'room_id':state['room']})
+    monkeypatch.setattr(gallery, 'save', save)
+    monkeypatch.setattr(gallery, 'dto', lambda doc: {'id':str(doc.pk),'room':str(doc.room.pk)})
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(realtime=rt)))
+    body = SimpleNamespace(model_dump=lambda: {'expected_revision':1,'config':{}})
+    applying = asyncio.create_task(wall_designs.apply('wall', body, request))
+    await entered.wait()
+    applying.cancel()
+    with pytest.raises(asyncio.CancelledError): await applying
+    moving = asyncio.create_task(run_in_threadpool(admin.patch, 'walls', 'wall', request, {'room':'moved-room'}))
+    try:
+        try: await asyncio.wait_for(moved.wait(), .1)
+        except TimeoutError: pass
+        moved_before_apply_finished = moved.is_set()
+    finally:
+        release.set()
+        await moving
+        await asyncio.gather(*rt.handler_tasks, *rt.database_tasks)
+    assert not moved_before_apply_finished
+    assert rt.wall_interactions.bindings['wall']['room_id'] == state['room'] == 'moved-room'
+    assert rt.wall_interactions.bindings['wall']['revision'] == 2
     await rt.wall_interactions.stop()
 
 

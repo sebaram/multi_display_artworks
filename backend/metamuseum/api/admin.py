@@ -8,10 +8,18 @@ from ..services import gallery as service
 router = APIRouter(prefix='/api/v1/admin', tags=['admin'], dependencies=[Depends(require_admin)])
 
 
-def notify_wall_change(request, identifier, room=None):
+def save_wall(request, identifier, values):
     realtime = getattr(request.app.state, 'realtime', None) if request else None
     if realtime:
-        from_thread.run(realtime.wall_interactions.wall_changed, identifier, room)
+        return from_thread.run(realtime.wall_interactions.physical_mutation, identifier, 'save', values)
+    return service.dto(service.save('walls', values, identifier))
+
+
+def delete_wall(request, identifier):
+    realtime = getattr(request.app.state, 'realtime', None) if request else None
+    if realtime:
+        return from_thread.run(realtime.wall_interactions.physical_mutation, identifier, 'delete')
+    service.delete('walls', identifier)
 
 
 @router.get('/schema', response_model=AdminSchema, response_model_exclude_none=True)
@@ -37,15 +45,15 @@ def create(resource: str, data: dict = Body(...)):
 
 @router.patch('/{resource}/{identifier}', response_model=DocumentDTO)
 def patch(resource: str, identifier: str, request: Request, data: dict = Body(...)):
-    document = service.save(resource, data, identifier)
     if resource == 'walls' and 'room' in data:
-        notify_wall_change(request, identifier, str(document.room.pk))
-    return service.dto(document)
+        return save_wall(request, identifier, data)
+    return service.dto(service.save(resource, data, identifier))
 
 
 @router.delete('/{resource}/{identifier}', status_code=204)
 def delete(resource: str, identifier: str, request: Request):
-    service.delete(resource, identifier)
     if resource == 'walls':
-        notify_wall_change(request, identifier)
+        delete_wall(request, identifier)
+    else:
+        service.delete(resource, identifier)
     return Response(status_code=204)

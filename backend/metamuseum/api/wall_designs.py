@@ -1,4 +1,3 @@
-import time
 from fastapi import APIRouter, Depends, Query, Request, Response
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
@@ -44,14 +43,16 @@ def design(identifier: str):
 
 @router.put('/walls/{identifier}/design', response_model=AppliedWallDesign, dependencies=[Depends(require_admin)])
 async def apply(identifier: str, body: ApplyDesign, request: Request):
-    result = await run_in_threadpool(service.apply, identifier, body.model_dump())
     realtime = getattr(request.app.state, 'realtime', None)
-    if realtime: await realtime.broadcast('wall.design_applied', {**result, 'server_time_ms': int(time.time() * 1000)}, room_id=result['room_id'])
-    return result
+    if realtime:
+        return await realtime.wall_interactions.apply_design(identifier, body.model_dump())
+    return await run_in_threadpool(service.apply, identifier, body.model_dump())
 
 @router.delete('/walls/{identifier}/design', status_code=204, dependencies=[Depends(require_admin)])
 async def unbind(identifier: str, request: Request, expected_revision: int = Query(ge=1)):
-    room = await run_in_threadpool(service.unbind, identifier, expected_revision)
     realtime = getattr(request.app.state, 'realtime', None)
-    if realtime: await realtime.broadcast('wall.design_removed', {'wall_id': identifier, 'room_id': room, 'revision': expected_revision + 1, 'server_time_ms': int(time.time() * 1000)}, room_id=room)
+    if realtime:
+        await realtime.wall_interactions.remove_design(identifier, expected_revision)
+    else:
+        await run_in_threadpool(service.unbind, identifier, expected_revision)
     return Response(status_code=204)

@@ -4,6 +4,7 @@ import copy
 import math
 import time
 import uuid
+from functools import wraps
 
 from bson import ObjectId
 from fastapi import HTTPException
@@ -12,6 +13,7 @@ from pymongo.errors import PyMongoError
 
 from ..models import Wall
 from ..services import wall_designs as designs
+from ..services import gallery
 
 
 def finite(value):
@@ -31,6 +33,33 @@ def room_designs(room):
     walls = list(Wall.objects(room=ObjectId(room)))
     documents = {doc['_id']: doc for doc in designs.collection('bindings').find({'_id': {'$in': [wall.pk for wall in walls]}, 'active': {'$ne': False}})}
     return [designs.binding_dto(documents[wall.pk], wall) for wall in walls if wall.pk in documents]
+
+
+@designs.locked
+def save_physical_wall(wall, values):
+    return gallery.dto(gallery.save('walls', values, wall))
+
+
+@designs.locked
+def delete_physical_wall(wall):
+    gallery.delete('walls', wall)
+    return retire_deleted_binding(wall)
+
+
+def owned_mutation(function):
+    @wraps(function)
+    async def tracked(self, *args, **kwargs):
+        if self.realtime.stopping:
+            raise asyncio.CancelledError
+        task = asyncio.create_task(function(self, *args, **kwargs))
+        self.realtime.handler_tasks.add(task)
+        def completed(done):
+            self.realtime.handler_tasks.discard(done)
+            if not done.cancelled():
+                done.exception()
+        task.add_done_callback(completed)
+        return await asyncio.shield(task)
+    return tracked
 
 
 @designs.locked
@@ -84,11 +113,52 @@ class WallInteractions:
         self.bindings = {}
         self.runtime = {}
         self.versions = {}
+        self.watermarks = {}
+        self.mutation_locks = {}
+        self.room_authority = {}
         self.sequences = {}
         self.tasks = set()
         self.ticker = None
         self.now = lambda: int(time.time() * 1000)
         self._register()
+
+    def mutation_lock(self, wall):
+        return self.mutation_locks.setdefault(wall, asyncio.Lock())
+
+    @staticmethod
+    def canonical_wall(wall):
+        return str(ObjectId(wall)) if isinstance(wall, str) and ObjectId.is_valid(wall) else wall
+
+    @owned_mutation
+    async def apply_design(self, wall, data):
+        wall = self.canonical_wall(wall)
+        async with self.mutation_lock(wall):
+            result = await self.realtime.database_call(designs.apply, wall, data)
+            if not self.realtime.stopping:
+                await self.realtime.broadcast('wall.design_applied', {**result, 'server_time_ms': self.now()}, room_id=result['room_id'])
+            return result
+
+    @owned_mutation
+    async def remove_design(self, wall, revision):
+        wall = self.canonical_wall(wall)
+        async with self.mutation_lock(wall):
+            room = await self.realtime.database_call(designs.unbind, wall, revision)
+            if not self.realtime.stopping:
+                await self.realtime.broadcast('wall.design_removed', dict(wall_id=wall, room_id=room,
+                    revision=revision + 1, server_time_ms=self.now()), room_id=room)
+
+    @owned_mutation
+    async def physical_mutation(self, wall, action, values=None):
+        wall = self.canonical_wall(wall)
+        async with self.mutation_lock(wall):
+            if action == 'save':
+                result = await self.realtime.database_call(save_physical_wall, wall, values)
+                if not self.realtime.stopping:
+                    await self.wall_changed(wall, result['room'])
+                return result
+            revision = await self.realtime.database_call(delete_physical_wall, wall)
+            if not self.realtime.stopping:
+                await self.wall_changed(wall, deleted_revision=revision)
 
     def state(self, wall):
         runtime = self.runtime.get(wall)
@@ -102,23 +172,43 @@ class WallInteractions:
 
     def install(self, binding):
         wall = binding['wall_id']
+        if wall in self.room_authority and self.room_authority[wall] != binding['room_id']:
+            return False
+        watermark = self.watermarks.get(wall)
+        if watermark and (binding['revision'] < watermark[0] or binding['revision'] == watermark[0] and watermark[1]):
+            return False
+        self.watermarks[wall] = (binding['revision'], False)
         old = self.runtime.get(wall)
         self.bindings[wall] = copy.deepcopy(binding)
         self.bindings[wall].pop('server_time_ms', None)
         self.runtime[wall] = dict(runtime_id=old['runtime_id'] if old else uuid.uuid4().hex,
             sequence=old['sequence'] + 1 if old else 0, pointer={'x': 0, 'y': 0},
             active_until_ms=0, owner=None, dirty=False, last_emit=0.)
+        return True
 
-    def design_changed(self, event, data):
+    def design_changed(self, event, data, *, physical_move=False):
         wall = data['wall_id']
-        self.versions[wall] = self.versions.get(wall, 0) + 1
+        revision = data['revision']
+        watermark = self.watermarks.get(wall, (-1, False))
+        if revision < watermark[0]:
+            return False
         if event == 'wall.design_applied':
-            self.install(data)
+            current = self.bindings.get(wall)
+            if current and current['revision'] == revision and current['room_id'] == data['room_id']:
+                return False
+            if not self.install(data):
+                return False
         else:
+            if not physical_move:
+                if watermark == (revision, True):
+                    return False
+                self.watermarks[wall] = (revision, True)
             self.bindings.pop(wall, None)
             self.runtime.pop(wall, None)
+        self.versions[wall] = self.versions.get(wall, 0) + 1
         for key in [key for key in self.sequences if key[1] == wall]:
             self.sequences.pop(key, None)
+        return True
 
     async def design_announced(self, event, data):
         if event == 'wall.design_applied':
@@ -134,7 +224,8 @@ class WallInteractions:
         for binding in bindings:
             wall = binding['wall_id']
             # A suspended snapshot lookup cannot restore a removed/older binding.
-            if self.versions.get(wall, 0) == versions.get(wall, 0) and wall not in self.bindings:
+            if (self.versions.get(wall, 0) == versions.get(wall, 0)
+                    and (wall not in self.bindings or binding['revision'] > self.bindings[wall]['revision'])):
                 self.install(binding)
             elif wall in self.bindings and self.bindings[wall]['revision'] == binding['revision']:
                 current = self.bindings[wall]['playback']
@@ -144,8 +235,10 @@ class WallInteractions:
                  for wall, binding in self.bindings.items() if binding['room_id'] == room]
         await self.realtime.sio.emit('wall.snapshot', dict(room_id=room, server_time_ms=self.now(), walls=walls), to=sid)
 
-    async def wall_changed(self, wall, room=None):
+    async def wall_changed(self, wall, room=None, *, deleted_revision=None):
         """Request-scoped admin callback after a physical wall moves or is deleted."""
+        wall = self.canonical_wall(wall)
+        self.room_authority[wall] = room
         previous = self.bindings.get(wall)
         if previous and previous['room_id'] == room:
             return
@@ -154,20 +247,20 @@ class WallInteractions:
                        revision=previous['revision'] if previous else 0, server_time_ms=self.now())
         if room is None:
             # Revoke cached input before the tracked DB offload releases asset references.
-            self.design_changed('wall.design_removed', removal)
-            revision = await self.realtime.database_call(retire_deleted_binding, wall)
+            self.design_changed('wall.design_removed', removal, physical_move=True)
+            revision = deleted_revision if deleted_revision is not None else await self.realtime.database_call(retire_deleted_binding, wall)
             current = self.bindings.get(wall) or previous
             if current:
                 removal.update(room_id=current['room_id'], revision=revision)
                 await self.realtime.broadcast('wall.design_removed', removal, room_id=current['room_id'])
             else:
-                self.design_changed('wall.design_removed', removal)
+                self.design_changed('wall.design_removed', {**removal, 'revision': revision})
             return
         if previous:
             # broadcast clears cached authorization synchronously before its emit yields.
-            await self.realtime.broadcast('wall.design_removed', removal, room_id=previous['room_id'])
+            await self.realtime.broadcast('wall.design_removed', removal, room_id=previous['room_id'], physical_wall_move=True)
         else:
-            self.design_changed('wall.design_removed', removal)
+            self.design_changed('wall.design_removed', removal, physical_move=True)
         if self.versions.get(wall) != generation or self.realtime.stopping:
             return
         try:
@@ -227,6 +320,9 @@ class WallInteractions:
         self.runtime.clear()
         self.sequences.clear()
         self.versions.clear()
+        self.watermarks.clear()
+        self.mutation_locks.clear()
+        self.room_authority.clear()
 
     def member_binding(self, sid, data):
         binding = self.bindings.get(data.get('wall_id')) if isinstance(data.get('wall_id'), str) else None

@@ -137,15 +137,18 @@ def test_look_rejects_extra_envelope_fields():
     config['extra'] = 'unexpected'
     with pytest.raises(HTTPException): validate_config(config)
 
-def test_apply_and_remove_broadcast_with_keyword_room(monkeypatch):
+def test_apply_and_remove_broadcast_with_keyword_room(monkeypatch, settings):
     import asyncio
     from types import SimpleNamespace
     from metamuseum.api import wall_designs as api
     from metamuseum.schemas_wall_design import ApplyDesign
     events = []
-    class Realtime:
-        async def broadcast(self, event, data, *, room_id): events.append((event, room_id))
-    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(realtime=Realtime())))
+    from metamuseum.asgi import create_app, create_realtime_app
+    app = create_app(settings)
+    create_realtime_app(app)
+    async def broadcast(event, data, *, room_id): events.append((event, room_id))
+    app.state.realtime.broadcast = broadcast
+    request = SimpleNamespace(app=app)
     monkeypatch.setattr(api.service, 'apply', lambda *args: {'room_id':'room', 'revision':1})
     monkeypatch.setattr(api.service, 'unbind', lambda *args: 'room')
     async def exercise():
@@ -157,9 +160,10 @@ def test_apply_and_remove_broadcast_with_keyword_room(monkeypatch):
 def test_http_apply_and_remove_send_room_events(client, csrf, app):
     import json
     events = []
-    class Realtime:
-        async def broadcast(self, event, payload, *, room_id): events.append((event, payload, room_id))
-    app.state.realtime = Realtime()
+    from metamuseum.asgi import create_realtime_app
+    create_realtime_app(app)
+    async def broadcast(event, payload, *, room_id): events.append((event, payload, room_id))
+    app.state.realtime.broadcast = broadcast
     headers = admin_headers(client, csrf)
     room = client.get('/api/v1/rooms').json()[0]
     wall_id = room['walls'][0]['id']
@@ -169,7 +173,6 @@ def test_http_apply_and_remove_send_room_events(client, csrf, app):
     assert events[0][0] == 'wall.design_applied' and events[0][2] == room['id']
     assert client.delete(f'/api/v1/walls/{wall_id}/design?expected_revision=1', headers=headers).status_code == 204
     assert events[1][0] == 'wall.design_removed' and events[1][2] == room['id']
-    del app.state.realtime
 
 def test_invalid_raw_screen_type_is_422():
     from metamuseum.services.wall_designs import validate_config
@@ -199,9 +202,10 @@ def test_binding_revision_survives_unbind_and_reapply(client, csrf, app, databas
     config = json.loads((ROOT / 'frontend/public/wall-presets/builtin-0.json').read_text(encoding='utf8'))['config']
     wall = client.get('/api/v1/rooms').json()[0]['walls'][0]['id']
     events = []
-    class Realtime:
-        async def broadcast(self, event, data, *, room_id): events.append((event, data['revision']))
-    app.state.realtime = Realtime()
+    from metamuseum.asgi import create_realtime_app
+    create_realtime_app(app)
+    async def broadcast(event, data, *, room_id): events.append((event, data['revision']))
+    app.state.realtime.broadcast = broadcast
     url = f'/api/v1/walls/{wall}/design'
     first = client.put(url, headers=headers, json={'config':config, 'expected_revision':0}).json()
     assert client.delete(url + f"?expected_revision={first['revision']}", headers=headers).status_code == 204
@@ -212,7 +216,6 @@ def test_binding_revision_survives_unbind_and_reapply(client, csrf, app, databas
     assert client.delete(url + f"?expected_revision={first['revision']}", headers=headers).status_code == 409
     assert client.get(url).json() == second
     assert events == [('wall.design_applied',first['revision']), ('wall.design_removed',first['revision']+1), ('wall.design_applied',second['revision'])]
-    del app.state.realtime
 
 def test_catalog_import_prevalidates_default_dtos(monkeypatch):
     from metamuseum.services import wall_designs

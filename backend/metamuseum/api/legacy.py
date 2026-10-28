@@ -11,7 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from ..auth import admin_from_session, require_admin
 from ..models import LocationPreset, Marker
 from ..services import gallery as service
-from .admin import notify_wall_change
+from .admin import save_wall, delete_wall
 
 router = APIRouter(include_in_schema=False)
 LEGACY_RESOURCES = {'room':'rooms', 'wall':'walls', 'image':'images', 'gaussiansplat':'splats',
@@ -31,6 +31,12 @@ def spa(request):
 @router.get('/')
 @router.get('/signin')
 @router.get('/logout')
+@router.get('/tools')
+@router.get('/tools/streams')
+@router.get('/wall-editor')
+@router.get('/ar-companion')
+@router.get('/gesture-mark')
+@router.get('/gesture-mark/test')
 def home(request: Request):
     return spa(request)
 
@@ -159,14 +165,16 @@ def admin_mutation(resource, action, data, identifier, *, form=False, request=No
         for selected in identifiers:
             service.ensure_deletable(service.get(slug, selected))
         for selected in identifiers:
-            service.delete(slug, selected)
             if slug == 'walls':
-                notify_wall_change(request, selected)
+                delete_wall(request, selected)
+            else:
+                service.delete(slug, selected)
     elif action == 'delete':
         selected = identifier or data.get('id')
-        service.delete(slug, selected)
         if slug == 'walls':
-            notify_wall_change(request, selected)
+            delete_wall(request, selected)
+        else:
+            service.delete(slug, selected)
     elif action in {'new', 'edit', 'ajax/update'}:
         values = dict(data)
         if action == 'ajax/update':
@@ -199,9 +207,10 @@ def admin_mutation(resource, action, data, identifier, *, form=False, request=No
                     raise HTTPException(422, 'invalid_form_field') from None
         if action != 'new' and not identifier:
             raise HTTPException(400, 'id_required')
-        document = service.save(slug, values, identifier if action != 'new' else None)
-        if slug == 'walls' and 'room' in values:
-            notify_wall_change(request, str(document.pk), str(document.room.pk))
+        if slug == 'walls' and 'room' in values and action != 'new':
+            save_wall(request, identifier, values)
+        else:
+            service.save(slug, values, identifier if action != 'new' else None)
         if action == 'ajax/update':
             return {'status':'success'}
     else:

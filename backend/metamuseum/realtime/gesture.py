@@ -17,29 +17,29 @@ class Gesture:
         self.subscribers = set()
         sio = self.sio
 
-        @sio.on('gesture_mark.join')
+        @realtime.on('gesture_mark.join')
         async def join(sid, data=None):
             await sio.enter_room(sid, 'gesture_mark')
             await sio.emit('gesture_mark.state', self.state(), to=sid)
 
-        @sio.on('gesture_mark.touchpoint')
+        @realtime.on('gesture_mark.touchpoint')
         async def touchpoint(sid, data):
             point = self.point(payload(data))
             self.broadcast_touchpoint(point)
             await sio.emit('gesture_mark.touchpoint', point, room='gesture_mark', skip_sid=sid)
 
-        @sio.on('gesture_mark.gesture')
+        @realtime.on('gesture_mark.gesture')
         async def gesture(sid, data):
             result = payload(data).get('result_str', '')
             self.broadcast_result(result)
             await sio.emit('gesture_mark.gesture', {'result_str': result, 'timestamp': time.time()}, room='gesture_mark', skip_sid=sid)
 
-        @sio.on('gesture_mark.target_select')
+        @realtime.on('gesture_mark.target_select')
         async def select(sid, data):
             data = payload(data)
             await sio.emit('gesture_mark.target_select', {'target_id': data.get('target_id'), 'step': data.get('step', 0), 'timestamp': time.time()}, room='gesture_mark', skip_sid=sid)
 
-        @sio.on('gesture_mark.clear')
+        @realtime.on('gesture_mark.clear')
         async def clear(sid, data=None):
             self.touchpoints.clear()
             await sio.emit('gesture_mark.clear', {}, room='gesture_mark')

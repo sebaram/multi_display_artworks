@@ -4,6 +4,35 @@ import json
 import pytest
 
 from fixtures.realtime import live_realtime, peer, wait_event
+from test_presence_contract import controlled_realtime, PausedLookup
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('later', ['leave', 'vision_pro'])
+async def test_completed_ar_leave_or_role_change_invalidates_older_join(controlled_realtime, later):
+    from metamuseum.realtime.ar import ar_room
+    realtime = controlled_realtime
+    sid = await realtime.sio.manager.connect('transport', '/')
+    lookup = PausedLookup()
+    realtime.room_exists = lookup
+    join = asyncio.create_task(realtime.sio.handlers['/']['join_ar_room'](sid, {'room_id': 'room', 'device': 'phone'}))
+    await lookup.started.wait()
+    if later == 'leave':
+        await realtime.sio.handlers['/']['leave_ar_room'](sid, {'room_id': 'room'})
+    else:
+        async def exists(room):
+            return True
+        realtime.room_exists = exists
+        await realtime.sio.handlers['/']['join_ar_room'](sid, {'room_id': 'room', 'device': 'vision_pro'})
+    lookup.release.set()
+    await join
+    room = realtime.ar.rooms.get('room', {})
+    assert sid not in room.get('phones', set())
+    if later == 'leave':
+        assert sid not in room.get('vision_pros', set())
+        assert ar_room('room') not in realtime.sio.rooms(sid)
+    else:
+        assert sid in room['vision_pros']
 
 
 @pytest.mark.asyncio

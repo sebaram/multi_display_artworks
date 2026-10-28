@@ -1,5 +1,7 @@
 """One Socket.IO lifecycle for public visitors and legacy device clients."""
+import asyncio
 import secrets
+from functools import wraps
 from http.cookies import SimpleCookie, CookieError
 
 import socketio
@@ -41,6 +43,10 @@ class Realtime:
         self.presence = PresenceService()
         self.visitors = {}
         self.admin_sessions = {}
+        self.pending_joins = {}
+        self.handler_tasks = set()
+        self.database_tasks = set()
+        self.stopping = False
         from .voice import Voice
         from .ar import AR
         from .gesture import Gesture
@@ -57,10 +63,83 @@ class Realtime:
 
     async def is_admin(self, sid):
         session = self.admin_sessions.get(sid)
-        return bool(session and await run_in_threadpool(admin_from_session, session))
+        return bool(session and await self.session_is_admin(session))
+
+    async def session_is_admin(self, session):
+        return bool(await self.database_call(admin_from_session, session))
+
+    async def database_call(self, function, *args):
+        # Cancelling an async handler cannot stop its already-running DB thread.
+        if self.stopping:
+            raise asyncio.CancelledError
+        task = asyncio.create_task(run_in_threadpool(function, *args))
+        self.database_tasks.add(task)
+
+        def completed(done):
+            self.database_tasks.discard(done)
+            if not done.cancelled():
+                done.exception()
+
+        task.add_done_callback(completed)
+        return await asyncio.shield(task)
+
+    def on(self, event):
+        """Track only application handlers, including connect/disconnect tasks."""
+        def register(handler):
+            @wraps(handler)
+            async def tracked(*args, **kwargs):
+                if self.stopping:
+                    return False if event == 'connect' else None
+                task = asyncio.current_task()
+                nested = task in self.handler_tasks
+                self.handler_tasks.add(task)
+                try:
+                    return await handler(*args, **kwargs)
+                finally:
+                    if not nested:
+                        self.handler_tasks.discard(task)
+            self.sio.on(event, handler=tracked)
+            return tracked
+        return register
+
+    def begin_join(self, sid, kind, room):
+        token = object()
+        self.pending_joins.setdefault(sid, {})[kind, room] = token
+        return token
+
+    def finish_join(self, sid, kind, room, token=None):
+        pending = self.pending_joins.get(sid, {})
+        current = pending.get((kind, room))
+        if token is not None and current is not token:
+            return False
+        pending.pop((kind, room), None)
+        if not pending:
+            self.pending_joins.pop(sid, None)
+        return current is not None
+
+    async def shutdown(self, *, drain_timeout=5, cancel_timeout=1):
+        """Drain handlers before Mongo closes; cancel overdue async work boundedly."""
+        self.stopping = True
+        self.pending_joins.clear()
+        tasks = (self.handler_tasks | self.database_tasks) - {asyncio.current_task()}
+        if tasks:
+            _, pending = await asyncio.wait(tasks, timeout=drain_timeout)
+            for task in pending & self.handler_tasks:
+                task.cancel()
+            if pending:
+                _, pending = await asyncio.wait(pending, timeout=cancel_timeout)
+                if pending:
+                    raise RuntimeError('Realtime handlers did not stop before database shutdown')
+        self.visitors.clear()
+        self.admin_sessions.clear()
+        self.presence.rooms.clear()
+        for room in self.ar.rooms.values():
+            room['phones'].clear()
+            room['vision_pros'].clear()
+        await self.sio.shutdown()
 
     async def room_exists(self, room):
-        return await run_in_threadpool(_room_exists, room)
+        return await self.database_call(_room_exists, room)
 
     async def broadcast(self, event, data, *, room_id, skip_sid=None):
         await self.sio.emit(event, data, room=presence_room(room_id), skip_sid=skip_sid)
@@ -72,7 +151,7 @@ class Realtime:
     def _register(self):
         sio = self.sio
 
-        @sio.event
+        @self.on('connect')
         async def connect(sid, environ, auth):
             auth = payload(auth)
             capability = auth.get('visitorCapability')
@@ -98,30 +177,37 @@ class Realtime:
                 if (not isinstance(expected, str) or not isinstance(supplied, str)
                         or not expected.isascii() or not supplied.isascii()
                         or not secrets.compare_digest(expected, supplied)
-                        or not await run_in_threadpool(admin_from_session, session)):
+                        or not await self.session_is_admin(session)):
                     return False
+            if self.stopping or not sio.manager.is_connected(sid, '/'):
+                return False
             if identity:
                 self.visitors[sid] = identity
             if session:
                 self.admin_sessions[sid] = session
 
-        @sio.event
+        @self.on('disconnect')
         async def disconnect(sid, reason=None):
             self.visitors.pop(sid, None)
             self.admin_sessions.pop(sid, None)
+            self.pending_joins.pop(sid, None)
             self.ar.disconnect(sid)
             for event in self.presence.leave_all(sid):
                 await self._left(event, sid)
 
-        @sio.on('join_position_room')
+        @self.on('join_position_room')
         async def join(sid, data):
             data = payload(data)
             room = room_id(data)
             identity = self.visitors.get(sid)
-            if not identity or not await self.room_exists(room):
+            if not identity or room is None:
                 return
-            # No await between identity validation and the atomic in-memory replacement.
-            if sid not in self.visitors:
+            token = self.begin_join(sid, 'presence', room)
+            try:
+                exists = await self.room_exists(room)
+            finally:
+                current = self.finish_join(sid, 'presence', room, token)
+            if not exists or not current or sid not in self.visitors or self.stopping:
                 return
             public, existing, displaced = self.presence.join(room, sid, identity.visitor_id,
                 data.get('profile'), data.get('position', '0 1.6 0'), data.get('rotation', '0 0 0'))
@@ -135,17 +221,18 @@ class Realtime:
             if displaced:
                 await self.broadcast('position_update', public | {'room_id': room}, room_id=room, skip_sid=sid)
 
-        @sio.on('leave_position_room')
+        @self.on('leave_position_room')
         async def leave(sid, data):
             room = room_id(data)
             if not room:
                 return
+            self.finish_join(sid, 'presence', room)
             event = self.presence.leave(room, sid)
             await sio.leave_room(sid, presence_room(room))
             if event:
                 await self._left(event, sid)
 
-        @sio.on('position_update')
+        @self.on('position_update')
         async def position(sid, data):
             data = payload(data)
             room = room_id(data)
@@ -153,7 +240,7 @@ class Realtime:
             if event:
                 await self.broadcast('position_update', event, room_id=room, skip_sid=sid)
 
-        @sio.on('profile_update')
+        @self.on('profile_update')
         async def profile(sid, data):
             data = payload(data)
             room = room_id(data)
@@ -161,13 +248,13 @@ class Realtime:
             if event:
                 await self.broadcast('profile_updated', event, room_id=room, skip_sid=sid)
 
-        @sio.on('request_room_state')
+        @self.on('request_room_state')
         async def state(sid, data):
             room = room_id(data)
             if self.get_room_visitor(sid, room):
                 await sio.emit('room_state', {'users': self.presence.public_room_state(room, exclude_sid=sid), 'room_id': room}, to=sid)
 
-        @sio.on('expression')
+        @self.on('expression')
         async def expression(sid, data):
             data = payload(data)
             room = room_id(data)

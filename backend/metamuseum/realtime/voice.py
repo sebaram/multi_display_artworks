@@ -8,7 +8,7 @@ class Voice:
         self.enabled = {}
         sio = realtime.sio
 
-        @sio.on('voice.admin_toggle')
+        @realtime.on('voice.admin_toggle')
         async def toggle(sid, data):
             data = payload(data)
             room = room_id(data)
@@ -17,7 +17,7 @@ class Voice:
                 self.enabled[room] = bool(data.get('enabled', False))
                 await realtime.broadcast('voice_admin_toggle', {'room_id': room, 'enabled': self.enabled[room]}, room_id=room)
 
-        @sio.on('voice.get_state')
+        @realtime.on('voice.get_state')
         async def state(sid, data):
             room = room_id(data)
             if realtime.get_room_visitor(sid, room):
@@ -34,7 +34,7 @@ class Voice:
     def _register_signal(self, event):
         realtime = self.realtime
 
-        @realtime.sio.on(event)
+        @realtime.on(event)
         async def signal(sid, data):
             data = payload(data)
             room = room_id(data)
@@ -51,7 +51,7 @@ class Voice:
     def _register_broadcast(self, event):
         realtime = self.realtime
 
-        @realtime.sio.on(event)
+        @realtime.on(event)
         async def relay(sid, data):
             data = payload(data)
             room = room_id(data)

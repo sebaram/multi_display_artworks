@@ -25,8 +25,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             yield
         finally:
-            if hasattr(app.state, 'sio'):
-                await app.state.sio.shutdown()
+            if hasattr(app.state, 'realtime'):
+                await app.state.realtime.shutdown()
             await run_in_threadpool(disconnect_database)
 
     application = FastAPI(title="MetaMuseum API", version="1.0.0", lifespan=lifespan)

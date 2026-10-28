@@ -1,9 +1,137 @@
+import asyncio
+import base64
 import json
+import threading
 from pathlib import Path
 
 import pytest
 
 from fixtures.realtime import live_realtime, peer, wait_event
+
+
+@pytest.fixture
+def controlled_realtime(settings):
+    from metamuseum.asgi import create_app, create_realtime_app
+    app = create_app(settings)
+    create_realtime_app(app)
+    return app.state.realtime
+
+
+class PausedLookup:
+    def __init__(self):
+        self.started = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def __call__(self, *args):
+        self.started.set()
+        await self.release.wait()
+        return True
+
+
+@pytest.mark.asyncio
+async def test_completed_leave_invalidates_suspended_presence_join(controlled_realtime):
+    from metamuseum.auth import VisitorIdentity
+    from metamuseum.realtime.server import presence_room
+    realtime = controlled_realtime
+    sid = await realtime.sio.manager.connect('transport', '/')
+    realtime.visitors[sid] = VisitorIdentity('visitor')
+    lookup = PausedLookup()
+    realtime.room_exists = lookup
+    join = asyncio.create_task(realtime.sio.handlers['/']['join_position_room'](sid, {'room_id': 'room'}))
+    await lookup.started.wait()
+    await realtime.sio.handlers['/']['leave_position_room'](sid, {'room_id': 'room'})
+    lookup.release.set()
+    await join
+    assert realtime.get_room_visitor(sid, 'room') is None
+    assert presence_room('room') not in realtime.sio.rooms(sid)
+    assert not realtime.pending_joins
+
+
+@pytest.mark.asyncio
+async def test_disconnect_during_admin_handshake_cannot_restore_identity(controlled_realtime):
+    from itsdangerous import TimestampSigner, URLSafeTimedSerializer
+    from metamuseum.auth import CAPABILITY_SALT
+    realtime = controlled_realtime
+    sid = await realtime.sio.manager.connect('transport', '/')
+    session = {'user_id': 'admin@example.invalid', 'csrf_token': 'csrf'}
+    cookie = TimestampSigner(realtime.settings.secret_key).sign(base64.b64encode(json.dumps(session).encode())).decode()
+    capability = URLSafeTimedSerializer(realtime.settings.secret_key, salt=CAPABILITY_SALT).dumps({'visitorId': 'visitor'})
+    lookup = PausedLookup()
+    # Only the external DB decision is controlled; real auth/cookie/manager code runs.
+    realtime.session_is_admin = lookup
+    connect = asyncio.create_task(realtime.sio.handlers['/']['connect'](sid,
+        {'HTTP_ORIGIN': 'http://testserver', 'HTTP_COOKIE': f'{realtime.settings.session_cookie}={cookie}'},
+        {'visitorCapability': capability, 'csrfToken': 'csrf'}))
+    await lookup.started.wait()
+    await realtime.sio.handlers['/']['disconnect'](sid)
+    await realtime.sio.manager.disconnect(sid, '/')
+    lookup.release.set()
+    await connect
+    assert sid not in realtime.visitors
+    assert sid not in realtime.admin_sessions
+
+
+@pytest.mark.asyncio
+async def test_shutdown_cancels_suspended_owned_handler_before_database_close(controlled_realtime):
+    from metamuseum.auth import VisitorIdentity
+    realtime = controlled_realtime
+    sid = await realtime.sio.manager.connect('transport', '/')
+    realtime.visitors[sid] = VisitorIdentity('visitor')
+    lookup = PausedLookup()
+    realtime.room_exists = lookup
+    join = asyncio.create_task(realtime.sio.handlers['/']['join_position_room'](sid, {'room_id': 'room'}))
+    await lookup.started.wait()
+    try:
+        assert callable(getattr(realtime, 'shutdown', None)), 'Owned handler shutdown is missing'
+        await realtime.shutdown(drain_timeout=.01, cancel_timeout=.1)
+        assert join.done() and join.cancelled()
+        assert not realtime.handler_tasks
+        assert not realtime.visitors and not realtime.admin_sessions
+        assert not realtime.presence.public_rooms()
+        await realtime.sio.handlers['/']['join_position_room'](sid, {'room_id': 'room'})
+        assert not realtime.handler_tasks and not realtime.presence.public_rooms()
+    finally:
+        if not join.done():
+            join.cancel()
+        await asyncio.gather(join, return_exceptions=True)
+
+
+@pytest.mark.asyncio
+async def test_shutdown_keeps_database_open_while_cancelled_threadpool_work_runs(controlled_realtime):
+    from metamuseum.auth import VisitorIdentity
+    realtime = controlled_realtime
+    sid = await realtime.sio.manager.connect('transport', '/')
+    realtime.visitors[sid] = VisitorIdentity('visitor')
+    started, release = asyncio.Event(), threading.Event()
+    loop = asyncio.get_running_loop()
+
+    def database_lookup():
+        loop.call_soon_threadsafe(started.set)
+        release.wait(3)
+        return True
+
+    async def room_exists(room):
+        assert callable(getattr(realtime, 'database_call', None)), 'Tracked database offload is missing'
+        return await realtime.database_call(database_lookup)
+
+    realtime.room_exists = room_exists
+    join = asyncio.create_task(realtime.sio.handlers['/']['join_position_room'](sid, {'room_id': 'room'}))
+    try:
+        # A missing interface must fail without leaving this test waiting on its gate.
+        await asyncio.wait_for(asyncio.shield(join), .05)
+    except TimeoutError:
+        pass
+    try:
+        await asyncio.wait_for(started.wait(), .5)
+        with pytest.raises(RuntimeError, match='before database shutdown'):
+            await realtime.shutdown(drain_timeout=.01, cancel_timeout=.01)
+        assert join.done() and join.cancelled()
+        assert realtime.database_tasks
+    finally:
+        release.set()
+        await asyncio.gather(join, return_exceptions=True)
+        if hasattr(realtime, 'database_tasks'):
+            await asyncio.gather(*realtime.database_tasks, return_exceptions=True)
 
 
 def test_combined_runtime_factory_exists(settings):

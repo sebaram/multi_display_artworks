@@ -1,0 +1,780 @@
+{
+  "source_repository": "https://github.com/sebaram/gsmv-interactive-bg",
+  "source_commit": "b247fd238fe6cb2c8c860c77d13488b28b8a0290",
+  "source_license": "No root repository license provided; extracted at user direction.",
+  "modules": [
+    {
+      "file": "frontend/src/wall-engine/reference/appearance.js",
+      "source_file": "appearance.js",
+      "source_sha256": "6500aa079c3f1ac2b4a691725a916e695d76fb314d3e348587633fef7493ae14",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/authoring-scene.js",
+      "source_file": "authoring-scene.js",
+      "source_sha256": "0bd5e3dd3a38be705da4dcb9b6c8914b0f7fe88cefd56004ae29fda6dc5efe0e",
+      "modification": "Retained original stable IDs, wrappers, copies and edit application; removed global DOM/event/editor handling; expose metadata and raycast picking."
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/authoring.js",
+      "source_file": "authoring.js",
+      "source_sha256": "98486a23f8a65822feae7c583900fc0818362997bdb079969078d47d41c1351e",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/floor-scenes.js",
+      "source_file": "floor-scenes.js",
+      "source_sha256": "a2bc5cc488f74a779c06e5da1e1dcc989d2355400de469177888f9aa902a3cc8",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/logo-morph.js",
+      "source_file": "logo-morph.js",
+      "source_sha256": "b1bbec3593bc48d96c3d11bfaeb3ec972b1320043de8de5db055f25d61017753",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/logo-scene.js",
+      "source_file": "logo-scene.js",
+      "source_sha256": "6303c415eac3e08ef2c67f03f70e011677d0be5daf373a2dffc827f9b7d21912",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/look-url.js",
+      "source_file": "look-url.js",
+      "source_sha256": "96716160b9084c62cecc51b64852c92021d0dcaa8664d8db7b1b7d2e94f5e857",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/motion.js",
+      "source_file": "motion.js",
+      "source_sha256": "0e9e1d36517c0a0adf68faaae48a7225fb9427d41f7c5ac23f7f15455b9dadd6",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/object-motion.js",
+      "source_file": "object-motion.js",
+      "source_sha256": "dfca86513175d837cbc2175bf7733ecd4a06dbbab75df3dfc6690cd4e08ea95c",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/preset-catalog.js",
+      "source_file": "preset-catalog.js",
+      "source_sha256": "49f28bb3c730c42d541081ddd3e2a8f5cda38e2499e22ddafce1645cd90d8f6b",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/research-objects.js",
+      "source_file": "research-objects.js",
+      "source_sha256": "5594452353041b94c0ea74bd955b5e94cdf99125f9fff33f10ec104e3ea1ccd9",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/scene.js",
+      "source_file": "scene.js",
+      "source_sha256": "e294b14ac2a106643f604f8dc57242239ced3f958264e4accd555d0b159c1ee5",
+      "modification": "Original scene builders and environment retained; replaced startup, DOM overlays, listeners and RAF with instance methods, resize/crop and explicit render time."
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/state.js",
+      "source_file": "state.js",
+      "source_sha256": "6593502183c51d9fdbaa0f72771fad9b299c6b1b080ecb060fb60a3550aff41b",
+      "modification": "Replaced implicit wall clock with deterministic zero; removed localStorage read/save. Callers provide clock."
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/text-content.js",
+      "source_file": "text-content.js",
+      "source_sha256": "34e75e6a88e8106f234e171297630e9f724862badb4bb3920dd830fc2aba75f6",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/text-render.js",
+      "source_file": "text-render.js",
+      "source_sha256": "81559d5096ce3fb6b3af6de423fd287903fbabbcc0f8ad3abf4ec81c5419aff7",
+      "modification": "Replaced window.innerHeight dependency with caller height."
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/vendor/three.core.js",
+      "source_file": "vendor/three.core.js",
+      "source_sha256": "eb077d2417f61d3e6d9264c317cabc4ea35769ed6b0ab533067292a550784c20",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/vendor/three.module.js",
+      "source_file": "vendor/three.module.js",
+      "source_sha256": "c8211c69345d2e9949dc7a8ac969380497aa0600a5a8ac6a459c8cd02dd9cb8a",
+      "modification": "Unmodified source"
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/video-layers.js",
+      "source_file": "video-layers.js",
+      "source_sha256": "52446594c5d2b3fb3557382b5ba21187c64551983228bb11c50580a4ca9328fd",
+      "modification": "Added persistent assetId preservation and availability."
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/video-library.js",
+      "source_file": "video-library.js",
+      "source_sha256": "8a3cb8bb0ce0e08311dce29f4f31a552e2c590f0385e59fb43e746d7060a5a54",
+      "modification": "Retained pure video source-selection helpers only; removed source DOM editor."
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/wall-style.js",
+      "source_file": "wall.css",
+      "source_sha256": "35254a860decbc49891439f8082a896e33cbe89247708870ea5d5010fa204a4d",
+      "modification": "Original wall CSS exported as data for scoped layout."
+    },
+    {
+      "file": "frontend/src/wall-engine/reference/youtube-source.js",
+      "source_file": "youtube-source.js",
+      "source_sha256": "d77d6a59ec43d9e22bc42fd0eb9a40b217acf02ff0ab2985b49ebbaa77afeab6",
+      "modification": "Unmodified source"
+    }
+  ],
+  "assets": [
+    {
+      "file": "clips.json",
+      "source_file": "clips.json",
+      "sha256": "6f3298a8d015d119766993a77cff6266f4c4bfe95af779a289c7db6104534519"
+    },
+    {
+      "file": "element-thumbnails/arch.jpg",
+      "source_file": "assets/element-thumbnails/arch.jpg",
+      "sha256": "ec29f8a3d97423bfbdb2b8baf16f67c7acd5955107aba8349fb188eb40f7cab6"
+    },
+    {
+      "file": "element-thumbnails/cocreation.jpg",
+      "source_file": "assets/element-thumbnails/cocreation.jpg",
+      "sha256": "f5754eee7d9f3cedb99449920d3c8259f81ee498ab5e3f8b3f0483210df27ba5"
+    },
+    {
+      "file": "element-thumbnails/feedback.jpg",
+      "source_file": "assets/element-thumbnails/feedback.jpg",
+      "sha256": "e0d52fe2e69f7e0da221d40e2318535a65afbe12afcd6706116fe5004a32d1a6"
+    },
+    {
+      "file": "element-thumbnails/logo.jpg",
+      "source_file": "assets/element-thumbnails/logo.jpg",
+      "sha256": "fe00d55bb7c02483bfd1f82e1ee54d4c33d0131aaa90853ae902ab92e8b51cbe"
+    },
+    {
+      "file": "element-thumbnails/network.jpg",
+      "source_file": "assets/element-thumbnails/network.jpg",
+      "sha256": "399da55cac81227973c51666d8493345a67d26d71ec225678b6b3167274f3f80"
+    },
+    {
+      "file": "element-thumbnails/orbits.jpg",
+      "source_file": "assets/element-thumbnails/orbits.jpg",
+      "sha256": "325c5353adcd1006046c297ef3adad6c2306421de4dd0e4df622ef78654f42c8"
+    },
+    {
+      "file": "element-thumbnails/presence.jpg",
+      "source_file": "assets/element-thumbnails/presence.jpg",
+      "sha256": "e8a5677bcd236a47e553daeca223094aa352bd20d10fcbff609dec2031f64db0"
+    },
+    {
+      "file": "element-thumbnails/registration.jpg",
+      "source_file": "assets/element-thumbnails/registration.jpg",
+      "sha256": "2d9a406f4201585af744af212a53517a77d4504be9e2b551d56dd7a10abcd06b"
+    },
+    {
+      "file": "element-thumbnails/ribbons.jpg",
+      "source_file": "assets/element-thumbnails/ribbons.jpg",
+      "sha256": "ebc62dbccbfd783e78a89e9623c951412eeee92b553a0da1e4a80ac4b7e8e816"
+    },
+    {
+      "file": "element-thumbnails/sphere.jpg",
+      "source_file": "assets/element-thumbnails/sphere.jpg",
+      "sha256": "dc0f371748f85cc5ad724cd27d906529d5cfe952447fc325c31b5271d6ad8806"
+    },
+    {
+      "file": "element-thumbnails/text.svg",
+      "source_file": "assets/element-thumbnails/text.svg",
+      "sha256": "247ace61d02cb7655584972b0dbbdf9de92badfeedd7576933e20ddbd099605d"
+    },
+    {
+      "file": "element-thumbnails/video.svg",
+      "source_file": "assets/element-thumbnails/video.svg",
+      "sha256": "e6235ddbd43510dd29b352fc82314f17491f7e08606700ce1e498c2baeb2208a"
+    },
+    {
+      "file": "fonts/atkinsonhyperlegiblemono-OFL.txt",
+      "source_file": "assets/fonts/atkinsonhyperlegiblemono-OFL.txt",
+      "sha256": "1ebb31cf7393164f20d10c1d48406cddb5314feff8465531cf1e4ba37e9dd740"
+    },
+    {
+      "file": "fonts/atkinsonhyperlegiblemono.ttf",
+      "source_file": "assets/fonts/atkinsonhyperlegiblemono.ttf",
+      "sha256": "5ce8b1698d1ded7dff2178c1a3ad159470085a58ea239e8b2cb88f4fb4a6f646"
+    },
+    {
+      "file": "fonts/hostgrotesk-OFL.txt",
+      "source_file": "assets/fonts/hostgrotesk-OFL.txt",
+      "sha256": "f04ad0873907546e160c7a79b1e42bd3cd380c7e5ee4c1b3c11f43faca1675e7"
+    },
+    {
+      "file": "fonts/hostgrotesk.ttf",
+      "source_file": "assets/fonts/hostgrotesk.ttf",
+      "sha256": "74c77b8e850d58dd3d8b22e39111a73bef3450de9fb57018ef99119f2d484f5d"
+    },
+    {
+      "file": "identity.svg",
+      "source_file": "assets/identity.svg",
+      "sha256": "e503fb90d162aa2b72d5b482356ab0f1441fa9ea5ff5c69704e96be1f0f2e0be"
+    },
+    {
+      "file": "logo-color.png",
+      "source_file": "assets/logo-color.png",
+      "sha256": "81dac83b801c520200293faa3431818c09b11772f47c76be6f4462214e99464e"
+    },
+    {
+      "file": "logo-white.png",
+      "source_file": "assets/logo-white.png",
+      "sha256": "17409a58e83e5b1ad353ae410f8193482dd8d2fb1e340e971fb35b4373a1bd7f"
+    },
+    {
+      "file": "mark-color.png",
+      "source_file": "assets/mark-color.png",
+      "sha256": "750af937a5fd93187d64f46463fe1f3d8168fe7f5aeef1d85169388cbf6b99fd"
+    },
+    {
+      "file": "previews/authoring-studio.png",
+      "source_file": "previews/authoring-studio.png",
+      "sha256": "92df88be0277c98abeeb3af4203b2a4c731e9c1e59aa4f43bc105a164f1503a2"
+    },
+    {
+      "file": "previews/comparison.jpg",
+      "source_file": "previews/comparison.jpg",
+      "sha256": "9cec2e251451d3e5e302ff87d89e54b51e3a698e4cee12ceb22bd41a6c839757"
+    },
+    {
+      "file": "previews/demo-motion.mp4",
+      "source_file": "previews/demo-motion.mp4",
+      "sha256": "1829ad23c14c34189ceadf3749e71b26444ed39cc03eae9131852b84172bbc79"
+    },
+    {
+      "file": "previews/floor-01a.jpg",
+      "source_file": "previews/floor-01a.jpg",
+      "sha256": "73425115934a78ed034afcb3ade9ba4aecc2bfdfd432b6bbb98453278cc86a79"
+    },
+    {
+      "file": "previews/floor-01b.jpg",
+      "source_file": "previews/floor-01b.jpg",
+      "sha256": "2ebaddfe97ccf3bf13b5eb6c6150d51b15e46ede7995dc2280346b939565584c"
+    },
+    {
+      "file": "previews/floor-02a.jpg",
+      "source_file": "previews/floor-02a.jpg",
+      "sha256": "43ef08488d88d58ba15bd8a515633ea90ad8a9139f80afe436dbbbe008d4b3ff"
+    },
+    {
+      "file": "previews/floor-02b.jpg",
+      "source_file": "previews/floor-02b.jpg",
+      "sha256": "e61ba4a15d71e5eb7bd28bb4502cefb0f7cce12bb85b48cf7e4f486a33a037f5"
+    },
+    {
+      "file": "previews/floor-03a.jpg",
+      "source_file": "previews/floor-03a.jpg",
+      "sha256": "b70bcf5d198332faf4a1f76362eed019b45ed09c82f3545a391da18048afd010"
+    },
+    {
+      "file": "previews/floor-03b.jpg",
+      "source_file": "previews/floor-03b.jpg",
+      "sha256": "e81f2dbb386faa5ae71379524ffafe8e6556deb52b83ed3ef6b03666af5c456a"
+    },
+    {
+      "file": "previews/floor-04a.jpg",
+      "source_file": "previews/floor-04a.jpg",
+      "sha256": "c58c98364c71217c1c0a9fa96a29c1a5c41ac19cadeb1429b1d729ec07ec3cc5"
+    },
+    {
+      "file": "previews/floor-04b.jpg",
+      "source_file": "previews/floor-04b.jpg",
+      "sha256": "5cae74e61562f2a1c270376d3cf838d549a06eeb4e281055ce82a586fcb57dcc"
+    },
+    {
+      "file": "previews/floor-05a.jpg",
+      "source_file": "previews/floor-05a.jpg",
+      "sha256": "8ee12e22e14383686ddb28b7a318c49581cc114c21c5ebab83b31fd093631f03"
+    },
+    {
+      "file": "previews/floor-05b.jpg",
+      "source_file": "previews/floor-05b.jpg",
+      "sha256": "89d4c088ad0da9f0b7a30b94a45326abe66273539ab47131b5ed9d55f7874eee"
+    },
+    {
+      "file": "previews/floor-06a.jpg",
+      "source_file": "previews/floor-06a.jpg",
+      "sha256": "bae2573aeb3caf77e0e9f5d7931160d8085ccbbcff0a85fb19d1961371b07dc2"
+    },
+    {
+      "file": "previews/floor-06b.jpg",
+      "source_file": "previews/floor-06b.jpg",
+      "sha256": "c9ed6874fe72a4e6f73bf4f82cd6a3db0d86d28720f9dbadd5f8fb7437b4c0d5"
+    },
+    {
+      "file": "previews/floor-07a.jpg",
+      "source_file": "previews/floor-07a.jpg",
+      "sha256": "426d25e4a6b3065db08d7ad5f57cffcad3c386ea9454920042da1fdc18c16add"
+    },
+    {
+      "file": "previews/floor-07b.jpg",
+      "source_file": "previews/floor-07b.jpg",
+      "sha256": "2baefac12a1335c446ffb1c5b3ab2fea9e73ae02aa736a2d1915da97e0d14e82"
+    },
+    {
+      "file": "previews/floor-08a.jpg",
+      "source_file": "previews/floor-08a.jpg",
+      "sha256": "619667eb637d8783e8bfa54658ff10906c309ec23951585c0bd59d0b35033340"
+    },
+    {
+      "file": "previews/floor-08b.jpg",
+      "source_file": "previews/floor-08b.jpg",
+      "sha256": "9ba09d033d9f52001f6c60c559cd2306ba6ff6f199ba646a978752cd0a2f5eb4"
+    },
+    {
+      "file": "previews/floor-variations.jpg",
+      "source_file": "previews/floor-variations.jpg",
+      "sha256": "d928b94665df74f1de313dd257a0df7481b669b98c626ba991a5f26669dc2d09"
+    },
+    {
+      "file": "previews/front-4k.png",
+      "source_file": "previews/front-4k.png",
+      "sha256": "60217152c6712b1657153d785ded947f5b3f64261ea7599ab71e268134b45ecb"
+    },
+    {
+      "file": "previews/kinetic-10.jpg",
+      "source_file": "previews/kinetic-10.jpg",
+      "sha256": "082525bf495fc1a82ce3dc414881436e5dc79f0d28e730fc85fb1f134bd14805"
+    },
+    {
+      "file": "previews/kinetic-11.jpg",
+      "source_file": "previews/kinetic-11.jpg",
+      "sha256": "272e33153d80cbce18d9ce1e342faa8d5b989679271ff412c789aa208573e1fa"
+    },
+    {
+      "file": "previews/kinetic-8.jpg",
+      "source_file": "previews/kinetic-8.jpg",
+      "sha256": "0ea54c0d85ad6715df088340252b1a1acf80ca3abb5be1661453a27f75e4f588"
+    },
+    {
+      "file": "previews/kinetic-9.jpg",
+      "source_file": "previews/kinetic-9.jpg",
+      "sha256": "7f76da30c1fd44ed0eceae3531431b1e984a8162f8dce1072894406206a58344"
+    },
+    {
+      "file": "previews/left-0.jpg",
+      "source_file": "previews/left-0.jpg",
+      "sha256": "e86eaec68aca5a9528da9aa0c82af9dcf4f8fbd5734cb2f56744f444cbd17e80"
+    },
+    {
+      "file": "previews/left-1.jpg",
+      "source_file": "previews/left-1.jpg",
+      "sha256": "876b5d0de5e34e542c88dba32a8983648786d0c7f6e9cafa67c6bac282851cd5"
+    },
+    {
+      "file": "previews/left-2.jpg",
+      "source_file": "previews/left-2.jpg",
+      "sha256": "7e22294506ce0e0fd418b20b2e0f6caa467bab5135fda8381d7dc9cbe9441c18"
+    },
+    {
+      "file": "previews/left-3.jpg",
+      "source_file": "previews/left-3.jpg",
+      "sha256": "0b0c0d011b147daeaa1de7e5674c22aed49bbff75c6ce87964a1a77e4a5cdc36"
+    },
+    {
+      "file": "previews/left-4.jpg",
+      "source_file": "previews/left-4.jpg",
+      "sha256": "2cba9cad99831254f016525d8cb32b4853d0a344faa40d4da45f0f8e924f4a5f"
+    },
+    {
+      "file": "previews/left-4k-input.png",
+      "source_file": "previews/left-4k-input.png",
+      "sha256": "b8a33e6a07df56ef98540f9df62a565efdcca12bc10b43b5c9512371309bf418"
+    },
+    {
+      "file": "previews/left-5.jpg",
+      "source_file": "previews/left-5.jpg",
+      "sha256": "be124786451e73e8b4fda4ee63ebe2f7b6177608bb757f27a3230bbc47087cc8"
+    },
+    {
+      "file": "previews/left-6.jpg",
+      "source_file": "previews/left-6.jpg",
+      "sha256": "caf1d54b9774817f2880a7a80a7193e3968c285eecebda148396e5f5b088f777"
+    },
+    {
+      "file": "previews/left-7.jpg",
+      "source_file": "previews/left-7.jpg",
+      "sha256": "d47e6974a6566762c84ebc360532a9f4eea2c189e007be3e0cb5f1de4f17dfbc"
+    },
+    {
+      "file": "previews/meaning-01a.jpg",
+      "source_file": "previews/meaning-01a.jpg",
+      "sha256": "bcee605b626b791edd8cd779e38c3fa130b52d63497f1e6cecc20cca56df2e91"
+    },
+    {
+      "file": "previews/meaning-01b.jpg",
+      "source_file": "previews/meaning-01b.jpg",
+      "sha256": "8b82da2f1e29c9737aa45895110d97d9ce68069f73382b7af686c41646091625"
+    },
+    {
+      "file": "previews/meaning-02a.jpg",
+      "source_file": "previews/meaning-02a.jpg",
+      "sha256": "11c86cbc05a30746c5156f127edc8d853c665dfa217be18bb7d2dba65214ea62"
+    },
+    {
+      "file": "previews/meaning-02b.jpg",
+      "source_file": "previews/meaning-02b.jpg",
+      "sha256": "3b21b2341506ada03ccd7583cf8c2354700ad41ad066ee841bac4b78ed8dfbbf"
+    },
+    {
+      "file": "previews/meaning-03a.jpg",
+      "source_file": "previews/meaning-03a.jpg",
+      "sha256": "21868ea910811ad45a5fc6f0c6f61c9836935c5ecfba661905739033fb0e52ab"
+    },
+    {
+      "file": "previews/meaning-03b.jpg",
+      "source_file": "previews/meaning-03b.jpg",
+      "sha256": "73072a5e926a343e76919b34e1a6b2c807acb946ab6deefe53d2b7b7465f2099"
+    },
+    {
+      "file": "previews/meaning-04a.jpg",
+      "source_file": "previews/meaning-04a.jpg",
+      "sha256": "751f1e991f0ee230829ea38304ebc7d047ee35e04531228de3969888a10475b8"
+    },
+    {
+      "file": "previews/meaning-04b.jpg",
+      "source_file": "previews/meaning-04b.jpg",
+      "sha256": "1dcbe5e51597a111797ef66ce2356fbd7908ab137e15905b684cac496a89e249"
+    },
+    {
+      "file": "previews/meaning-05a.jpg",
+      "source_file": "previews/meaning-05a.jpg",
+      "sha256": "a4b17e81fe4b3254c8eaee029fa1ef53fc3600ddf5757cb1795d6a87024afbe2"
+    },
+    {
+      "file": "previews/meaning-05b.jpg",
+      "source_file": "previews/meaning-05b.jpg",
+      "sha256": "6707f02cc639c90ce7fda297cfc8a0b4f789358a2af860b624cc12ddbb77c56d"
+    },
+    {
+      "file": "previews/meaning-06a.jpg",
+      "source_file": "previews/meaning-06a.jpg",
+      "sha256": "54e8d7f997ced3cc19890d9f3705ba3f2c11803c1e44bcd0ab0480d4a9f6f52e"
+    },
+    {
+      "file": "previews/meaning-06b.jpg",
+      "source_file": "previews/meaning-06b.jpg",
+      "sha256": "45020e1739f19ecfb9366bb248e4578a5ec5a09988a9eed2e7059b2b88b7a78c"
+    },
+    {
+      "file": "previews/meaning-07a.jpg",
+      "source_file": "previews/meaning-07a.jpg",
+      "sha256": "5f86401ca536012a87241f4362819e2d46c2297d3a099a803723948c42f9e52d"
+    },
+    {
+      "file": "previews/meaning-07b.jpg",
+      "source_file": "previews/meaning-07b.jpg",
+      "sha256": "d725fcf51111cadfb1aed14f44fc2400b45878df95c8260dce55a37c882575e2"
+    },
+    {
+      "file": "previews/meaning-08a.jpg",
+      "source_file": "previews/meaning-08a.jpg",
+      "sha256": "7af88c35561e344bb93b7fbb0bc160d4e971c46e1047959883f5469d71397d03"
+    },
+    {
+      "file": "previews/meaning-08b.jpg",
+      "source_file": "previews/meaning-08b.jpg",
+      "sha256": "9a9a04fb3abe6f2fb9141624a090a7ced7e20cb770db3f3c642f08a645fbbdf8"
+    },
+    {
+      "file": "previews/meaning-motion.mp4",
+      "source_file": "previews/meaning-motion.mp4",
+      "sha256": "c1e78c31cb8491fa542d1e9fcc94b3bcb9f19295931151226df63a3dbcff75ad"
+    },
+    {
+      "file": "previews/meaning-variations.jpg",
+      "source_file": "previews/meaning-variations.jpg",
+      "sha256": "48267f45b074951e42211395dd0eb38c22e04d2c3945aae5d6e993a32690acfb"
+    },
+    {
+      "file": "previews/mv-assembled.jpg",
+      "source_file": "previews/mv-assembled.jpg",
+      "sha256": "620bae25a2f7b8be424b9c00db3a171e59c532f7cfc1734e1ad9d3e4422ca857"
+    },
+    {
+      "file": "previews/mv-evolving.jpg",
+      "source_file": "previews/mv-evolving.jpg",
+      "sha256": "f78d540ad596c41a183eb8239982af5dae599dae8175dc105ef7fde1b391d4c8"
+    },
+    {
+      "file": "previews/mv-exchange.jpg",
+      "source_file": "previews/mv-exchange.jpg",
+      "sha256": "f1aeadb589f6b588e4b2b21ce1be750864787c63d14c4b66b58a8e08380d6937"
+    },
+    {
+      "file": "previews/public-studio.png",
+      "source_file": "previews/public-studio.png",
+      "sha256": "8afb512c244a1315cda07947bfc0781f819a6ec4cd50ea5a60b62acaf368ddcd"
+    },
+    {
+      "file": "previews/shared-front.jpg",
+      "source_file": "previews/shared-front.jpg",
+      "sha256": "9ec93e6847673f1ada5b25120dcd24a3529a9828f117ffc2bca373ed96623877"
+    },
+    {
+      "file": "previews/shared-left.jpg",
+      "source_file": "previews/shared-left.jpg",
+      "sha256": "86236e8d46a8d167c09174803995571d74995622208b60f73e1b133f080f7596"
+    },
+    {
+      "file": "previews/studio-mobile.png",
+      "source_file": "previews/studio-mobile.png",
+      "sha256": "f729aa47b992c030f5456c147e1553ef957527e587a3b18c9b8f5e8970cf986a"
+    },
+    {
+      "file": "previews/studio-video-library.png",
+      "source_file": "previews/studio-video-library.png",
+      "sha256": "750f06fa3ebac9b73b341c6d52de64cd3765d9c367bff6aa8445a4f64df1cd0b"
+    },
+    {
+      "file": "previews/studio-video-mobile.png",
+      "source_file": "previews/studio-video-mobile.png",
+      "sha256": "1d76d75fcc59f65cf82682e7b1bc3c851fb2b2636b1d6df3498bcece979085cd"
+    },
+    {
+      "file": "previews/studio.png",
+      "source_file": "previews/studio.png",
+      "sha256": "80c680098d6b98ae0c4fac422ca27519642f353145c189e1008e3dec3daf1a07"
+    },
+    {
+      "file": "previews/style-0.jpg",
+      "source_file": "previews/style-0.jpg",
+      "sha256": "345b57bece8a133a84fadd85d30a4a6de47268407af46be904b463b057cd5877"
+    },
+    {
+      "file": "previews/style-1.jpg",
+      "source_file": "previews/style-1.jpg",
+      "sha256": "2cfb7fc9ccd2d54783d5b33b972bb5748d13e3acf439cd7c4c72c2d91bc02295"
+    },
+    {
+      "file": "previews/style-10.jpg",
+      "source_file": "previews/style-10.jpg",
+      "sha256": "da3c0a931979e8385774385df747d4ff366fa96724ab3d881ad07a95cd864074"
+    },
+    {
+      "file": "previews/style-11.jpg",
+      "source_file": "previews/style-11.jpg",
+      "sha256": "4759b7f381fb04135d82263ac4c03431da5fbb603c9a5c64954de7311e8ca873"
+    },
+    {
+      "file": "previews/style-2.jpg",
+      "source_file": "previews/style-2.jpg",
+      "sha256": "dba427a57e25f4b64e0916610202b0af181a054cb61780d0ba8b031b4f1b487f"
+    },
+    {
+      "file": "previews/style-3.jpg",
+      "source_file": "previews/style-3.jpg",
+      "sha256": "6ac67df058608e5852077673e1295e07e86a986863f9d5b7b542cc685eb01e47"
+    },
+    {
+      "file": "previews/style-4.jpg",
+      "source_file": "previews/style-4.jpg",
+      "sha256": "70527254e08ea567a3d5357a1fbd222471bdcab3eecb5e02decd1dbf3b9a05d9"
+    },
+    {
+      "file": "previews/style-5.jpg",
+      "source_file": "previews/style-5.jpg",
+      "sha256": "e4c3b617b4e0b672d2516312164acbcf8af38625fbafd42f1b696a43ea01959a"
+    },
+    {
+      "file": "previews/style-6.jpg",
+      "source_file": "previews/style-6.jpg",
+      "sha256": "19b543c6a189d6710fac684dd47703fe9e57671574fc19016524943dfd79be43"
+    },
+    {
+      "file": "previews/style-7.jpg",
+      "source_file": "previews/style-7.jpg",
+      "sha256": "bd48246120496373080bf3d76807eb444403e79ba54db3b0c57e56c9fb7c93bd"
+    },
+    {
+      "file": "previews/style-8.jpg",
+      "source_file": "previews/style-8.jpg",
+      "sha256": "ea36ae456514a8a657446edfe9684369a56476a84eec87b8bb407727895923eb"
+    },
+    {
+      "file": "previews/style-9.jpg",
+      "source_file": "previews/style-9.jpg",
+      "sha256": "aed93d8d2f5026571fee3c27622515294f869854d27ba96a5281812ed3f11a3a"
+    },
+    {
+      "file": "video-posters/P1-02.jpg",
+      "source_file": "assets/video-posters/P1-02.jpg",
+      "sha256": "1cafece628f683ac27c6730903d91472865b980b7409a34ee6ee16f4e2639132"
+    },
+    {
+      "file": "video-posters/P1-03.jpg",
+      "source_file": "assets/video-posters/P1-03.jpg",
+      "sha256": "7a12519a92156efa92af88a6509f24aadaa20258a7bac8e865137554b60e451c"
+    },
+    {
+      "file": "video-posters/P1-04.jpg",
+      "source_file": "assets/video-posters/P1-04.jpg",
+      "sha256": "e806eb6d80eee5783f7d086d115dc410e0978c3429f6a1f12ec4eabf0d4cd8d2"
+    },
+    {
+      "file": "video-posters/P1-17.jpg",
+      "source_file": "assets/video-posters/P1-17.jpg",
+      "sha256": "071eb669da3f7c8c4dcd701e0956b1b61828c0d167b7b70517ff6e641a1223dc"
+    },
+    {
+      "file": "video-posters/P2-S1-02.jpg",
+      "source_file": "assets/video-posters/P2-S1-02.jpg",
+      "sha256": "84b92980b15c50783b657ebff1c05f1dbbef09bc52136f0c50e4d780e5c6af79"
+    },
+    {
+      "file": "video-posters/P2-S1-03.jpg",
+      "source_file": "assets/video-posters/P2-S1-03.jpg",
+      "sha256": "1603d77830a3ce2b0d1c5eb5adf7b500a25c8ddb8d9c82d38e9647f82840c792"
+    },
+    {
+      "file": "video-posters/P2-S1-04.jpg",
+      "source_file": "assets/video-posters/P2-S1-04.jpg",
+      "sha256": "d4ebafede853fdebfc43812d9fd8b3bd722c48cac5b6afaa80709591363e4aa0"
+    },
+    {
+      "file": "video-posters/P2-S1-05.jpg",
+      "source_file": "assets/video-posters/P2-S1-05.jpg",
+      "sha256": "5fa40e654f386720632ce5465fd2c6b5350463532b8b27cb8663561647279a55"
+    },
+    {
+      "file": "video-posters/P2-S2-01.jpg",
+      "source_file": "assets/video-posters/P2-S2-01.jpg",
+      "sha256": "53e84c533f06c283622ec4401f25228bddef4c299eb71640a939ccdca1390453"
+    },
+    {
+      "file": "video-posters/P2-S2-02.jpg",
+      "source_file": "assets/video-posters/P2-S2-02.jpg",
+      "sha256": "38cf5c1cad03be3787e29121c62166ac0bb24d4dab7200cb4e926433925bff2b"
+    },
+    {
+      "file": "video-posters/P2-S2-03.jpg",
+      "source_file": "assets/video-posters/P2-S2-03.jpg",
+      "sha256": "b90dcb8be35f21f3fc1065acfb4f6cc3ef129666080dda331c8dd12692d1d76a"
+    },
+    {
+      "file": "video-posters/P2-S2-05.jpg",
+      "source_file": "assets/video-posters/P2-S2-05.jpg",
+      "sha256": "96277552d05ac70d57e5026ed6a4996be6363d04cb774c164368abae20f72ac0"
+    },
+    {
+      "file": "video-posters/P2-S2-06.jpg",
+      "source_file": "assets/video-posters/P2-S2-06.jpg",
+      "sha256": "1316b78ab6194e8a96bd5aa9a6c0ad723f942f85e5eb927e41db764dbd3652b5"
+    },
+    {
+      "file": "video-posters/P2-S2-07.jpg",
+      "source_file": "assets/video-posters/P2-S2-07.jpg",
+      "sha256": "6d6925b85ed6772408031bb2c66f5a042cc4cd814aa3a9e074eca0fb98933f8c"
+    },
+    {
+      "file": "video-posters/P2-S2-09.jpg",
+      "source_file": "assets/video-posters/P2-S2-09.jpg",
+      "sha256": "39dd88676586f7fd20ca668b01d62bedc4d3bd39a7bbed2047f52b86268a430f"
+    },
+    {
+      "file": "video-posters/P2-S2-10.jpg",
+      "source_file": "assets/video-posters/P2-S2-10.jpg",
+      "sha256": "c1f2fcfd0481eee60bdb5925da1726e44c1ed54299dc4ee1b0d4c689d8216074"
+    },
+    {
+      "file": "video-posters/P2-S2-11.jpg",
+      "source_file": "assets/video-posters/P2-S2-11.jpg",
+      "sha256": "0501e39f923f7d5f84b748931e5a0ad6e7ad0c1d7a38c483e28e2870261e70e0"
+    },
+    {
+      "file": "video-posters/P2-S2-12.jpg",
+      "source_file": "assets/video-posters/P2-S2-12.jpg",
+      "sha256": "7d5bd1876ff98399c38730f932e050588eedcb76d1cb0ede45ebd70c385b9f58"
+    },
+    {
+      "file": "video-posters/P2-S3-01.jpg",
+      "source_file": "assets/video-posters/P2-S3-01.jpg",
+      "sha256": "fcbb36005be1e4727520d63c265b6ae2016029bf32b6aa966a77f019997974ae"
+    },
+    {
+      "file": "video-posters/P2-S3-02.jpg",
+      "source_file": "assets/video-posters/P2-S3-02.jpg",
+      "sha256": "68c1cfb103745e2205994455cc9f5c3dbe414200d4db6d811523f1e70b334827"
+    },
+    {
+      "file": "video-posters/P2-S3-03.jpg",
+      "source_file": "assets/video-posters/P2-S3-03.jpg",
+      "sha256": "a2562c32d592f5acc7d2f1687d05d953f622d0f107d93bcd143250ac3fefce9e"
+    },
+    {
+      "file": "video-posters/P2-S3-04.jpg",
+      "source_file": "assets/video-posters/P2-S3-04.jpg",
+      "sha256": "debbc3a3cd0f74f5c563f37a7eeda8662bd4541ca9ef8be5b3526bc516cc4b54"
+    },
+    {
+      "file": "video-posters/P2-S4-01.jpg",
+      "source_file": "assets/video-posters/P2-S4-01.jpg",
+      "sha256": "f2efe9d21417577aae6fae7dec4cbdb0a46b0c85466845a6de2e1415d0f8999b"
+    },
+    {
+      "file": "video-posters/P2-S4-02.jpg",
+      "source_file": "assets/video-posters/P2-S4-02.jpg",
+      "sha256": "3cc8c0628310a444f0c5eb75f9971391e0f4d41598c3258c0bfef5cad3fe4969"
+    },
+    {
+      "file": "video-posters/P2-S4-03.jpg",
+      "source_file": "assets/video-posters/P2-S4-03.jpg",
+      "sha256": "13e69b823bf3eddb8898957f0281a945c7caa0fef5f1b93ff21e6bd6bf6889e7"
+    },
+    {
+      "file": "video-posters/P2-S5-01.jpg",
+      "source_file": "assets/video-posters/P2-S5-01.jpg",
+      "sha256": "2ed66bbb56b2e9f038f731ed370ea3b8d25f7c67ca369fc65614ce6d4b8ac95c"
+    },
+    {
+      "file": "video-posters/P2-S5-02.jpg",
+      "source_file": "assets/video-posters/P2-S5-02.jpg",
+      "sha256": "ca815a2da2be344dc076407d5018e814cad1af16137f5240c187b80c6f370eeb"
+    },
+    {
+      "file": "video-posters/P2-S5-03.jpg",
+      "source_file": "assets/video-posters/P2-S5-03.jpg",
+      "sha256": "e07e3ca98503202f0cb64983b2bcaa75ec643b70fb6ff432037bbaa8e0adee24"
+    },
+    {
+      "file": "video-posters/P2-S5-04.jpg",
+      "source_file": "assets/video-posters/P2-S5-04.jpg",
+      "sha256": "9d059304b887401d13ac22b1db7b1bdd883eaa246c4c2093cc754d9285a10472"
+    },
+    {
+      "file": "video-posters/P2-S5-05.jpg",
+      "source_file": "assets/video-posters/P2-S5-05.jpg",
+      "sha256": "8e5c5accccc5dde603e5ff8d8acdc8386fa4ff7fea01fb6a657053b568bbc50e"
+    },
+    {
+      "file": "video-posters/P2-S5-06.jpg",
+      "source_file": "assets/video-posters/P2-S5-06.jpg",
+      "sha256": "82dbc57d2599ce4fbfc1ba25dac7ac2c208301b071c102548808bd60ab79af6a"
+    },
+    {
+      "file": "video-posters/P3-01.jpg",
+      "source_file": "assets/video-posters/P3-01.jpg",
+      "sha256": "d08e85b1bb606b1d265081d1b9af76947530b8ebf84f85ab28bb81172f7ac69a"
+    },
+    {
+      "file": "video-posters/P3-02.jpg",
+      "source_file": "assets/video-posters/P3-02.jpg",
+      "sha256": "bd40a8d4243040cd3f2885f1c8911bdd299db08ed44c75587bf470fcf36c9db9"
+    },
+    {
+      "file": "video-posters/P3-03.jpg",
+      "source_file": "assets/video-posters/P3-03.jpg",
+      "sha256": "3b5a51a868ddfdb07f89ee0fe8bf0db8f896591aa80f7cf11b059cf6d199848c"
+    }
+  ]
+}

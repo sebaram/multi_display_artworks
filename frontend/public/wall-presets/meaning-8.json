@@ -1,0 +1,193 @@
+{
+  "name": "Meaning 04B / Mutual response",
+  "source_key": "meaning:8",
+  "config": {
+    "schema_version": 1,
+    "source_commit": "b247fd238fe6cb2c8c860c77d13488b28b8a0290",
+    "logical_screen": "front",
+    "seed": 0,
+    "state": {
+      "variant": 3,
+      "cue": 0,
+      "videoId": null,
+      "showVideo": false,
+      "brightness": 85,
+      "speed": 1,
+      "motionAmount": 1,
+      "paused": false,
+      "epoch": 0,
+      "offset": 0,
+      "branding": true,
+      "headlines": false,
+      "guide": false,
+      "calibration": false,
+      "interactive": false,
+      "frontW": 3840,
+      "frontH": 2160,
+      "leftW": 3840,
+      "leftH": 2160,
+      "leftShape": "tiles",
+      "bezel": 0,
+      "screens": [
+        {
+          "id": "left",
+          "name": "Left tiled wall",
+          "width": 3840,
+          "height": 2160,
+          "mode": "tiles",
+          "cols": 3,
+          "rows": 2,
+          "tileW": 16,
+          "tileH": 9,
+          "aspectW": 16,
+          "aspectH": 9,
+          "grid": false
+        },
+        {
+          "id": "front",
+          "name": "Front LED / 4.44 x 2.50 m",
+          "width": 3840,
+          "height": 2160,
+          "mode": "raster",
+          "cols": 1,
+          "rows": 1,
+          "tileW": 16,
+          "tileH": 9,
+          "aspectW": 16,
+          "aspectH": 9,
+          "grid": false
+        }
+      ],
+      "videoLayers": [],
+      "authored": {
+        "3": {
+          "edits": {
+            "branding-front": {
+              "x": 7,
+              "y": 7,
+              "size": 0.62
+            },
+            "wall-caption-front": {
+              "visible": false
+            },
+            "branding-left": {
+              "x": 7,
+              "y": 7,
+              "size": 0.62
+            },
+            "wall-caption-left": {
+              "visible": false
+            },
+            "front-research-network-1": {
+              "x": 89,
+              "y": 82,
+              "size": 0.65,
+              "motionSpeed": 0.35,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "front-research-network-2": {
+              "x": 17,
+              "y": 64,
+              "size": 0.58,
+              "motionSpeed": 0.35,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "left-research-network-1": {
+              "x": 89,
+              "y": 82,
+              "size": 0.65,
+              "motionSpeed": 0.35,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "left-research-network-2": {
+              "x": 17,
+              "y": 64,
+              "size": 0.58,
+              "motionSpeed": 0.35,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "left-sculptural-element-1": {
+              "visible": false
+            },
+            "left-sculptural-element-2": {
+              "visible": false
+            },
+            "left-sculptural-element-3": {
+              "visible": false
+            },
+            "left-sculptural-element-4": {
+              "visible": false
+            },
+            "left-sculptural-element-5": {
+              "visible": false
+            },
+            "left-sculptural-element-6": {
+              "visible": false
+            },
+            "left-sculptural-element-7": {
+              "visible": false
+            },
+            "front-sculptural-element-1": {
+              "visible": false
+            },
+            "front-sculptural-element-2": {
+              "visible": false
+            }
+          },
+          "objects": [
+            {
+              "id": "meaning-front",
+              "type": "feedback",
+              "source": null,
+              "archived": false,
+              "x": 18,
+              "y": 73,
+              "size": 1.15,
+              "rotation": 0,
+              "motionSpeed": 0.8,
+              "motionAmount": 1,
+              "motionAnchor": 0,
+              "motionOffset": 9,
+              "screen": "front",
+              "visible": true
+            },
+            {
+              "id": "meaning-left",
+              "type": "feedback",
+              "source": null,
+              "archived": false,
+              "x": 18,
+              "y": 73,
+              "size": 1.15,
+              "rotation": 0,
+              "motionSpeed": 0.8,
+              "motionAmount": 1,
+              "motionAnchor": 0,
+              "motionOffset": 9,
+              "screen": "left",
+              "visible": true
+            }
+          ]
+        }
+      },
+      "appearance": {
+        "3": {
+          "mode": "gradient",
+          "backgroundColor": "#0b1723",
+          "glowColor": "#274955",
+          "glow": 0.65,
+          "lighting": 0.95,
+          "floor": 0.55
+        }
+      },
+      "activeVideoLayer": null,
+      "editVideos": false,
+      "editElements": false,
+      "activeElement": null
+    }
+  }
+}

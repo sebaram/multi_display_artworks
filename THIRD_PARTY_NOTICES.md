@@ -1,0 +1,9 @@
+## GSMV interactive wall renderer
+
+The interactive wall engine in `frontend/src/wall-engine/reference`, bundled presets in `frontend/public/wall-presets`, and logos, previews, thumbnails, fonts and clip/poster metadata in `frontend/public/wall-reference` derive from [sebaram/gsmv-interactive-bg](https://github.com/sebaram/gsmv-interactive-bg/tree/b247fd238fe6cb2c8c860c77d13488b28b8a0290), pinned at commit `b247fd238fe6cb2c8c860c77d13488b28b8a0290`. The repository supplied no root LICENSE. This extraction was requested by the user; no additional redistribution license is asserted. Review upstream rights before redistribution, including the KAIST department marks and research clip/poster assets. Original research video binaries are not bundled or downloaded.
+
+Original preset geometry, materials, lighting, floor scenes, research sculptures, MV facet morphing, motion and authored part IDs are preserved. Scene lifecycle/global handlers were replaced by a caller-owned renderer, DOM overlays moved to a canvas compositor, source state clocks made explicit, and video layers extended with persistent `assetId`. `wall-presets/manifest.json` records all 44 source keys, source files, indices and source-file SHA-256 values. `wall-reference/provenance.json` records source files and modifications.
+
+The copied Three.js runtime is MIT licensed. Its complete notice remains at `frontend/src/wall-engine/reference/vendor/THREE-LICENSE.txt`.
+
+Host Grotesk and Atkinson Hyperlegible Mono are licensed under the SIL Open Font License 1.1. Their complete licenses remain with the bundled font files at `frontend/public/wall-reference/fonts/hostgrotesk-OFL.txt` and `frontend/public/wall-reference/fonts/atkinsonhyperlegiblemono-OFL.txt`.

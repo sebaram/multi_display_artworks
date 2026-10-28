@@ -1,0 +1,168 @@
+{
+  "name": "Meaning 08A / A responsive counterpart",
+  "source_key": "meaning:15",
+  "config": {
+    "schema_version": 1,
+    "source_commit": "b247fd238fe6cb2c8c860c77d13488b28b8a0290",
+    "logical_screen": "front",
+    "seed": 0,
+    "state": {
+      "variant": 7,
+      "cue": 0,
+      "videoId": null,
+      "showVideo": false,
+      "brightness": 85,
+      "speed": 1,
+      "motionAmount": 1,
+      "paused": false,
+      "epoch": 0,
+      "offset": 0,
+      "branding": true,
+      "headlines": false,
+      "guide": false,
+      "calibration": false,
+      "interactive": false,
+      "frontW": 3840,
+      "frontH": 2160,
+      "leftW": 3840,
+      "leftH": 2160,
+      "leftShape": "tiles",
+      "bezel": 0,
+      "screens": [
+        {
+          "id": "left",
+          "name": "Left tiled wall",
+          "width": 3840,
+          "height": 2160,
+          "mode": "tiles",
+          "cols": 3,
+          "rows": 2,
+          "tileW": 16,
+          "tileH": 9,
+          "aspectW": 16,
+          "aspectH": 9,
+          "grid": false
+        },
+        {
+          "id": "front",
+          "name": "Front LED / 4.44 x 2.50 m",
+          "width": 3840,
+          "height": 2160,
+          "mode": "raster",
+          "cols": 1,
+          "rows": 1,
+          "tileW": 16,
+          "tileH": 9,
+          "aspectW": 16,
+          "aspectH": 9,
+          "grid": false
+        }
+      ],
+      "videoLayers": [],
+      "authored": {
+        "7": {
+          "edits": {
+            "branding-front": {
+              "x": 7,
+              "y": 7,
+              "size": 0.62
+            },
+            "wall-caption-front": {
+              "visible": false
+            },
+            "branding-left": {
+              "x": 7,
+              "y": 7,
+              "size": 0.62
+            },
+            "wall-caption-left": {
+              "visible": false
+            },
+            "court-glass-front": {
+              "motionSpeed": 0.45,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "court-red-front": {
+              "motionSpeed": 0.45,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "court-glass-left": {
+              "motionSpeed": 0.45,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "court-red-left": {
+              "motionSpeed": 0.45,
+              "motionAmount": 0.8,
+              "visible": false
+            },
+            "front-graphite-sculpture-plinth-1": {
+              "visible": false
+            },
+            "front-sculpture-contact-shadow-1": {
+              "visible": false
+            },
+            "front-sculpture-contact-shadow-2": {
+              "visible": false
+            },
+            "left-graphite-sculpture-plinth-1": {
+              "visible": false
+            },
+            "left-sculpture-contact-shadow-1": {
+              "visible": false
+            },
+            "left-sculpture-contact-shadow-2": {
+              "visible": false
+            }
+          },
+          "objects": [
+            {
+              "id": "meaning-front",
+              "type": "feedback",
+              "source": null,
+              "archived": false,
+              "x": 84,
+              "y": 73,
+              "size": 1.15,
+              "rotation": 0,
+              "motionSpeed": 0.9,
+              "motionAmount": 1,
+              "motionAnchor": 0,
+              "motionOffset": 0,
+              "screen": "front",
+              "visible": true
+            },
+            {
+              "id": "meaning-left",
+              "type": "feedback",
+              "source": null,
+              "archived": false,
+              "x": 84,
+              "y": 73,
+              "size": 1.15,
+              "rotation": 0,
+              "motionSpeed": 0.9,
+              "motionAmount": 1,
+              "motionAnchor": 0,
+              "motionOffset": 0,
+              "screen": "left",
+              "visible": true
+            }
+          ]
+        }
+      },
+      "appearance": {
+        "7": {
+          "lighting": 1,
+          "floor": 1
+        }
+      },
+      "activeVideoLayer": null,
+      "editVideos": false,
+      "editElements": false,
+      "activeElement": null
+    }
+  }
+}

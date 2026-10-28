@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metamuseum-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.121,<1",
+  "uvicorn>=0.38,<1",
+  "websockets>=16,<18",
+  "mongoengine>=0.29,<1",
+  "bcrypt>=4,<6",
+  "pydantic-settings>=2,<3",
+  "itsdangerous>=2,<3",
+  "python-multipart>=0.0.20,<1",
+  "python-socketio>=5,<6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "httpx2>=2.16,<3", "pip-tools>=7,<8"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["metamuseum*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_default_fixture_loop_scope = "function"

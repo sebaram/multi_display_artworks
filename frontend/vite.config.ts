@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: Object.fromEntries(
       [
         "/api",
+        "/room/",
         "/socket.io",
         "/static",
         "/stream",

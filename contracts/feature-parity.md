@@ -52,3 +52,21 @@ These mappings cover gallery/admin HTTP behavior, not all 155 captured rules. So
 | Existing stored media URLs | No URL rewriting in DTOs. Configured `media_root` serves `/static`; configured frontend build assets/vendor files are served independently. Unknown `/api/` never falls through to SPA. |
 
 Before a React build exists, recognized HTML routes return an explicit UI-unavailable page. Browser functionality is verified separately after the real build; the fallback is not a gallery UI acceptance claim.
+
+## Migrated runtime and acceptance mapping
+
+| Surface | Implementation / evidence |
+| --- | --- |
+| All27 legacy socket handlers | `realtime/` owns one ASGI lifecycle. Presence, voice, AR and gesture retain their event contracts. Real-client tests cover capability/auth, reconnect/displacement, room isolation, no guest DB writes, legacy handshake segregation and bounded shutdown. |
+| Visitor/profile/avatar/voice UI | React owns the scene and legacy instance resources. `presence.spec.ts`, `visitor.spec.ts`, `ar-tools.spec.ts` and `voice.spec.ts` use the actual backend; voice uses two real peer connections with synthetic microphones, not physical-device evidence. |
+| Images, GLTF, splats, webpages and wall backgrounds | `media.spec.ts` verifies the actual512-point splat/cutout, GPU wall image, advancing MP4 and permitted/blocked iframe fallback. Original static media/license bytes move unchanged to `backend/metamuseum/static`; production URL mounts remain identical. |
+| Admin selection and transforms | Metadata forms cover11 resources. Scene adapter uses the selected element and wall-local geometry, with explicit draft/save state. `admin.spec.ts` exercises real persistence; unit/browser integration covers coordinates, second selection and scene ownership. |
+| Layout, effects, STT and mail | `test_providers.py` exercises local native/compatible upstream wires, binary audio, deadlines, invalid proposals, cross-wall references, typed expiring effects and SMTP loopback. Public STT reads expose enabled status only; provider keys remain server-side. Browser acceptance is tracked in `provider-streams.spec.ts`. |
+| Phone/RTSP HLS | `test_streams.py` uses actual FFmpeg for WebM/MP4/controlled RTSP, decodes generated TS and verifies public segment routes/process cleanup. Local MediaMTX is a fixture, not a physical camera/network test. Browser decoding has a separate acceptance test. |
+| Wall renderer and authoring | The pinned44 source looks, source hierarchy/authoring and isolated Three→canvas composition are preserved. Renderer Node/source tests plus actual WebGL checks cover rich text/logo/video/brightness, seed/time and cleanup. Editor tests cover history, selection, pending-wall identity and stale asynchronous responses. |
+| Mongo preset/media/apply | Real Mongo tests cover idempotent44 imports, independent save/apply snapshots, CAS/tombstone revisions, asset signatures/quota/reference races/Range and restart. `wall-editor-persistence.spec.ts` verifies actual upload, thumbnail, reload and both409 draft-retention paths. |
+| Same-room wall reactions and playback | `test_wall_interactions.py` covers authoritative membership,20Hz coalescing, idle/reset, concurrent mutations, cancelled waiters, snapshot/publication ordering and durable restart. `shared-wall.spec.ts` verifies actual two-context MP4 play/pause/seek, drift below0.5s, pointer convergence, room isolation, reconnect, live apply/removal and legacy media restoration. |
+| Built routes and cross-browser access | `test_frontend_routes.py` verifies deep links without Vite. `cross-browser.spec.ts` verifies Firefox/WebKit catalog, actual login/reload/logout, keyboard skip link and390px layout with reduced motion. Physical mobile GPU/FPS remains untested. |
+| Packaging and CI | Root multi-stage image includes the React build, FastAPI/Socket.IO and FFmpeg without Flask/eventlet. CI runs Python/Node/types/build/browser and image smoke. Active migration CI never deploys; production-job activation was rejected by automatic approval review and is saved only as a proposal. |
+
+The latest consolidated commands, counts, independent review outcome and remaining device/provider/production-data limits belong to [migration validation](../docs/migration-validation.md). Individual passing fixtures do not imply production or physical-device validation.

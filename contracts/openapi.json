@@ -173,6 +173,533 @@
         }
       }
     },
+    "/api/auto-layout": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Auto Layout",
+        "operationId": "auto_layout_api_auto_layout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apply-layout": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Apply Layout",
+        "operationId": "apply_layout_api_apply_layout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auto-effect": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Auto Effect",
+        "operationId": "auto_effect_api_auto_effect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{room_id}/effects": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Effects",
+        "operationId": "effects_api_v1_rooms__room_id__effects_get",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clear-effects": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Clear Effects",
+        "operationId": "clear_effects_api_clear_effects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/whisper-config": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Whisper Config",
+        "operationId": "whisper_config_api_whisper_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Put Whisper",
+        "operationId": "put_whisper_api_whisper_config_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhisperWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transcribe": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Transcribe",
+        "operationId": "transcribe_api_transcribe_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_transcribe_api_transcribe_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stream/start-rtsp": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Start Rtsp",
+        "operationId": "start_rtsp_stream_start_rtsp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RTSPRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stream/push/{stream_id}": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Push",
+        "operationId": "push_stream_push__stream_id__post",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_push_stream_push__stream_id__post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stream/stop/{stream_id}": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Stop",
+        "operationId": "stop_stream_stop__stream_id__post",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stream/list": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Streams",
+        "operationId": "streams_stream_list_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stream/playlist/{stream_id}": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Playlist",
+        "operationId": "playlist_stream_playlist__stream_id__get",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stream/segment/{stream_id}/{segment}": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Segment",
+        "operationId": "segment_stream_segment__stream_id___segment__get",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          },
+          {
+            "name": "segment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Segment"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/wall-presets": {
       "get": {
         "tags": [
@@ -1387,6 +1914,72 @@
         ],
         "title": "ApplyDesign"
       },
+      "ApplyRequest": {
+        "properties": {
+          "room_id": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 24,
+            "title": "Room Id"
+          },
+          "arrangements": {
+            "items": {
+              "$ref": "#/components/schemas/Arrangement"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Arrangements"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "room_id",
+          "arrangements"
+        ],
+        "title": "ApplyRequest"
+      },
+      "Arrangement": {
+        "properties": {
+          "element_id": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 24,
+            "title": "Element Id"
+          },
+          "wall_name": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Wall Name"
+          },
+          "position_x": {
+            "type": "number",
+            "title": "Position X"
+          },
+          "position_y": {
+            "type": "number",
+            "title": "Position Y"
+          },
+          "position_z": {
+            "type": "number",
+            "maximum": 0.5,
+            "minimum": 0.0,
+            "title": "Position Z",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "element_id",
+          "wall_name",
+          "position_x",
+          "position_y"
+        ],
+        "title": "Arrangement"
+      },
       "AssetRead": {
         "properties": {
           "id": {
@@ -1424,6 +2017,59 @@
           "created_at"
         ],
         "title": "AssetRead"
+      },
+      "Body_push_stream_push__stream_id__post": {
+        "properties": {
+          "chunk": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Chunk"
+          },
+          "idx": {
+            "type": "integer",
+            "title": "Idx",
+            "default": 0
+          },
+          "final": {
+            "type": "boolean",
+            "title": "Final",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk"
+        ],
+        "title": "Body_push_stream_push__stream_id__post"
+      },
+      "Body_transcribe_api_transcribe_post": {
+        "properties": {
+          "audio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio"
+          },
+          "audio_data": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Data"
+          }
+        },
+        "type": "object",
+        "title": "Body_transcribe_api_transcribe_post"
       },
       "CSRFRead": {
         "properties": {
@@ -1786,6 +2432,52 @@
         ],
         "title": "PresetRead"
       },
+      "PromptRequest": {
+        "properties": {
+          "room_id": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 24,
+            "title": "Room Id"
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Prompt"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "room_id",
+          "prompt"
+        ],
+        "title": "PromptRequest"
+      },
+      "RTSPRequest": {
+        "properties": {
+          "stream_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Stream Id",
+            "default": "cam1"
+          },
+          "rtsp_url": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Rtsp Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rtsp_url"
+        ],
+        "title": "RTSPRequest"
+      },
       "ResourceSpec": {
         "properties": {
           "name": {
@@ -1811,6 +2503,22 @@
           "fields"
         ],
         "title": "ResourceSpec"
+      },
+      "RoomRequest": {
+        "properties": {
+          "room_id": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 24,
+            "title": "Room Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "room_id"
+        ],
+        "title": "RoomRequest"
       },
       "RoomScene": {
         "properties": {
@@ -2095,6 +2803,90 @@
           "state"
         ],
         "title": "WallLook"
+      },
+      "WhisperWrite": {
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "openai",
+                  "minimax",
+                  "local"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "api_base": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Base"
+          },
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "password",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WhisperWrite"
       }
     }
   }

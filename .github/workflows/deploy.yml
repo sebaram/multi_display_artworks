@@ -19,7 +19,13 @@ jobs:
         options: >-
           --health-cmd "mongosh --quiet --eval 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'"
           --health-interval 2s --health-timeout 5s --health-retries 30
+      rtsp:
+        image: bluenviron/mediamtx:1.21.3
+        ports: ['8554:8554']
+        env:
+          MTX_RTSPTRANSPORTS: tcp
     env:
+      RTSP_FIXTURE_URL: rtsp://127.0.0.1:8554/fixture
       SECRET_KEY: ci-local-session-secret
       SECURITY_PASSWORD_SALT: ci-local-confirmation-salt
       MONGODB_URI: mongodb://127.0.0.1:27028/metamuseum_test?directConnection=true
@@ -50,6 +56,20 @@ jobs:
           cd frontend && npx playwright install --with-deps chromium firefox webkit
       - name: Mark isolated Mongo instance
         run: docker exec -i ${{ job.services.mongo.id }} mongosh --quiet < backend/tests/fixtures/mongo-init.js
+      - name: Generate media and publish controlled RTSP
+        run: |
+          python frontend/tests/fixtures/generate_media.py
+          ffmpeg -hide_banner -loglevel warning -re -stream_loop -1 \
+            -i frontend/tests/fixtures/media/video.mp4 -c copy -f rtsp -rtsp_transport tcp \
+            "$RTSP_FIXTURE_URL" > /tmp/metamuseum-rtsp.log 2>&1 &
+          echo $! > /tmp/metamuseum-rtsp.pid
+          for i in $(seq 1 20); do
+            if ffprobe -v error -timeout 3000000 -rtsp_transport tcp \
+              -show_entries stream=codec_name -of csv=p=0 "$RTSP_FIXTURE_URL"; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/metamuseum-rtsp.log
+          exit 1
       - name: Python integration and compatibility
         run: python -m pytest backend/tests -q
       - name: React, legacy behavior, renderer, types and build
@@ -61,7 +81,6 @@ jobs:
         run: |
           python backend/tests/fixtures/seed.py
           python scripts/import_wall_presets.py
-          python frontend/tests/fixtures/generate_media.py
       - name: Browser tests against actual API and Socket.IO
         run: |
           python frontend/tests/fixtures/server.py > /tmp/metamuseum-media.log 2>&1 &
@@ -101,6 +120,7 @@ jobs:
       - name: Runtime diagnostics and cleanup
         if: always()
         run: |
+          if [ -f /tmp/metamuseum-rtsp.pid ]; then kill "$(cat /tmp/metamuseum-rtsp.pid)" 2>/dev/null || true; fi
           docker logs ci_smoke 2>/dev/null || true
           docker rm -f ci_smoke ci_mongo 2>/dev/null || true
           docker network rm metamuseum_ci 2>/dev/null || true

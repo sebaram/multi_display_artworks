@@ -1,0 +1,41 @@
+{
+  "aframe": {
+    "version": "1.6.0",
+    "source": "https://aframe.io/releases/1.6.0/aframe.min.js",
+    "license": "MIT",
+    "sha256": "09bb15fb7da164dc911faaf036d60299e57939c5f53b4c82397e190ee019aacd"
+  },
+  "gaussian-splatting": {
+    "repository": "https://github.com/quadjr/aframe-gaussian-splatting",
+    "commit": "b50238f8051cdccf753fa34cbee69ee62a1cbfc2",
+    "version": "0.0.22",
+    "license": "gaussian-splatting-LICENSE",
+    "modifications": [
+      "Use owning A-Frame scene and AFRAME.THREE; initialize already-loaded scenes.",
+      "Abort downloads, cancel reader, terminate worker and revoke worker Blob URL on remove.",
+      "Dispose owned geometry/material/textures and stop pending init/sort callbacks.",
+      "Emit scoped splat-error events on network failures."
+    ],
+    "sha256": "4a41468f676397f4440ebee1ad5bc072dc4b20f7c3b0b6ca4fa904f8da173439"
+  },
+  "arjs": {
+    "license": "arjs-LICENSE",
+    "version": "3.4.7",
+    "repository": "https://github.com/AR-js-org/AR.js/tree/3.4.7",
+    "modifications": [
+      "Guard system initialization for scenes without arjs attribute.",
+      "Use local pinned Hiro marker and camera calibration data.",
+      "Own and remove session/system resize/video/render listeners and polling timer.",
+      "Stop camera tracks and dispose controller on remove and on late camera permission."
+    ],
+    "sha256": "c9262c598530af9286c590778f1fbae23a512463f429552964d9e3dcc3362001"
+  },
+  "faceApi": {
+    "license": "face-api/LICENSE",
+    "source": "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js",
+    "repository": "https://github.com/justadudewhohacks/face-api.js",
+    "weight_commit": "a86f011d72124e5fb93e59d5c4ab98f699dd5c9c",
+    "version": "0.22.2",
+    "sha256": "5d66ec95338d7fcc365ce15481b8599baf4b6e22c9a624b76d4ca821a669a659"
+  }
+}

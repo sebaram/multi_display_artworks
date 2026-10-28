@@ -1,2 +1,3 @@
 /frontend/src/wall-engine/reference/vendor/* -whitespace
 /frontend/public/wall-reference/fonts/*-OFL.txt -whitespace
+/frontend/public/vendor/** -whitespace

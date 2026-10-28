@@ -36,11 +36,20 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
-        self.rfile.read(int(self.headers.get('Content-Length','0')))
+        raw=self.rfile.read(int(self.headers.get('Content-Length','0')))
         if self.path=='/v1/audio/transcriptions':
             response={'text':'Synthetic migration transcript'}
-        elif self.path=='/v1/chat/completions':
-            response={'choices':[{'message':{'content':json.dumps({'layout':[],'explanation':'Synthetic empty layout'})}}]}
+        elif self.path in {'/v1/chat/completions','/v1/messages'}:
+            request=json.loads(raw)
+            system=request.get('system') or request['messages'][0]['content']
+            context=json.loads(request['messages'][-1]['content'])
+            if '"effects"' in system:
+                result={'effects':[{'effect_type':'ambient','target_id':'','params':{'intensity':0.6,'type':'warm'},'description':'Synthetic warm light'}],'explanation':'Synthetic local effect'}
+            else:
+                walls=context['walls']
+                result={'arrangements':[{'element_id':element['id'],'wall_name':walls[index%len(walls)]['name'],'position_x':0,'position_y':0,'position_z':0} for index,element in enumerate(context['elements'])],'explanation':'Synthetic local layout'}
+            content=json.dumps(result)
+            response=({'content':[{'type':'text','text':content}]} if self.path.endswith('/messages') else {'choices':[{'message':{'content':content}}]})
         else:self.send_error(404);return
         payload=json.dumps(response).encode();self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(payload)));self.end_headers();self.wfile.write(payload)
 

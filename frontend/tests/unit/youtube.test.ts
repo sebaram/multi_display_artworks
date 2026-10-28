@@ -1,0 +1,3 @@
+import {it,expect,vi} from 'vitest';
+import {syncYouTubePlayer} from '../../src/scene/youtube';
+it('corrects late readiness, pause, seek and subsequent playback drift',()=>{const player={getCurrentTime:()=>1,getPlayerState:()=>2,seekTo:vi.fn(),playVideo:vi.fn(),pauseVideo:vi.fn()};syncYouTubePlayer(player,{positionSeconds:7,playing:true,rate:1});expect(player.seekTo).toHaveBeenCalledWith(7,true);expect(player.playVideo).toHaveBeenCalledTimes(1);player.getCurrentTime=()=>7;player.getPlayerState=()=>1;syncYouTubePlayer(player,{positionSeconds:7.2,playing:false,rate:1});expect(player.seekTo).toHaveBeenCalledTimes(1);expect(player.pauseVideo).toHaveBeenCalledTimes(1)});

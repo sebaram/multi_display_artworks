@@ -15,6 +15,8 @@ renderer.resize(960, 540);
 renderer.setInteraction(pointerFromUV({ u: .5, v: .5 }));
 // The adapter calculates both clocks from canonical server state. No accumulated RAF delta.
 renderer.render(animationSeconds, { positionSeconds: canonicalMediaSeconds, playing: true, rate: 1 });
+// Inside a local user gesture only; this never changes the room playback clock.
+renderer.setMuted(false);
 renderer.dispose();
 ```
 

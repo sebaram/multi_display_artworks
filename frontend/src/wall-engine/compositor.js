@@ -18,7 +18,7 @@ export function createCompositor({canvas,assetResolver,onError=()=>{}}) {
   const shadow=host.attachShadow({mode:'open'}),style=doc.createElement('style'),layout=doc.createElement('div');
   shadow.append(style,layout);doc.body.append(host);
   const videos=new Map(),logos=new Map(),ownedUrls=new Set(),fonts=[];
-  let state,screenId,elements=[],width=canvas.width||960,height=canvas.height||540,dirty=true,disposed=false,clips=[],clipGeneration=0;
+  let state,screenId,elements=[],width=canvas.width||960,height=canvas.height||540,dirty=true,disposed=false,clips=[],clipGeneration=0,muted=true,lastPlayback={playing:false,rate:1};
   const error=(code,message,extra={})=>{if(!disposed)onError({code,message,...extra});};
   for(const [name,file] of [['Host Grotesk','hostgrotesk.ttf'],['Atkinson Hyperlegible Mono','atkinsonhyperlegiblemono.ttf']]){
     if(!win.FontFace)continue;
@@ -53,7 +53,7 @@ export function createCompositor({canvas,assetResolver,onError=()=>{}}) {
     for(const layer of layers){
       let entry=videos.get(layer.id);
       if(!entry){
-        const video=doc.createElement('video');video.muted=true;video.defaultMuted=true;video.playsInline=true;video.loop=true;video.preload='auto';video.crossOrigin='anonymous';
+        const video=doc.createElement('video');video.muted=muted;video.defaultMuted=muted;video.playsInline=true;video.loop=true;video.preload='auto';video.crossOrigin='anonymous';
         entry={layer,video,generation:0,key:null,failed:false,blocked:false,playingPromise:null};videos.set(layer.id,entry);
         video.onerror=()=>{entry.failed=true;error('video-load','Video could not be decoded or CORS was denied',{layerId:entry.layer.id});};
       }
@@ -144,6 +144,7 @@ export function createCompositor({canvas,assetResolver,onError=()=>{}}) {
   }
   function render(source,playback){
     if(disposed)return;
+    lastPlayback=playback;
     if(dirty)paintLayout();
     ctx.clearRect(0,0,width,height);ctx.drawImage(source,0,0,width,height);
     if(appearanceFor(state).mode!=='solid'){
@@ -161,8 +162,9 @@ export function createCompositor({canvas,assetResolver,onError=()=>{}}) {
     if(sc.grid){out.fillStyle='#000b';for(let i=1;i<sc.cols;i++)out.fillRect(width*i/sc.cols-2,0,2,height);for(let i=1;i<sc.rows;i++)out.fillRect(0,height*i/sc.rows-2,width,2);}
   }
   return {resize,setState,render,
+    setMuted(value){muted=!!value;for(const entry of videos.values()){entry.video.muted=muted;if(!muted&&lastPlayback.playing&&entry.video.paused){entry.video.play().catch(e=>error('video-autoplay',e.message,{layerId:entry.layer.id}));}}},
     pick(x,y){const px=x*width,py=y*height;for(const b of [...textBounds].reverse()){const dx=(px-b.x)/b.scaleX,dy=(py-b.y)/b.scaleY,a=-b.rotation*Math.PI/180,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a);if(lx>=0&&ly>=0&&lx<=b.width&&ly<=b.height)return {id:b.id};}if(state.showVideo)for(const layer of [...state.videoLayers].reverse()){const video=videos.get(layer.id)?.video,r=videoRect(layer,video?.videoWidth/video?.videoHeight||layer.sourceAspect);if(r.enabled&&x>=(r.x-r.width/2)/100&&x<=(r.x+r.width/2)/100&&y>=(r.y-r.height/2)/100&&y<=(r.y+r.height/2)/100)return {id:'media:'+layer.id};}return null;},
-    getMedia(){return [...videos.values()].map(e=>({id:e.layer.id,ready:e.video.readyState,currentTime:e.video.currentTime,paused:e.video.paused,blocked:e.blocked,failed:e.failed}));},
+    getMedia(){return [...videos.values()].map(e=>({id:e.layer.id,ready:e.video.readyState,currentTime:e.video.currentTime,paused:e.video.paused,muted:e.video.muted,blocked:e.blocked,failed:e.failed}));},
     getYouTubeLayers(playback){return state.videoLayers.filter(l=>l.youtube).map(layer=>({...structuredClone(layer),placement:videoRect(layer,layer.sourceAspect),playback:{...playback},composited:false}));},
     dispose(){if(disposed)return;disposed=true;controller.abort();for(const entry of videos.values())release(entry);videos.clear();for(const face of fonts)doc.fonts.delete(face);for(const image of logos.values()){image.onload=image.onerror=null;image.src='';}logos.clear();host.remove();frame.width=frame.height=text.width=text.height=1;for(const url of ownedUrls)URL.revokeObjectURL(url);ownedUrls.clear();layout.replaceChildren();}
   };

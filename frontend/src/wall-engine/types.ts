@@ -27,12 +27,14 @@ export interface WallElement extends ElementTransform {
   clock?:{time:number;parentTime:number;amount:number;speed:number}|null;
 }
 export interface WallRendererError {code:string;message:string;layerId?:string}
-export interface MediaStatus {id:string;ready:number;currentTime:number;paused:boolean;blocked:boolean;failed:boolean}
+export interface MediaStatus {id:string;ready:number;currentTime:number;paused:boolean;muted:boolean;blocked:boolean;failed:boolean}
 export interface YouTubeLayer extends VideoLayer {placement:Record<string,unknown>;playback:PlaybackClock;composited:false}
 export interface WallRenderer {
   setConfig(config:WallLookV1|Partial<SourceState>):void;
   resize(width:number,height:number):void;
   setInteraction(pointer:{x:number;y:number}):void;
+  /** Local device audio preference. Call with false only from a user gesture. */
+  setMuted(muted:boolean):void;
   render(timeSeconds:number,playback?:PlaybackClock):void;
   getElements():WallElement[];
   /** Canvas coordinates in [0,1], origin at the top left. Returns the source grouping target. */

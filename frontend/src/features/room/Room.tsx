@@ -1,0 +1,638 @@
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { api, write } from "../../api/client";
+import type { ElementDTO, RoomScene, WallDTO } from "../../api/types";
+import { useSession } from "../../app/context";
+import { Status } from "../../app/ui";
+import { loadAFrame, mountRoom, safeMediaUrl } from "../../scene/mountRoom";
+import { startRealtime } from "../../scene/realtime";
+import AIPanel from "./AIPanel";
+import { loadAR, mountAR } from "../../scene/ar";
+import YouTubePanel from "./YouTubePanel";
+const resources: Record<string, string> = {
+  image: "images",
+  gaussian_splat: "splats",
+  gltf: "gltfs",
+  webpage: "webpages",
+};
+function standalone(wall: WallDTO, isAdmin: boolean): RoomScene {
+  const room =
+    typeof wall.room === "string" ? wall.room : (wall.room as any).id;
+  return {
+    room: { id: room, name: wall.name, description: wall.description },
+    roomId: room,
+    boundary: {
+      min_x: -20,
+      max_x: 20,
+      min_y: -20,
+      max_y: 20,
+      min_z: -20,
+      max_z: 20,
+    },
+    spawn_preset: {
+      position: `0 0 ${Math.max(wall.width, wall.height) * 1.2}`,
+      rotation: "0 0 0",
+    },
+    presets: [],
+    walls: [{ ...wall, position: "0 0 0", rotation: "0 0 0" }],
+    wallList: [],
+    avatarCatalog: ["shiba", "robot", "rigged-simple", "none"],
+    visitorCapabilityUrl: "/visitor-capability",
+    isAdmin,
+    syncDebugEnabled: false,
+    isArMarker: false,
+    isArCompanion: false,
+    roomControlsEnabled: false,
+  };
+}
+export default function Room({
+  mode = "room",
+}: {
+  mode?: "room" | "wall" | "element";
+}) {
+  const [ai, setAI] = useState(false);
+  const [youtube, setYouTube] = useState<
+    | { wallId: string; layerId: string; videoId: string; title: string }
+    | undefined
+  >();
+  const [liveDesigns, setLiveDesigns] = useState<Record<string, any>>({});
+  const [params] = useSearchParams();
+  const { session } = useSession();
+  const host = useRef<HTMLDivElement>(null),
+    instance = useRef<ReturnType<typeof mountRoom> | null>(null);
+  const [data, setData] = useState<RoomScene>(),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
+    [loading, setLoading] = useState(true),
+    [ready, setReady] = useState(false);
+  const [selected, setSelected] = useState<string | null>(
+      params.get("wall_element_id"),
+    ),
+    [drafts, setDrafts] = useState<Record<string, ElementDTO>>({}),
+    [busy, setBusy] = useState(false),
+    [status, setStatus] = useState(""),
+    [list, setList] = useState(false),
+    [sound, setSound] = useState(false);
+  const roomId = params.get("room_id"),
+    wallId = params.get("wall_id"),
+    elementId = params.get("wall_element_id"),
+    type = params.get("type") || "image";
+  const query = params.toString();
+  const youtubeLayers =
+    data?.walls.flatMap((wall) =>
+      (
+        (liveDesigns[wall.id] === undefined
+          ? wall.design
+          : liveDesigns[wall.id]
+        )?.config?.state?.videoLayers || []
+      )
+        .filter((layer: any) => layer.youtube?.id)
+        .map((layer: any) => ({
+          wallId: wall.id,
+          layerId: layer.id,
+          videoId: layer.youtube.id,
+          title: layer.youtube.title || layer.name || "YouTube",
+        })),
+    ) || [];
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    setError("");
+    setData(undefined);
+    setReady(false);
+    setDrafts({});
+    setLiveDesigns({});
+    async function fetchData() {
+      let value: RoomScene;
+      if (mode === "room") {
+        if (!roomId) throw Error("전시 공간을 선택하세요.");
+        value = await api(`/api/v1/rooms/${roomId}/scene?${query}`);
+      } else if (mode === "wall") {
+        if (!wallId) throw Error("월을 선택하세요.");
+        value = standalone(
+          await api(`/api/v1/walls/${wallId}`),
+          session.is_admin,
+        );
+      } else {
+        if (!elementId) throw Error("작품을 선택하세요.");
+        const element = await api<ElementDTO>(
+          `/api/v1/elements/${type}/${elementId}`,
+        );
+        const wall = await api<WallDTO>(`/api/v1/walls/${element.wall}`);
+        value = standalone({ ...wall, elements: [element] }, session.is_admin);
+      }
+      if (live) {
+        setData(value);
+        setLoading(false);
+      }
+    }
+    void fetchData().catch((e) => {
+      if (live) {
+        setError(e.message);
+        setLoading(false);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [mode, roomId, wallId, elementId, type, query, session.is_admin]);
+  useEffect(() => {
+    if (!data || !host.current) return;
+    let cancelled = false;
+    void loadAFrame()
+      .then(async () => {
+        if (data.isArMarker) await loadAR();
+      })
+      .then(() => {
+        if (cancelled || !host.current) return;
+        instance.current = mountRoom({
+          container: host.current,
+          bootstrap: data,
+          services: {
+            startRealtime: (scene, bootstrap, events, signal) =>
+              startRealtime(scene, bootstrap, events, signal),
+            onSelect: (id) => {
+              setSelected(id);
+              setStatus("");
+            },
+            onDrag: (id, patch) =>
+              setDrafts((d) => ({
+                ...d,
+                [id]: {
+                  ...(d[id] ||
+                    data.walls
+                      .flatMap((w) => w.elements)
+                      .find((e) => e.id === id)!),
+                  ...patch,
+                },
+              })),
+            onError: setNotice,
+            onReady: () => setReady(true),
+            onDesignChange: (id, design) =>
+              setLiveDesigns((previous) => ({ ...previous, [id]: design })),
+          },
+        });
+      })
+      .catch((e) => setError(e.message));
+    return () => {
+      cancelled = true;
+      instance.current?.dispose();
+      instance.current = null;
+    };
+  }, [data]);
+  const elements = data?.walls.flatMap((w) => w.elements) || [],
+    original = elements.find((e) => e.id === selected),
+    draft = selected ? drafts[selected] || original : undefined;
+  function patch(p: Partial<ElementDTO>) {
+    if (!selected || !draft) return;
+    const next = { ...draft, ...p };
+    setDrafts((d) => ({ ...d, [selected]: next }));
+    instance.current?.update([next]);
+    setStatus("");
+  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (
+        !draft ||
+        !session.is_admin ||
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      )
+        return;
+      const delta = e.shiftKey ? 0.1 : 0.01;
+      const moves: Record<string, [number, number]> = {
+        ArrowLeft: [-delta, 0],
+        ArrowRight: [delta, 0],
+        ArrowUp: [0, delta],
+        ArrowDown: [0, -delta],
+      };
+      const move = moves[e.key];
+      if (move) {
+        e.preventDefault();
+        patch({
+          position_x: (draft.position_x || 0) + move[0],
+          position_y: (draft.position_y || 0) + move[1],
+        });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [draft, selected, session.is_admin]);
+  return (
+    <main className={`room-view ${draft ? "has-inspector" : ""}`}>
+      <div className="scene-host" ref={host} data-testid="scene-host" />
+      <div className="room-top">
+        <Link className="room-back" to="/">
+          ← 전시 목록
+        </Link>
+        <div>
+          <strong>{data?.room.name || "전시 공간"}</strong>
+          <small>
+            {ready
+              ? "WASD / 방향키로 이동 · 드래그로 둘러보기"
+              : "공간을 준비하고 있습니다"}
+          </small>
+        </div>
+        <button aria-expanded={list} onClick={() => setList(!list)}>
+          작품 목록 <span>{elements.length}</span>
+        </button>
+        <button
+          onClick={async () => {
+            await navigator.clipboard?.writeText(location.href);
+            setStatus("전시 링크를 복사했습니다.");
+          }}
+        >
+          링크 공유 ↗
+        </button>
+      </div>
+      <div className="room-hud">
+        <Status loading={loading} error={error} />
+        {notice && (
+          <div role="status" className="notice">
+            {notice}
+            <button aria-label="알림 닫기" onClick={() => setNotice("")}>
+              ×
+            </button>
+          </div>
+        )}
+        {status && !draft && <p role="status">{status}</p>}
+      </div>
+      <div id="room-toolbar" className="room-toolbar" />
+      <div className="move-pad" aria-label="이동 컨트롤">
+        {[
+          ["앞으로", 1, 0, "↑"],
+          ["왼쪽으로", 0, -1, "←"],
+          ["뒤로", -1, 0, "↓"],
+          ["오른쪽으로", 0, 1, "→"],
+        ].map(([label, forward, right, arrow]) => (
+          <button
+            key={label}
+            aria-label={String(label)}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              instance.current?.move(Number(forward), Number(right));
+            }}
+            onPointerUp={() => instance.current?.move(0, 0)}
+            onPointerCancel={() => instance.current?.move(0, 0)}
+            onBlur={() => instance.current?.move(0, 0)}
+          >
+            {arrow}
+          </button>
+        ))}
+      </div>
+      <div className="room-bottom">
+        {youtubeLayers.map((layer) => (
+          <button
+            key={`${layer.wallId}-${layer.layerId}`}
+            onClick={() => setYouTube(layer)}
+          >
+            ▶ {layer.title}
+          </button>
+        ))}
+        <button
+          onClick={() => {
+            setSound(!sound);
+            instance.current?.sound(!sound);
+          }}
+        >
+          {sound ? "소리 끄기" : "소리 켜기"}
+        </button>
+        <button
+          onClick={() => {
+            const scene = instance.current?.scene as any;
+            if (scene?.enterVR) void scene.enterVR();
+          }}
+        >
+          VR 입장
+        </button>
+        <select
+          aria-label="지정 위치로 이동"
+          defaultValue=""
+          onChange={(e) => {
+            const p = data?.presets.find((p) => p.id === e.target.value);
+            if (p) instance.current?.teleport(p);
+          }}
+        >
+          <option value="">위치 이동</option>
+          {data?.presets.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <Link to={`/room?room_id=${data?.roomId || roomId}&ar=marker`}>
+          마커 AR
+        </Link>
+        <Link to={`/room?room_id=${data?.roomId || roomId}&ar=companion`}>
+          폰 연동 AR
+        </Link>
+        {session.is_admin && (
+          <button onClick={() => setAI(!ai)}>AI 큐레이션</button>
+        )}
+        {session.is_admin && (
+          <Link to={`/wall-editor?wall_id=${data?.walls[0]?.id || ""}`}>
+            월 디자인 ↗
+          </Link>
+        )}
+      </div>
+      {list && (
+        <aside className="artwork-list">
+          <div className="section-heading">
+            <h2>전시 작품</h2>
+            <button onClick={() => setList(false)} aria-label="작품 목록 닫기">
+              ×
+            </button>
+          </div>
+          {elements.map((e) => (
+            <button
+              key={e.id}
+              className={selected === e.id ? "selected" : ""}
+              onClick={() => {
+                setSelected(e.id);
+                setStatus("");
+              }}
+            >
+              <span>{e.wall_element_type === "image" ? "▧" : "◇"}</span>
+              <span>
+                {e.name}
+                <small>{e.wall_element_type}</small>
+              </span>
+            </button>
+          ))}
+          {data?.walls.map((w) => (
+            <Link key={w.id} to={`/wall?wall_id=${w.id}`}>
+              {w.name} 단독 보기 ↗
+            </Link>
+          ))}
+        </aside>
+      )}
+      {ai && data && (
+        <AIPanel
+          roomId={data.roomId}
+          onClose={() => setAI(false)}
+          onApplied={() => location.reload()}
+          onPreview={(arrangements) => {
+            const patches = arrangements.map((a) => ({
+              ...elements.find((e) => e.id === a.element_id)!,
+              ...a,
+              id: a.element_id,
+            }));
+            instance.current?.update(patches);
+            setDrafts((d) => ({
+              ...d,
+              ...Object.fromEntries(patches.map((p) => [p.id, p])),
+            }));
+          }}
+        />
+      )}
+      {youtube && (
+        <YouTubePanel
+          {...youtube}
+          isAdmin={session.is_admin}
+          getClock={() =>
+            instance.current?.getYouTubeClock(youtube.wallId, youtube.layerId)
+          }
+          command={(action, position) =>
+            instance.current?.playbackCommand(
+              youtube.wallId,
+              action,
+              position,
+            ) || false
+          }
+          onClose={() => setYouTube(undefined)}
+        />
+      )}
+      {draft && (
+        <aside className="inspector room-inspector">
+          <div className="section-heading">
+            <div>
+              <div className="eyebrow">ARTWORK / {draft.wall_element_type}</div>
+              <h2>{draft.name}</h2>
+            </div>
+            <button
+              onClick={() => setSelected(null)}
+              aria-label="작품 정보 닫기"
+            >
+              ×
+            </button>
+          </div>
+          <p>{draft.description}</p>
+          {draft.wall_element_type === "image" && (
+            <img
+              className="artwork-preview"
+              alt={draft.name}
+              src={safeMediaUrl(draft.image_url)}
+            />
+          )}
+          <Link
+            to={`/element?wall_element_id=${draft.id}&type=${draft.wall_element_type}`}
+          >
+            작품 단독 보기 ↗
+          </Link>
+          {draft.wall_element_type === "webpage" && (
+            <Webpage url={String(draft.webpage_url || draft.url || "")} />
+          )}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href={safeMediaUrl(
+              draft.image_url ||
+                draft.splat_url ||
+                draft.gltf_url ||
+                draft.webpage_url,
+            )}
+          >
+            작품 원본 열기 ↗
+          </a>
+          {session.is_admin && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setBusy(true);
+                setStatus("");
+                try {
+                  const fields = [
+                    "position_x",
+                    "position_y",
+                    ...(draft.wall_element_type === "gltf"
+                      ? ["position_z"]
+                      : []),
+                    "scale_x",
+                    "scale_y",
+                    "scale_z",
+                    "rotation_x",
+                    "rotation_y",
+                    "rotation_z",
+                    "name",
+                    "description",
+                    "image_url",
+                    "splat_url",
+                    "gltf_url",
+                    "webpage_url",
+                  ];
+                  const body = Object.fromEntries(
+                    fields
+                      .filter((f) => draft[f] !== undefined)
+                      .map((f) => [f, draft[f]]),
+                  );
+                  await write(
+                    `/api/v1/admin/${resources[draft.wall_element_type]}/${draft.id}`,
+                    "PATCH",
+                    body,
+                  );
+                  setStatus("저장했습니다.");
+                  setDrafts((d) => {
+                    const next = { ...d };
+                    delete next[draft.id];
+                    return next;
+                  });
+                  if (data)
+                    setData({
+                      ...data,
+                      walls: data.walls.map((w) => ({
+                        ...w,
+                        elements: w.elements.map((e) =>
+                          e.id === draft.id ? draft : e,
+                        ),
+                      })),
+                    });
+                } catch (err) {
+                  setStatus(
+                    `저장하지 못했습니다. 입력은 유지됩니다. ${(err as Error).message}`,
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <div className="form-section">작품 편집 · 월 기준 좌표 (m)</div>
+              <label>
+                작품 이름
+                <input
+                  value={draft.name || ""}
+                  onChange={(e) => patch({ name: e.target.value })}
+                />
+              </label>
+              <div className="field-grid">
+                {[
+                  "position_x",
+                  "position_y",
+                  "scale_x",
+                  "scale_y",
+                  "scale_z",
+                  "rotation_x",
+                  "rotation_y",
+                  "rotation_z",
+                ].map((field) => (
+                  <label key={field}>
+                    {
+                      (
+                        {
+                          position_x: "가로 X",
+                          position_y: "세로 Y",
+                          scale_x: "크기 X",
+                          scale_y: "크기 Y",
+                          scale_z: "크기 Z",
+                          rotation_x: "회전 X°",
+                          rotation_y: "회전 Y°",
+                          rotation_z: "회전 Z°",
+                        } as Record<string, string>
+                      )[field]
+                    }
+                    <input
+                      type="number"
+                      step={field.startsWith("rotation") ? 1 : 0.01}
+                      value={Number(
+                        draft[field] ?? (field.startsWith("scale") ? 1 : 0),
+                      )}
+                      onChange={(e) =>
+                        patch({ [field]: Number(e.target.value) })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+              {["image_url", "splat_url", "gltf_url", "webpage_url"]
+                .filter((f) => draft[f] !== undefined)
+                .map((f) => (
+                  <label key={f}>
+                    미디어 URL
+                    <input
+                      type="url"
+                      value={String(draft[f] || "")}
+                      onChange={(e) => patch({ [f]: e.target.value })}
+                    />
+                  </label>
+                ))}
+              {draft.wall_element_type === "gltf" && (
+                <label>
+                  깊이 Z (m)
+                  <input
+                    type="number"
+                    step={0.01}
+                    value={draft.position_z ?? 0}
+                    onChange={(event) =>
+                      patch({ position_z: Number(event.target.value) })
+                    }
+                  />
+                </label>
+              )}
+              <p className="muted">방향키: 1cm 이동 · Shift: 10cm 이동</p>
+              <button className="primary" disabled={busy}>
+                {busy ? "저장 중…" : "작품 변경 저장"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (original) {
+                    patch(original);
+                    setStatus("변경을 되돌렸습니다.");
+                  }
+                }}
+              >
+                되돌리기
+              </button>
+            </form>
+          )}
+          {status && (
+            <p role="status" className="notice">
+              {status}
+            </p>
+          )}
+          <div className="attribution">
+            아바타: Shiba by zixisun02 · Rigged Simple by Cesium (CC BY 4.0)
+          </div>
+        </aside>
+      )}
+    </main>
+  );
+}
+function Webpage({ url }: { url: string }) {
+  const [open, setOpen] = useState(false);
+  const safe = safeMediaUrl(url);
+  return (
+    <section className="webpage-view">
+      <button onClick={() => setOpen(!open)}>
+        {open ? "웹페이지 닫기" : "웹페이지 플레이어 열기"}
+      </button>
+      {open && (
+        <>
+          <p>
+            페이지가 보이지 않으면 사이트의 삽입 제한일 수 있습니다. 원본 링크를
+            열어 확인하세요.
+          </p>
+          <iframe
+            title="작품 웹페이지"
+            src={safe}
+            sandbox="allow-scripts allow-forms allow-presentation"
+            referrerPolicy="no-referrer"
+          />
+          <a href={safe} target="_blank" rel="noopener noreferrer">
+            원본 페이지 열기 ↗
+          </a>
+        </>
+      )}
+    </section>
+  );
+}

@@ -31,6 +31,7 @@ export function createWallRenderer({canvas,config,assetResolver,onError=()=>{}})
   }
   resize(canvas.width||960,canvas.height||540);
   return {setConfig,resize,render,
+    setMuted(muted){assertActive();compositor.setMuted(muted);},
     setInteraction({x,y}){assertActive();if(!Number.isFinite(x)||!Number.isFinite(y)||Math.abs(x)>.5||Math.abs(y)>.5)throw new RangeError('Pointer coordinates must be between -0.5 and 0.5');source.setInteraction({x,y});},
     getElements(){assertActive();return structuredClone([...source.manifest,...videoElements(look.state).map(e=>({...e,type:'video',rootId:e.id,custom:true,dom:true,text:false,mv:false,animated:true,base:{}}))]);},
     pick(x,y){assertActive();if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1||y<0||y>1)return null;return compositor.pick(x,y)||source.pick(x,y);},

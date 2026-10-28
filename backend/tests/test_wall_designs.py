@@ -176,3 +176,48 @@ def test_invalid_raw_screen_type_is_422():
     with pytest.raises(HTTPException) as error:
         validate_config({'screens': None}, raw=True)
     assert error.value.status_code == 422
+
+def test_invalid_look_never_writes_presets_or_bindings(client, csrf, database):
+    import copy
+    headers = admin_headers(client, csrf)
+    good = json.loads((ROOT / 'frontend/public/wall-presets/builtin-0.json').read_text(encoding='utf8'))['config']
+    wall_id = client.get('/api/v1/rooms').json()[0]['walls'][0]['id']
+    preset = client.post('/api/v1/wall-presets', headers=headers, json={'name':'Valid', 'config':good}).json()
+    for field, value in [('schema_version', True), ('speed', None), ('offset', None)]:
+        invalid = copy.deepcopy(good)
+        if field == 'schema_version': invalid[field] = value
+        else: invalid['state'][field] = value
+        assert client.post('/api/v1/wall-presets', headers=headers, json={'name':'Invalid', 'config':invalid}).status_code == 422
+        assert client.patch('/api/v1/wall-presets/' + preset['id'], headers=headers, json={'config':invalid, 'expected_revision':1}).status_code == 422
+        assert client.put(f'/api/v1/walls/{wall_id}/design', headers=headers, json={'config':invalid, 'expected_revision':0}).status_code == 422
+        assert database.wall_design_presets.count_documents({}) == 1
+        assert database.wall_design_bindings.count_documents({}) == 0
+        assert client.get('/api/v1/wall-presets/' + preset['id']).json() == preset
+
+def test_binding_revision_survives_unbind_and_reapply(client, csrf, app, database):
+    headers = admin_headers(client, csrf)
+    config = json.loads((ROOT / 'frontend/public/wall-presets/builtin-0.json').read_text(encoding='utf8'))['config']
+    wall = client.get('/api/v1/rooms').json()[0]['walls'][0]['id']
+    events = []
+    class Realtime:
+        async def broadcast(self, event, data, *, room_id): events.append((event, data['revision']))
+    app.state.realtime = Realtime()
+    url = f'/api/v1/walls/{wall}/design'
+    first = client.put(url, headers=headers, json={'config':config, 'expected_revision':0}).json()
+    assert client.delete(url + f"?expected_revision={first['revision']}", headers=headers).status_code == 204
+    assert client.get(url).json() is None
+    second = client.put(url, headers=headers, json={'config':config, 'expected_revision':0}).json()
+    assert second['revision'] > events[1][1] > first['revision']
+    assert client.put(url, headers=headers, json={'config':config, 'expected_revision':first['revision']}).status_code == 409
+    assert client.delete(url + f"?expected_revision={first['revision']}", headers=headers).status_code == 409
+    assert client.get(url).json() == second
+    assert events == [('wall.design_applied',first['revision']), ('wall.design_removed',first['revision']+1), ('wall.design_applied',second['revision'])]
+    del app.state.realtime
+
+def test_catalog_import_prevalidates_default_dtos(monkeypatch):
+    from metamuseum.services import wall_designs
+    class Collection:
+        def create_index(self, *args, **kwargs): pass
+        def update_one(self, *args, **kwargs): pass
+    monkeypatch.setattr(wall_designs, 'collection', lambda name: Collection())
+    assert wall_designs.import_defaults() == 44

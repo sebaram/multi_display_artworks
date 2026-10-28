@@ -196,3 +196,23 @@ def test_cancelled_upload_preserves_committed_content(monkeypatch, tmp_path):
     asyncio.run(exercise())
     assert len(docs) == 1
     assert (tmp_path / str(docs[0]['_id'])).read_bytes().endswith(b'video')
+
+def test_mixed_case_references_cannot_be_deleted(client, csrf, settings, tmp_path, database):
+    import json
+    from test_wall_designs import ROOT, admin_headers
+    settings.wall_media_root = tmp_path
+    headers = admin_headers(client, csrf)
+    content = b'\x89PNG\r\n\x1a\nimage'
+    item = client.post('/api/v1/wall-assets', headers=headers, files={'file':('x.png', content, 'image/png')}).json()
+    config = json.loads((ROOT / 'frontend/public/wall-presets/builtin-0.json').read_text(encoding='utf8'))['config']
+    config['state']['videoLayers'] = [{'id':'video-1', 'assetId':item['id'].upper()}]
+    preset = client.post('/api/v1/wall-presets', headers=headers, json={'name':'mixed', 'config':config, 'thumbnail_asset_id':item['id'].upper()}).json()
+    assert preset['asset_ids'] == [item['id']]
+    assert preset['thumbnail_asset_id'] == item['id']
+    for key in (item['id'], item['id'].upper()):
+        assert client.delete('/api/v1/wall-assets/' + key, headers=headers).status_code == 409
+        assert client.get(item['url']).content == content
+    # Existing records written before canonicalization remain protected.
+    database.wall_design_presets.update_one({'name':'mixed'}, {'$set':{'asset_ids':[item['id'].upper()], 'thumbnail_asset_id':item['id'].upper()}})
+    assert client.delete('/api/v1/wall-assets/' + item['id'], headers=headers).status_code == 409
+    assert client.get(item['url']).content == content

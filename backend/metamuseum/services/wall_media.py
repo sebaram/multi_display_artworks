@@ -1,5 +1,6 @@
 """Persistent uploaded media; only generated object IDs become filesystem paths."""
 import asyncio
+import re
 from functools import partial
 from anyio.to_thread import run_sync
 from datetime import datetime, timezone
@@ -105,8 +106,11 @@ async def upload(request):
 
 @locked
 def delete(identifier, settings):
+    identifier = str(object_id(identifier))
     doc = asset(identifier)
-    if collection('presets').find_one({'$or': [{'asset_ids': identifier}, {'thumbnail_asset_id': identifier}]}) or collection('bindings').find_one({'asset_ids': identifier}):
+    # Older records may contain uppercase hexadecimal references.
+    reference = re.compile('^' + identifier + '$', re.IGNORECASE)
+    if collection('presets').find_one({'$or': [{'asset_ids': reference}, {'thumbnail_asset_id': reference}]}) or collection('bindings').find_one({'asset_ids': reference}):
         raise HTTPException(409, 'asset_is_referenced')
     collection('assets').delete_one({'_id': doc['_id']})
     path(settings, identifier).unlink(missing_ok=True)

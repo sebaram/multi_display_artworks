@@ -15,6 +15,8 @@ from fastapi import HTTPException
 from mongoengine.connection import get_db
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
+from pydantic import ValidationError as DTOValidationError
+from ..schemas_wall_design import PresetRead, AppliedWallDesign
 
 from .gallery import get, object_id, scalar, safe_json
 
@@ -70,7 +72,7 @@ def validate_config(value, raw=False):
         value = base
     if set(value) != {'schema_version', 'source_commit', 'logical_screen', 'seed', 'state'}:
         raise HTTPException(422, 'invalid_wall_look')
-    if value.get('schema_version') != 1 or value.get('source_commit') != SOURCE or type(value.get('seed')) is not int or not 0 <= value['seed'] <= 999999:
+    if type(value.get('schema_version')) is not int or value.get('schema_version') != 1 or value.get('source_commit') != SOURCE or type(value.get('seed')) is not int or not 0 <= value['seed'] <= 999999:
         raise HTTPException(422, 'invalid_wall_look')
     state = value.get('state')
     if not isinstance(state, dict):
@@ -78,7 +80,7 @@ def validate_config(value, raw=False):
     safe_json(value)
     for key, minimum, maximum in [('speed', 0, 3), ('offset', 0, 1e10), ('epoch', 0, 1e14), ('brightness', 10, 100), ('motionAmount', 0, 2)]:
         number = state.get(key)
-        if number is not None and (isinstance(number, bool) or not isinstance(number, (int, float)) or not minimum <= number <= maximum):
+        if key in state and (isinstance(number, bool) or not isinstance(number, (int, float)) or not minimum <= number <= maximum):
             raise HTTPException(422, 'wall_look_number_out_of_range')
     for key, upper in [('variant', 12), ('cue', 6)]:
         if key in state and (type(state[key]) is not int or not 0 <= state[key] < upper):
@@ -125,6 +127,8 @@ def validate_config(value, raw=False):
         placements = layer.get('screens', {})
         if not isinstance(placements, dict) or len(placements) > 8: raise HTTPException(422, 'invalid_video_layer')
         for placement in placements.values(): bounded(placement, [('x', 0, 100), ('y', 0, 100), ('width', 5, 100)])
+        if layer.get('assetId'):
+            layer['assetId'] = str(object_id(layer['assetId']))
         clip = layer.get('customClip')
         if clip is not None:
             if not isinstance(clip, dict) or not isinstance(clip.get('url'), str): raise HTTPException(422, 'invalid_clip')
@@ -156,7 +160,7 @@ def assets(config):
         if not isinstance(layer, dict): raise HTTPException(422, 'invalid_video_layer')
         asset = layer.get('assetId')
         if asset:
-            object_id(asset)
+            asset = str(object_id(asset))
             if asset not in result: result.append(asset)
     return result
 
@@ -166,6 +170,13 @@ def check_assets(ids, thumbnail=None):
         if not doc: raise HTTPException(422, 'asset_not_found')
         if identifier == thumbnail and not doc['content_type'].startswith('image/'):
             raise HTTPException(422, 'thumbnail_must_be_image')
+
+def validate_dto(model, value):
+    try:
+        model.model_validate(value)
+    except DTOValidationError:
+        raise HTTPException(422, 'invalid_wall_look') from None
+    return value
 
 def preset_dto(doc):
     return {'id': str(doc['_id']), **{k: scalar(doc.get(k)) for k in ('name','revision','read_only','source_key','schema_version','renderer_version','config','asset_ids','thumbnail_asset_id','created_at','updated_at')}, 'thumbnail_url': f"/api/v1/wall-assets/{doc['thumbnail_asset_id']}/content" if doc.get('thumbnail_asset_id') else None}
@@ -178,11 +189,14 @@ def preset(identifier):
 @locked
 def create(name, config, thumbnail=None, raw=False):
     config = validate_config(config, raw=raw)
+    thumbnail = str(object_id(thumbnail)) if thumbnail is not None else None
     ids = assets(config); check_assets(ids, thumbnail)
     now = utc_now()
     doc = dict(name=name, config=config, asset_ids=ids, thumbnail_asset_id=thumbnail, revision=1, read_only=False, source_key=None, schema_version=1, renderer_version=RENDERER, created_at=now, updated_at=now)
-    doc['_id'] = collection('presets').insert_one(doc).inserted_id
-    return preset_dto(doc)
+    doc['_id'] = ObjectId()
+    result = validate_dto(PresetRead, preset_dto(doc))
+    collection('presets').insert_one(doc)
+    return result
 
 def catalog_root(settings=None):
     if settings and settings.frontend_root and (settings.frontend_root / 'wall-presets' / 'manifest.json').is_file():
@@ -197,7 +211,9 @@ def import_defaults(settings=None):
         data = json.loads((root / item['file']).read_text(encoding='utf8'))
         config = validate_config(data['config'])
         now = utc_now()
-        col.update_one({'source_key': item['source_key']}, {'$setOnInsert': dict(name=item['name'], config=config, asset_ids=assets(config), thumbnail_asset_id=None, revision=1, read_only=True, schema_version=1, renderer_version=RENDERER, created_at=now, updated_at=now)}, upsert=True)
+        fields = dict(name=item['name'], source_key=item['source_key'], config=config, asset_ids=assets(config), thumbnail_asset_id=None, revision=1, read_only=True, schema_version=1, renderer_version=RENDERER, created_at=now, updated_at=now)
+        validate_dto(PresetRead, preset_dto({'_id': ObjectId(), **fields}))
+        col.update_one({'source_key': item['source_key']}, {'$setOnInsert': fields}, upsert=True)
     return len(manifest['presets'])
 
 @locked
@@ -209,8 +225,11 @@ def update(identifier, data):
         raise HTTPException(422, 'value_required')
     if 'config' in fields:
         fields['config'] = validate_config(fields['config']); fields['asset_ids'] = assets(fields['config'])
+    if fields.get('thumbnail_asset_id') is not None:
+        fields['thumbnail_asset_id'] = str(object_id(fields['thumbnail_asset_id']))
     check_assets(fields.get('asset_ids', old['asset_ids']), fields.get('thumbnail_asset_id', old.get('thumbnail_asset_id')))
     fields['updated_at'] = utc_now()
+    validate_dto(PresetRead, preset_dto({**old, **fields, 'revision': old['revision'] + 1}))
     doc = collection('presets').find_one_and_update({'_id': old['_id'], 'revision': data['expected_revision'], 'read_only': False}, {'$set': fields, '$inc': {'revision': 1}}, return_document=ReturnDocument.AFTER)
     if not doc: raise HTTPException(409, 'revision_conflict')
     return preset_dto(doc)
@@ -226,7 +245,7 @@ def binding_dto(doc, wall):
 def get_binding(identifier):
     wall = get('walls', identifier)
     doc = collection('bindings').find_one({'_id': wall.pk})
-    return binding_dto(doc, wall) if doc else None
+    return binding_dto(doc, wall) if doc and doc.get('active', True) else None
 
 @locked
 def apply(identifier, data):
@@ -234,19 +253,29 @@ def apply(identifier, data):
     if (data.get('preset_id') is None) == (data.get('config') is None): raise HTTPException(422, 'exactly_one_source_required')
     source = preset(data['preset_id']) if data.get('preset_id') else None
     config = validate_config(source['config'] if source else data['config']); ids = assets(config); check_assets(ids)
-    now = int(time.time() * 1000); revision = data['expected_revision'] + 1
-    state = config['state']
+    col = collection('bindings'); previous = col.find_one({'_id': wall.pk})
+    expected = data['expected_revision']
+    if expected == 0:
+        if previous and previous.get('active', True): raise HTTPException(409, 'revision_conflict')
+        revision = previous['revision'] + 1 if previous else 1
+    else:
+        if not previous or not previous.get('active', True) or previous['revision'] != expected: raise HTTPException(409, 'revision_conflict')
+        revision = expected + 1
+    now = int(time.time() * 1000); state = config['state']
     playback = dict(wall_id=str(wall.pk), binding_revision=revision, revision=1, playing=not state.get('paused', False), position_seconds=state.get('offset', 0), rate=state.get('speed', 1), state_time_ms=now)
-    fields = dict(revision=revision, preset_id=source['_id'] if source else None, preset_revision=source['revision'] if source else None, config=config, asset_ids=ids, logical_screen=config['logical_screen'], seed=config['seed'], animation_epoch_ms=now, playback=playback)
-    col = collection('bindings')
-    if data['expected_revision'] == 0:
+    fields = dict(active=True, revision=revision, preset_id=source['_id'] if source else None, preset_revision=source['revision'] if source else None, config=config, asset_ids=ids, logical_screen=config['logical_screen'], seed=config['seed'], animation_epoch_ms=now, playback=playback)
+    result = validate_dto(AppliedWallDesign, binding_dto(fields, wall))
+    if previous is None:
         try: col.insert_one({'_id': wall.pk, **fields})
         except DuplicateKeyError: raise HTTPException(409, 'revision_conflict') from None
-    elif not col.replace_one({'_id': wall.pk, 'revision': data['expected_revision']}, {'_id': wall.pk, **fields}).matched_count:
+    elif not col.replace_one({'_id': wall.pk, 'revision': previous['revision'], 'active': {'$ne': True} if expected == 0 else {'$ne': False}}, {'_id': wall.pk, **fields}).matched_count:
         raise HTTPException(409, 'revision_conflict')
-    return binding_dto(fields, wall)
+    return result
 
+@locked
 def unbind(identifier, revision):
     wall = get('walls', identifier)
-    if not collection('bindings').delete_one({'_id': wall.pk, 'revision': revision}).deleted_count: raise HTTPException(409, 'revision_conflict')
+    replacement = {'_id': wall.pk, 'revision': revision + 1, 'active': False, 'asset_ids': []}
+    if not collection('bindings').replace_one({'_id': wall.pk, 'revision': revision, 'active': {'$ne': False}}, replacement).matched_count:
+        raise HTTPException(409, 'revision_conflict')
     return str(wall.room.pk)

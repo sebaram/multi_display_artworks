@@ -161,3 +161,12 @@
   width: 100%;
   height: 100%;
 }
+.wall-grid {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.wall-grid:disabled canvas {
+  pointer-events: none;
+}

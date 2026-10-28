@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUnsavedChanges } from "../../app/navigation";
 import { api, write, ApiError } from "../../api/client";
-import type { RoomSummary, WallDTO } from "../../api/types";
+import type { RoomSummary } from "../../api/types";
 import {
   createWallRenderer,
   normalizeWallLook,
@@ -50,6 +50,12 @@ type Binding = {
   config: WallLookV1;
   preset_id: string | null;
 };
+type WallDetail = {
+  id: string;
+  width: number;
+  height: number;
+  room: string | { id: string };
+};
 type Manifest = {
   presets: { source_key: string; name: string; file: string }[];
 };
@@ -80,7 +86,12 @@ export default function WallEditor({
   const [rooms, setRooms] = useState<RoomSummary[]>([]),
     [roomId, setRoomId] = useState(""),
     [wallId, setWallId] = useState(initialWallId || ""),
-    [wall, setWall] = useState<WallDTO | null>(null);
+    [wall, setWall] = useState<WallDetail | null>(null);
+  const [loadedWallId, setLoadedWallId] = useState("");
+  const [wallLoadFailed, setWallLoadFailed] = useState(false);
+  const [wallLoadAttempt, setWallLoadAttempt] = useState(0);
+  const wallGeneration = useRef(0);
+  const targetWall = useRef(initialWallId || "");
   const [presets, setPresets] = useState<Preset[]>([]),
     [source, setSource] = useState<Manifest["presets"]>([]),
     [preset, setPreset] = useState<Preset | null>(null),
@@ -91,6 +102,7 @@ export default function WallEditor({
     [savedName, setSavedName] = useState("새 프리셋");
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [muted, setMuted] = useState(true);
+  const [wallWritePending, setWallWritePending] = useState(false);
   const mutedRef = useRef(true);
   const [selection, setSelection] = useState<string[]>([]),
     [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
@@ -124,6 +136,8 @@ export default function WallEditor({
     epoch = useRef(performance.now());
   lookRef.current = look;
   selectedRef.current = selected;
+  const wallReady = !!wallId && loadedWallId === wallId;
+  const wallLoading = !!wallId && !wallReady;
   const dirty = JSON.stringify(look) !== saved || name !== savedName;
   useUnsavedChanges(dirty);
   const guard = useCallback(
@@ -212,20 +226,27 @@ export default function WallEditor({
     };
   }, [source]);
   useEffect(() => {
-    if (!wallId) {
-      setWall(null);
-      setBinding(null);
-      return;
-    }
+    const generation = ++wallGeneration.current;
+    targetWall.current = wallId;
+    setLoadedWallId("");
+    setWallLoadFailed(false);
+    setWall(null);
+    setBinding(null);
+    if (!wallId) return;
     let active = true;
     Promise.all([
-      api<WallDTO>(`/api/v1/walls/${encoded(wallId)}`),
+      api<WallDetail>(`/api/v1/walls/${encoded(wallId)}`),
       api<Binding | null>(`/api/v1/walls/${encoded(wallId)}/design`),
     ])
       .then(([w, b]) => {
-        if (!active) return;
+        if (
+          !active ||
+          wallGeneration.current !== generation ||
+          targetWall.current !== wallId
+        )
+          return;
         setWall(w);
-        setRoomId(w.room);
+        setRoomId(typeof w.room === "string" ? w.room : w.room.id);
         setBinding(b);
         if (b) {
           install(b.config);
@@ -233,12 +254,22 @@ export default function WallEditor({
           setSavedName("적용된 디자인");
           setPreset(null);
         }
+        setLoadedWallId(wallId);
       })
-      .catch((e) => active && setError(errorText(e)));
+      .catch((e) => {
+        if (
+          active &&
+          wallGeneration.current === generation &&
+          targetWall.current === wallId
+        ) {
+          setWallLoadFailed(true);
+          setError(errorText(e));
+        }
+      });
     return () => {
       active = false;
     };
-  }, [wallId, install]);
+  }, [wallId, install, wallLoadAttempt]);
   useEffect(() => {
     if (!canvas.current) return;
     let frame = 0,
@@ -353,6 +384,7 @@ export default function WallEditor({
   };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (wallLoading || busy) return;
       const target = e.target as HTMLElement;
       if (target.closest('input,textarea,select,[contenteditable="true"]'))
         return;
@@ -455,33 +487,68 @@ export default function WallEditor({
       await loadPresets();
       setNotice("프리셋을 저장했습니다. 월에는 아직 적용되지 않았습니다.");
     });
-  const apply = () =>
-    run(async () => {
-      if (!wallId) throw Error("월을 선택하세요.");
-      const result = (await write(
-        `/api/v1/walls/${encoded(wallId)}/design`,
-        "PUT",
-        { config: look, expected_revision: binding?.revision ?? 0 },
-      )) as Binding;
-      setBinding(result);
-      setNotice("현재 초안을 월에 적용했습니다.");
-    });
-  const resetBinding = () =>
-    run(async () => {
-      if (!wallId || !binding) return;
-      if (
-        !window.confirm(
-          "적용된 디자인을 제거하고 기존 배경으로 되돌리시겠습니까?",
+  const apply = () => {
+    if (!wallReady || targetWall.current !== wallId) return;
+    const target = wallId,
+      generation = wallGeneration.current;
+    setWallWritePending(true);
+    void run(async () => {
+      try {
+        const result = (await write(
+          `/api/v1/walls/${encoded(target)}/design`,
+          "PUT",
+          { config: look, expected_revision: binding?.revision ?? 0 },
+        )) as Binding;
+        if (
+          targetWall.current !== target ||
+          wallGeneration.current !== generation
         )
+          return;
+        setBinding(result);
+        setNotice("현재 초안을 월에 적용했습니다.");
+      } catch (e) {
+        if (
+          targetWall.current === target &&
+          wallGeneration.current === generation
+        )
+          throw e;
+      }
+    }).finally(() => setWallWritePending(false));
+  };
+  const resetBinding = () => {
+    if (!wallReady || !binding || targetWall.current !== wallId) return;
+    if (
+      !window.confirm(
+        "적용된 디자인을 제거하고 기존 배경으로 되돌리시겠습니까?",
       )
-        return;
-      await write(
-        `/api/v1/walls/${encoded(wallId)}/design?expected_revision=${binding.revision}`,
-        "DELETE",
-      );
-      setBinding(null);
-      setNotice("기존 배경으로 되돌렸습니다.");
-    });
+    )
+      return;
+    const target = wallId,
+      generation = wallGeneration.current,
+      revision = binding.revision;
+    setWallWritePending(true);
+    void run(async () => {
+      try {
+        await write(
+          `/api/v1/walls/${encoded(target)}/design?expected_revision=${revision}`,
+          "DELETE",
+        );
+        if (
+          targetWall.current !== target ||
+          wallGeneration.current !== generation
+        )
+          return;
+        setBinding(null);
+        setNotice("기존 배경으로 되돌렸습니다.");
+      } catch (e) {
+        if (
+          targetWall.current === target &&
+          wallGeneration.current === generation
+        )
+          throw e;
+      }
+    }).finally(() => setWallWritePending(false));
+  };
   const upload = async (file: File) => {
     if (!video) return;
     await run(async () => {
@@ -550,6 +617,12 @@ export default function WallEditor({
   );
   const changeWall = (id: string) => {
     if (!guard()) return;
+    wallGeneration.current++;
+    drag.current = null;
+    targetWall.current = id;
+    setLoadedWallId("");
+    setWall(null);
+    setBinding(null);
     setWallId(id);
   };
   const num = (
@@ -558,7 +631,7 @@ export default function WallEditor({
     onChange: (v: number) => void,
     step = 1,
   ) => (
-    <label>
+    <label key={label}>
       {label}
       <input
         type="number"
@@ -576,17 +649,20 @@ export default function WallEditor({
           <p>작품 배치와 월 크기는 변경하지 않습니다.</p>
         </div>
         <div className="wall-actions">
-          <button onClick={() => doUndo()} disabled={!history.current.canUndo}>
+          <button
+            onClick={() => doUndo()}
+            disabled={busy || wallLoading || !history.current.canUndo}
+          >
             실행 취소
           </button>
           <button
             onClick={() => doUndo(true)}
-            disabled={!history.current.canRedo}
+            disabled={busy || wallLoading || !history.current.canRedo}
           >
             다시 실행
           </button>
           <button
-            disabled={!dirty}
+            disabled={busy || wallLoading || !dirty}
             onClick={() => {
               if (
                 window.confirm("초안을 마지막 저장 상태로 되돌리시겠습니까?")
@@ -598,16 +674,19 @@ export default function WallEditor({
           >
             초안 되돌리기
           </button>
-          <button disabled={busy} onClick={() => save()}>
+          <button disabled={busy || wallLoading} onClick={() => save()}>
             저장
           </button>
-          <button disabled={busy} onClick={() => save(true)}>
+          <button disabled={busy || wallLoading} onClick={() => save(true)}>
             복제 저장
           </button>
-          <button disabled={busy || !wallId} onClick={apply}>
+          <button disabled={busy || !wallReady} onClick={apply}>
             월에 적용
           </button>
-          <button disabled={!binding || busy} onClick={resetBinding}>
+          <button
+            disabled={!wallReady || !binding || busy}
+            onClick={resetBinding}
+          >
             적용 제거
           </button>
         </div>
@@ -616,9 +695,16 @@ export default function WallEditor({
         <label>
           방
           <select
+            disabled={busy && !wallWritePending}
             value={roomId}
             onChange={(e) => {
               if (!guard()) return;
+              wallGeneration.current++;
+              drag.current = null;
+              targetWall.current = "";
+              setLoadedWallId("");
+              setWall(null);
+              setBinding(null);
               setRoomId(e.target.value);
               setWallId("");
             }}
@@ -633,7 +719,11 @@ export default function WallEditor({
         </label>
         <label>
           월
-          <select value={wallId} onChange={(e) => changeWall(e.target.value)}>
+          <select
+            disabled={busy && !wallWritePending}
+            value={wallId}
+            onChange={(e) => changeWall(e.target.value)}
+          >
             <option value="">월 선택</option>
             {(rooms.find((r) => r.id === roomId)?.walls || []).map((w) => (
               <option key={w.id} value={w.id}>
@@ -644,16 +734,27 @@ export default function WallEditor({
         </label>
         <span>
           {dirty ? "● 저장되지 않은 초안" : "저장된 상태"} ·{" "}
-          {binding ? `적용 버전 ${binding.revision}` : "적용된 디자인 없음"}
+          {wallLoadFailed
+            ? "월 정보를 불러오지 못했습니다"
+            : wallLoading
+              ? "월 정보 불러오는 중…"
+              : binding
+                ? `적용 버전 ${binding.revision}`
+                : "적용된 디자인 없음"}
         </span>
       </div>
+      {wallLoadFailed && (
+        <button onClick={() => setWallLoadAttempt((n) => n + 1)}>
+          월 정보 다시 불러오기
+        </button>
+      )}
       {error && (
         <p role="alert" className="wall-error">
           {error}
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
-      <div className="wall-grid">
+      <fieldset className="wall-grid" disabled={wallLoading || busy}>
         <aside>
           <section>
             <h2>프리셋</h2>
@@ -948,6 +1049,7 @@ export default function WallEditor({
               ref={canvas}
               aria-label="월 디자인 미리보기"
               onPointerDown={(e) => {
+                if (wallLoading || busy) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 const hit = renderer.current?.pick(
                   (e.clientX - rect.left) / rect.width,
@@ -986,6 +1088,7 @@ export default function WallEditor({
                 e.currentTarget.setPointerCapture(e.pointerId);
               }}
               onPointerMove={(e) => {
+                if (wallLoading || busy) return;
                 const d = drag.current;
                 if (!d) return;
                 const rect = e.currentTarget.getBoundingClientRect(),
@@ -1508,7 +1611,7 @@ export default function WallEditor({
             </label>
           </section>
         </aside>
-      </div>
+      </fieldset>
     </main>
   );
 }

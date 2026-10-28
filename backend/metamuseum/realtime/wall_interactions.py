@@ -114,6 +114,7 @@ class WallInteractions:
         self.runtime = {}
         self.versions = {}
         self.watermarks = {}
+        self.published = {}
         self.mutation_locks = {}
         self.room_authority = {}
         self.sequences = {}
@@ -195,7 +196,8 @@ class WallInteractions:
         if event == 'wall.design_applied':
             current = self.bindings.get(wall)
             if current and current['revision'] == revision and current['room_id'] == data['room_id']:
-                return False
+                # A join can install this revision before its first room announcement.
+                return self.published.get(wall) != (revision, data['room_id'])
             if not self.install(data):
                 return False
         else:
@@ -213,8 +215,12 @@ class WallInteractions:
     async def design_announced(self, event, data):
         if event == 'wall.design_applied':
             state = self.state(data['wall_id'])
-            if state and state['binding_revision'] == data['revision']:
+            current = self.bindings.get(data['wall_id'])
+            if state and state['binding_revision'] == data['revision'] and current['room_id'] == data['room_id']:
+                self.published[data['wall_id']] = (data['revision'], data['room_id'])
                 await self.realtime.broadcast('wall.interaction_state', state, room_id=data['room_id'])
+        elif self.watermarks.get(data['wall_id'], (-1, False))[0] <= data['revision']:
+            self.published.pop(data['wall_id'], None)
 
     async def joined(self, sid, room):
         versions = dict(self.versions)
@@ -321,6 +327,7 @@ class WallInteractions:
         self.sequences.clear()
         self.versions.clear()
         self.watermarks.clear()
+        self.published.clear()
         self.mutation_locks.clear()
         self.room_authority.clear()
 

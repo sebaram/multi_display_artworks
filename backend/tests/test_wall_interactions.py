@@ -215,6 +215,47 @@ async def test_obsolete_design_notifications_cannot_change_cache_or_transport(co
 
 
 @pytest.mark.asyncio
+async def test_join_after_commit_cannot_suppress_first_room_design_announcement(controlled):
+    from metamuseum.realtime.wall_interactions import room_designs
+    from metamuseum.services import wall_designs as storage
+    rt = controlled
+    existing = await member(rt, 'existing')
+    await rt.sio.enter_room(existing, 'presence:room')
+    await rt.broadcast('wall.design_applied', design(), room_id='room')
+    committed, release = asyncio.Event(), asyncio.Event()
+    latest = design(revision=2)
+    emitted = []
+    async def database_call(function, *args):
+        if function is storage.apply:
+            committed.set()
+            await release.wait()
+            return copy.deepcopy(latest)
+        assert function is room_designs
+        return [copy.deepcopy(latest)]
+    async def emit(event, data, **kwargs): emitted.append((event, copy.deepcopy(data), kwargs))
+    rt.database_call = database_call
+    rt.sio.emit = emit
+    applying = asyncio.create_task(rt.wall_interactions.apply_design('wall', {'expected_revision':1}))
+    await committed.wait()
+    late = await member(rt, 'late')
+    await rt.wall_interactions.joined(late, 'room')
+    snapshot = next(data for event, data, target in emitted if event == 'wall.snapshot' and target.get('to') == late)
+    assert snapshot['walls'][0]['design']['revision'] == 2
+    assert not any(event == 'wall.design_applied' for event, _, _ in emitted)
+    release.set()
+    await applying
+    announced = [(event, data) for event, data, target in emitted if target.get('room') == 'presence:room']
+    assert [event for event, _ in announced] == ['wall.design_applied', 'wall.interaction_state']
+    assert announced[0][1]['revision'] == announced[1][1]['binding_revision'] == 2
+    assert announced[1][1]['pointer'] == {'x':0,'y':0}
+    # Once the room announcement really happened, duplicates remain suppressed.
+    count = len(emitted)
+    await rt.broadcast('wall.design_applied', latest, room_id='room')
+    assert len(emitted) == count
+    await rt.wall_interactions.stop()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize('adapter', ['api', 'legacy'])
 async def test_concurrent_apply_and_wall_move_publish_actual_room(controlled, monkeypatch, adapter):
     from metamuseum.api import admin, legacy, wall_designs

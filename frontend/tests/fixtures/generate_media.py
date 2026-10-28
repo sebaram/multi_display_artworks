@@ -1,5 +1,6 @@
 """Generate tiny deterministic original media; generated binaries are gitignored."""
 import json
+import os
 import shutil
 import struct
 import subprocess
@@ -30,9 +31,15 @@ def generate():
             for z in range(8):
                 cloud.extend(struct.pack('<6f8B',(x-3.5)*.08,(y-3.5)*.08,(z-3.5)*.08,.035,.035,.035,40+x*25,40+y*25,40+z*25,220,255,128,128,128))
     (OUT/'cloud.splat').write_bytes(cloud)
+    alternate=bytearray()
+    for x in range(7):
+        for y in range(7):
+            for z in range(7):
+                alternate.extend(struct.pack('<6f8B',(x-3)*.09,(y-3)*.09,(z-3)*.09,.035,.035,.035,245,30,200,220,255,128,128,128))
+    (OUT/'alternate.splat').write_bytes(alternate)
     for state in ('allowed','blocked'):
         (OUT/f'frame-{state}.html').write_text(f'<!doctype html><html lang="en"><title>Frame {state}</title><body style="background:#123;color:white"><h1>Migration frame {state}</h1><button onclick="this.textContent=\'Clicked\'">Interact</button></body></html>',encoding='utf8')
-    exe=shutil.which('ffmpeg')
+    exe=os.environ.get('FFMPEG_PATH') or shutil.which('ffmpeg')
     if not exe:
         import imageio_ffmpeg
         exe=imageio_ffmpeg.get_ffmpeg_exe()

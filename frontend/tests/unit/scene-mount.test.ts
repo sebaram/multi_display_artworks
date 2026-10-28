@@ -77,3 +77,70 @@ it("moves preview artwork to the destination wall and restores its original pare
   instance.dispose();
   container.remove();
 });
+it("reloads only the changed splat source while keeping its artwork, cutout and camera", () => {
+  vi.stubGlobal("AFRAME", {
+    components: { gaussian_splatting: {}, "boundary-clamp": {} },
+    THREE: { Raycaster: class {} },
+  });
+  const container = document.createElement("div");
+  const original = {
+    id: "splat",
+    wall: "wall",
+    wall_element_type: "gaussian_splat",
+    splat_url: "http://example.test/old.splat",
+    cutout_scale: "0.3 0.3 0.3",
+    cutout_position: "0.1 0 0",
+    position_x: 0.5,
+    position_y: 0.25,
+  };
+  const onSelect = vi.fn();
+  const instance = mountRoom({
+    container,
+    bootstrap: {
+      walls: [
+        { id: "wall", width: 6, height: 4, depth: 0.2, elements: [original] },
+      ],
+    } as any,
+    services: { onSelect },
+  });
+  try {
+    const artwork = container.querySelector("[data-element-id=splat]")!;
+    const cutout = artwork.querySelector("#cutout-splat")!;
+    const camera = container.querySelector("a-camera");
+    const remove = vi.spyOn(artwork, "removeAttribute");
+    instance.update([
+      {
+        ...original,
+        splat_url: "http://example.test/new.splat",
+        position_x: 1.2,
+      },
+    ] as any);
+    expect(artwork.getAttribute("gaussian_splatting")).toBe(
+      "src: http://example.test/new.splat; cutoutEntity: #cutout-splat",
+    );
+    expect(remove).toHaveBeenCalledExactlyOnceWith("gaussian_splatting");
+    instance.update([
+      {
+        ...original,
+        splat_url: "http://example.test/new.splat",
+        position_x: 1.5,
+      },
+    ] as any);
+    expect(remove).toHaveBeenCalledTimes(1);
+    instance.update([original] as any);
+    expect(artwork.getAttribute("gaussian_splatting")).toBe(
+      "src: http://example.test/old.splat; cutoutEntity: #cutout-splat",
+    );
+    expect(remove).toHaveBeenCalledTimes(2);
+    expect(container.querySelector("[data-element-id=splat]")).toBe(artwork);
+    expect(artwork.querySelector("#cutout-splat")).toBe(cutout);
+    expect(cutout.getAttribute("position")).toBe("0.1 0 0");
+    expect(container.querySelector("a-camera")).toBe(camera);
+    expect(artwork.getAttribute("position")).toContain("0.5 0.25");
+    artwork.dispatchEvent(new Event("click"));
+    expect(onSelect).toHaveBeenCalledWith("splat");
+  } finally {
+    instance.dispose();
+    vi.unstubAllGlobals();
+  }
+});

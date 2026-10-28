@@ -1,7 +1,12 @@
 {
-  "generator": "generate_media.py; imageio-ffmpeg 0.7.0 bundled FFmpeg",
+  "generator": "generate_media.py; configured, PATH or optional bundled FFmpeg",
   "note": "Observed output hashes; cross-platform encoders may differ. No downloaded media.",
   "files": [
+    {
+      "path": "alternate.splat",
+      "size": 10976,
+      "sha256": "9f81b77b2e1e9690174fa43f0b1f5b290204d9a86d51274c84c0627ac7cc4654"
+    },
     {
       "path": "cloud.splat",
       "size": 16384,

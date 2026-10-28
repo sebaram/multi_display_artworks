@@ -700,6 +700,22 @@ export function mountRoom({
           destination.node.append(entry.node);
           entry.wall = destination.wall;
         }
+        if (
+          entry.data.wall_element_type === "gaussian_splat" &&
+          patch.splat_url !== undefined &&
+          safeMediaUrl(patch.splat_url) !== safeMediaUrl(entry.data.splat_url) &&
+          entry.node.hasAttribute("gaussian_splatting")
+        ) {
+          const cutout = entry.data.cutout_scale
+            ? `; cutoutEntity: #cutout-${patch.id}`
+            : "";
+          // The vendor loads only in init; removal releases its previous worker/GPU resources.
+          entry.node.removeAttribute("gaussian_splatting");
+          entry.node.setAttribute(
+            "gaussian_splatting",
+            `src: ${safeMediaUrl(patch.splat_url)}${cutout}`,
+          );
+        }
         entry.data = { ...entry.data, ...patch };
         entry.node.setAttribute(
           "position",

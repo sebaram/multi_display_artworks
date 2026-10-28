@@ -3,13 +3,15 @@ import { writeFile } from "node:fs/promises";
 import { login, mutate } from "./helpers";
 
 async function setup(page: Page) {
+  page.setDefaultTimeout(10000);
   await login(page);
+  const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const room = await mutate(page, "/api/v1/admin/rooms", "POST", {
-    name: `YouTube ${Date.now()}`,
+    name: `YouTube ${unique}`,
     description: "Owned external-player acceptance",
   });
   const wall = await mutate(page, "/api/v1/admin/walls", "POST", {
-    name: "YouTube wall",
+    name: `YouTube wall ${unique}`,
     description: "Owned wall",
     room: room.id,
     position: "0 1.6 -3",
@@ -59,19 +61,50 @@ async function setup(page: Page) {
       revision = 0;
     },
     async cleanup() {
+      const csrf = await (
+        await page.request.get("/api/v1/auth/csrf", { timeout: 10000 })
+      ).json();
+      const headers = {
+        Origin: "http://127.0.0.1:5173",
+        "X-CSRF-Token": csrf.csrf_token,
+      };
+      async function remove(path: string) {
+        const response = await page.request.delete(path, {
+          headers,
+          timeout: 10000,
+        });
+        if (!response.ok() && response.status() !== 404)
+          throw Error(`Cleanup ${response.status()} ${await response.text()}`);
+      }
       const current = await (
-        await page.request.get(`/api/v1/walls/${wall.id}/design`)
+        await page.request.get(`/api/v1/walls/${wall.id}/design`, {
+          timeout: 10000,
+        })
       ).json();
       if (current)
-        await mutate(
-          page,
+        await remove(
           `/api/v1/walls/${wall.id}/design?expected_revision=${current.revision}`,
-          "DELETE",
         );
-      await mutate(page, `/api/v1/admin/walls/${wall.id}`, "DELETE");
-      await mutate(page, `/api/v1/admin/rooms/${room.id}`, "DELETE");
+      await remove(`/api/v1/admin/walls/${wall.id}`);
+      await remove(`/api/v1/admin/rooms/${room.id}`);
     },
   };
+}
+async function finishCleanup(
+  state: Awaited<ReturnType<typeof setup>>,
+  primaryError: unknown,
+) {
+  try {
+    await state.cleanup();
+  } catch (error) {
+    if (!primaryError) throw error;
+    await test
+      .info()
+      .attach("cleanup-error", {
+        body: String(error),
+        contentType: "text/plain",
+      });
+  }
 }
 
 test("external YouTube API fixture follows real live apply/source replacement/remove/navigation", async ({
@@ -85,6 +118,7 @@ test("external YouTube API fixture follows real live apply/source replacement/re
     }),
   );
   const state = await setup(page);
+  let primaryError: unknown;
   try {
     await state.apply();
     await page.goto(`/room?room_id=${state.room.id}`);
@@ -122,8 +156,11 @@ test("external YouTube API fixture follows real live apply/source replacement/re
         ),
       ),
     ).toBe(true);
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    await state.cleanup();
+    await finishCleanup(state, primaryError);
   }
 });
 
@@ -161,6 +198,7 @@ test("live public YouTube iframe API playback availability", async ({
     });
   });
   const state = await setup(page);
+  let primaryError: unknown;
   let outcome: any;
   try {
     await state.apply();
@@ -240,8 +278,11 @@ test("live public YouTube iframe API playback availability", async ({
           .catch(() => null),
       };
     }
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    await state.cleanup();
+    await finishCleanup(state, primaryError);
   }
   await writeFile(
     test.info().outputPath("youtube-live.json"),

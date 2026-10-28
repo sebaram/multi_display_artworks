@@ -20,9 +20,9 @@ const mocks = vi.hoisted(() => ({
   youtubeDispose: vi.fn(),
 }));
 vi.mock("../../src/api/client", () => ({ api: mocks.api, write: mocks.write }));
-vi.mock("../../src/scene/mountRoom", () => ({
+vi.mock("../../src/scene/mountRoom", async (original) => ({
+  ...(await original<typeof import("../../src/scene/mountRoom")>()),
   loadAFrame: async () => {},
-  safeMediaUrl: (v: string) => v || "",
   mountRoom: mocks.mount,
 }));
 vi.mock("../../src/scene/youtube", () => ({
@@ -53,7 +53,7 @@ const design = (videoId?: string) => ({
     },
   },
 });
-function mount() {
+function mount(artworks = [element("a"), element("b")]) {
   const data = {
     roomId: "r",
     room: { id: "r", name: "Room" },
@@ -63,7 +63,7 @@ function mount() {
         id: "w",
         name: "Wall",
         design: design(),
-        elements: [element("a"), element("b")],
+        elements: artworks,
       },
     ],
   };
@@ -194,4 +194,53 @@ it("replaces and disposes an open YouTube player when live designs change", asyn
   expect(mocks.youtubeDispose).toHaveBeenCalledTimes(1);
   act(() => services.onDesignChange("w", null));
   expect(mocks.youtubeDispose).toHaveBeenCalledTimes(2);
+  act(() => services.onDesignChange("w", design("dQw4w9WgXcQ")));
+  expect(mocks.youtubeMount).toHaveBeenCalledTimes(2);
 });
+it.each([
+  "/static/image/dance_i.jpg",
+  "static/splat/hail.splat",
+  "https://example.test/art.png",
+])(
+  "saves supported media source %s unchanged through normal form validation",
+  async (source) => {
+    mount([{ ...element("a"), image_url: source }]);
+    await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
+    fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+    fireEvent.change(screen.getByLabelText("가로 X"), {
+      target: { value: "1.2" },
+    });
+    const save = screen.getByRole("button", { name: "작품 변경 저장" });
+    expect(save.closest("form")!.checkValidity()).toBe(true);
+    mocks.write.mockResolvedValue({
+      ...element("a"),
+      image_url: source,
+      position_x: 1.2,
+    });
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(mocks.write).toHaveBeenCalledWith(
+        "/api/v1/admin/images/a",
+        "PATCH",
+        expect.objectContaining({ image_url: source, position_x: 1.2 }),
+      ),
+    );
+  },
+);
+it.each(["javascript:alert(1)", "data:text/html,unsafe"])(
+  "rejects unsupported media source %s",
+  async (source) => {
+    mount();
+    await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
+    fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+    fireEvent.change(screen.getByLabelText("미디어 URL"), {
+      target: { value: source },
+    });
+    const save = screen.getByRole("button", { name: "작품 변경 저장" });
+    expect(save.closest("form")!.checkValidity()).toBe(false);
+    fireEvent.click(save);
+    expect(mocks.write).not.toHaveBeenCalled();
+  },
+);

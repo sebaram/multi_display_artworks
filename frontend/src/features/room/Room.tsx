@@ -121,6 +121,9 @@ export default function Room({
         )
       : undefined;
   useEffect(() => {
+    if (youtube && !youtubeSource) setYouTube(undefined);
+  }, [youtube, youtubeSource]);
+  useEffect(() => {
     let live = true;
     setLoading(true);
     setError("");
@@ -757,7 +760,15 @@ export default function Room({
                   <label key={f}>
                     미디어 URL
                     <input
-                      type="url"
+                      type="text"
+                      inputMode="url"
+                      ref={(input) =>
+                        input?.setCustomValidity(
+                          draft[f] && !safeMediaUrl(draft[f])
+                            ? "HTTP(S) 주소 또는 상대 미디어 경로를 입력하세요."
+                            : "",
+                        )
+                      }
                       value={String(draft[f] || "")}
                       onChange={(e) => patch({ [f]: e.target.value })}
                     />

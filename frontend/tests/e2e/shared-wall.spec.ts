@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { login } from "./helpers";
 
 async function mutation(
@@ -29,28 +29,52 @@ async function mutation(
 
 function observe(page: Page) {
   const events: { name: string; data: any }[] = [];
-  function packet(payload: string) {
+  const packets: {
+    at: number;
+    transport: string;
+    direction: string;
+    name: string;
+    data: any;
+  }[] = [];
+  function packet(payload: string, transport: string, direction = "received") {
     for (const part of payload.split("\x1e")) {
-      if (!part.startsWith("42[")) continue;
-      const [name, data] = JSON.parse(part.slice(2));
-      events.push({ name, data });
+      const match = /^42\d*(\[.*)$/s.exec(part);
+      if (!match) continue;
+      const [name, data] = JSON.parse(match[1]);
+      if (name.startsWith("wall."))
+        packets.push({ at: Date.now(), transport, direction, name, data });
+      if (direction === "received") events.push({ name, data });
     }
   }
-  page.on("websocket", (socket) =>
-    socket.on("framereceived", ({ payload }) => packet(payload.toString())),
-  );
+  page.on("websocket", (socket) => {
+    socket.on("framereceived", ({ payload }) =>
+      packet(payload.toString(), "websocket"),
+    );
+    socket.on("framesent", ({ payload }) =>
+      packet(payload.toString(), "websocket", "sent"),
+    );
+  });
+  page.on("request", (request) => {
+    if (
+      request.url().includes("/socket.io/") &&
+      request.url().includes("transport=polling") &&
+      request.method() === "POST"
+    )
+      packet(request.postData() || "", "polling", "sent");
+  });
   page.on("response", async (response) => {
     if (
       response.url().includes("/socket.io/") &&
       response.url().includes("transport=polling")
     ) {
       try {
-        packet(await response.text());
+        packet(await response.text(), "polling");
       } catch {}
     }
   });
   return {
     events,
+    packets,
     latest: (name: string, wallId: string) =>
       events
         .filter((event) => event.name === name && event.data.wall_id === wallId)
@@ -248,23 +272,31 @@ test("real shared pointer, uploaded MP4 controls, late join, reconnect, isolatio
     const beforePointer = await guest
       .locator(`#design-${wall.id}`)
       .evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
-    await page
-      .locator(".wall-surface")
-      .evaluate((surface) =>
-        surface.dispatchEvent(
-          new CustomEvent("mousemove", {
-            detail: { intersection: { uv: { x: 0.8, y: 0.7 } } },
-          }),
-        ),
-      );
+    await page.locator(".wall-surface").evaluate((surface) =>
+      surface.dispatchEvent(
+        new CustomEvent("mousemove", {
+          detail: { intersection: { uv: { x: 0.8, y: 0.7 } } },
+        }),
+      ),
+    );
     await expect
       .poll(
         () => guestEvents.latest("wall.interaction_state", wall.id)?.pointer,
       )
       .toEqual({ x: 0.30000000000000004, y: -0.19999999999999996 });
-    expect(
-      adminEvents.latest("wall.interaction_state", wall.id)?.pointer,
-    ).toEqual(guestEvents.latest("wall.interaction_state", wall.id)?.pointer);
+    const accepted = guestEvents.latest("wall.interaction_state", wall.id);
+    const canonical = {
+      runtime_id: accepted.runtime_id,
+      sequence: accepted.sequence,
+      binding_revision: accepted.binding_revision,
+      pointer: accepted.pointer,
+    };
+    await expect
+      .poll(() => ({
+        admin: adminEvents.latest("wall.interaction_state", wall.id),
+        guest: guestEvents.latest("wall.interaction_state", wall.id),
+      }))
+      .toMatchObject({ admin: canonical, guest: canonical });
     await expect
       .poll(() =>
         guest
@@ -311,15 +343,13 @@ test("real shared pointer, uploaded MP4 controls, late join, reconnect, isolatio
       .poll(() => guestEvents.latest("wall.design_applied", wall.id)?.seed)
       .toBe(17);
     await expect(page.locator(".wall-surface")).toHaveCount(1);
-    await page
-      .locator(".wall-surface")
-      .evaluate((surface) =>
-        surface.dispatchEvent(
-          new CustomEvent("mousemove", {
-            detail: { intersection: { uv: { x: 0.2, y: 0.1 } } },
-          }),
-        ),
-      );
+    await page.locator(".wall-surface").evaluate((surface) =>
+      surface.dispatchEvent(
+        new CustomEvent("mousemove", {
+          detail: { intersection: { uv: { x: 0.2, y: 0.1 } } },
+        }),
+      ),
+    );
     await expect
       .poll(
         () =>
@@ -351,6 +381,25 @@ test("real shared pointer, uploaded MP4 controls, late join, reconnect, isolatio
       )
       .toBeGreaterThan(0);
   } finally {
+    const packetPath = test.info().outputPath("shared-wall-packets.json");
+    await writeFile(
+      packetPath,
+      JSON.stringify(
+        {
+          admin: adminEvents.packets,
+          guest: guestEvents.packets,
+          other: otherEvents.packets,
+        },
+        null,
+        2,
+      ),
+    );
+    await test
+      .info()
+      .attach("shared-wall-packets", {
+        path: packetPath,
+        contentType: "application/json",
+      });
     await guestContext.close().catch(() => {});
     await otherContext.close().catch(() => {});
     if (binding)

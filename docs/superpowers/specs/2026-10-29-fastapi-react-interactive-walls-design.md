@@ -1,6 +1,6 @@
 # FastAPI · React · 공유 인터랙티브 월 전환 설계
 
-상태: 사용자 검토용 제안. 제품 구현 전 단계.
+상태: 사용자 승인, 구현 진행 중. YouTube 별도 플레이어와 영상 재생 상태 공유를 확정함.
 날짜: 2026-10-29 (Asia/Seoul)
 브랜치: `codex/fastapi-react-interactive-walls`
 기준 커밋: `974bbfd74ecd9a1330a03d7dd2a19994209ec8f5` (`origin/master`)
@@ -130,12 +130,9 @@ API와 관리 socket 동작에 동일한 administrator 판단을 사용한다. o
 
 동일한 제약은 임의 외부 Webpage에도 적용된다. 첫 renderer 검증은 animated artwork + text + logo + 업로드 영상 + brightness가 편집기/월 display/room에서 일치하는지 확인한다. 이 검증을 통과하기 전에 전체 layer UI를 병렬 확장하지 않는다.
 
-### 설계 리뷰에서 남은 사용자 확인
+### 설계 리뷰 후 확정한 내용
 
-1. YouTube를 poster/별도 2D 플레이어로 제공하는 권장안을 허용할지, 월 표면 재생이 필수인지 확인 중이다.
-2. 공유 범위에 영상 playback position/pause/seek를 포함할지 확인 중이다. 포인터와 그래픽 애니메이션 공유는 이미 확정됐다. 영상까지 포함하면 binding에 canonical playback clock을 추가하고 관리자만 play/pause/seek를 변경하며 late join도 해당 위치로 복원하는 안을 권장한다. 소리 켜기는 각 장치의 브라우저 허용/사용자 동작을 따른다.
-
-이 두 항목은 질의를 보냈으며 승인/답변이 오지 않은 상태를 확정 요구로 표시하지 않는다. 나머지 계약/데이터/인증/화면 작업과는 독립적으로 검토할 수 있다.
+사용자는 YouTube 별도 플레이어와 영상 playback position/pause/seek 공유를 승인했다. 업로드 영상과 열린 YouTube 플레이어는 같은 canonical playback clock을 사용한다. 관리자만 play/pause/seek를 변경하고 방문자는 현재 상태를 따른다. 소리 켜기는 각 장치의 브라우저 허용/사용자 동작을 따른다. autoplay/버퍼링으로 늦어진 플레이어는 준비 후 canonical 위치로 복구한다.
 
 ## 7. MongoDB 프리셋 저장 계약
 
@@ -166,6 +163,10 @@ renderer 원본의 반응은 pointer tilt이다. 마이크/손 AI 반응 기능�
 - random은 저장 seed에서 생성하고 animation/smoothing은 공유 epoch와 서버 시계 추정에 기반한다. local RAF delta 누적으로 방문자별 애니메이션 위상이 달라지지 않게 한다.
 - 송신 방문자도 authoritative state를 적용한다. 네트워크 지연 후 같은 상태로 수렴해야 하며 모든 장치의 pixel/frame 자체가 동일하다는 조건은 아니다.
 - config apply는 `wall.design_applied`로 room에 알리고 해당 wall revision/interaction을 전환한다. 다른 방에는 전파하지 않는다.
+- client→server `wall.playback_command`: `{wall_id, binding_revision, expected_playback_revision, action: play|pause|seek, position_seconds?}`. 기존 관리자 세션과 room membership을 모두 요구한다.
+- server→room `wall.playback_state`: `{wall_id, binding_revision, revision, playing, position_seconds, rate, state_time_ms}`. server time 기준 목표 위치는 playing이면 `position_seconds + (now-state_time_ms)/1000*rate`이다. 영상별 cue/rate/loop 설정을 이 clock에 매핑한다.
+- playback state는 binding에 저장해 서버 재시작 후 복구한다. 변경은 compare-and-set으로 충돌을 검출하고 늦은 command로 새 상태를 덮지 않는다. late join/reconnect는 최신 상태와 server clock을 받는다. 개별 클라이언트의 임의 local pause/seek는 공유 상태를 변경하지 않는다.
+- player는 target과 실제 시간이 0.5초 이상 다르면 seek로 보정한다. YouTube는 iframe API의 buffering/seek 해상도에 따른 오차를 허용하고 pixel/frame 완전 일치를 주장하지 않는다.
 
 기존 위치 동기화의 최대 20 Hz, 정지 heartbeat 1초, 보간 지연 100 ms, buffer 8개는 유지한다.
 

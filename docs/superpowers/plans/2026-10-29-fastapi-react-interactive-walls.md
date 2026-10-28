@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, FastAPI, Uvicorn, python-socketio, MongoEngine/PyMongo, MongoDB 7, React, TypeScript, Vite, A-Frame, reference Three.js renderer, pytest/httpx, node:test (기존 JS), Vitest (새 TS/UI), Playwright, Docker/FFmpeg. 아래 명령의 `python`은 전용 가상환경 Python을 뜻한다.
 
-**Spec:** [설계 문서](../specs/2026-10-29-fastapi-react-interactive-walls-design.md). 상태는 사용자 검토용이며 제품 코드 구현은 아직 시작하지 않았다.
+**Spec:** [설계 문서](../specs/2026-10-29-fastapi-react-interactive-walls-design.md). 사용자가 설계를 승인했고 YouTube 별도 플레이어와 영상 재생 위치/일시정지/탐색 공유도 확정했다.
 
 ## Global Constraints
 
@@ -185,9 +185,12 @@ docs/validation/migration-acceptance.md
 **Consumes:** Task 3 `get_room_visitor`, Task 7 AppliedWallDesign, Task 6 renderer's input/render methods.
 **Produces:** spec §8의 `wall.interaction`, `wall.interaction_state`, `wall.design_applied` events, `WallRuntimeState` and join/reconnect snapshot; authoritative single shared pointer and server-clock-driven rendering.
 
+추가 확정 계약: `wall.playback_command`/`wall.playback_state`는 spec §8을 따른다. 영상 clock은 binding에 저장하고 admin-only control, optimistic concurrency, late join/reconnect/restart 복원, YouTube iframe API와 uploaded video 양쪽의 시간 보정을 구현한다.
+
 - [ ] `test_only_members_can_interact_with_their_wall`, `test_input_is_finite_bounded_and_revision_checked`, `test_last_accepted_input_wins_and_broadcast_is_capped`, `test_active_disconnect_or_idle_resets_pointer`, `test_late_join_and_restart_snapshot`를 작성한다. spectator/AR-only handshake로 wall input을 허용하지 않는다.
 - [ ] wall별 runtime_id/sequence/state와 20 Hz coalescing을 구현한다. client_seq 중복/역순과 이전 binding revision을 무시하고 state/apply 전달 순서를 계약 테스트로 고정한다. idle reset은 3초, center는 x=y=0이다.
 - [ ] mouse/touch/XR hit UV를 normalized pointer로 변환한다. 자신도 authoritative echo를 따르고 모든 renderer는 shared seed/epoch/server clock estimate로 평가한다. timestamp/phase 보정은 화면 프레임 누적 시간이 아닌 동일 기준을 사용한다.
+- [ ] `test_playback_commands_require_admin_and_revision`, `test_play_pause_seek_late_join_restart`, `test_video_player_tracks_canonical_clock`를 추가한다. 실제 업로드 영상 두 플레이어의 play/pause/seek와 0.5초 drift 보정을 검증하고 YouTube는 iframe adapter protocol 단위 테스트 + 가능한 live smoke로 구분한다.
 - [ ] 두 개의 실제 browser context가 같은 방에 참여해 A/B 입력 각각을 모두 관찰한다. concurrent input/지연/재접속/late join/다른 방/관리자 apply/서버 restart를 검증한다. local test network에서 최종 state는 250 ms 이내 수렴을 목표로 검사하며 인터넷 전체 SLA로 표현하지 않는다.
 - [ ] `python -m pytest backend/tests/test_wall_interactions.py -q`와 `npm --prefix frontend run test:e2e -- shared-wall`; 예상: state/seed/phase 수렴, 다른 방 event 없음, DB에는 pointer별 write가 없음. commit: `feat: synchronize interactive wall reactions across room visitors`.
 
@@ -216,7 +219,8 @@ docs/validation/migration-acceptance.md
 - [x] 기존 JS suite 125개 PASS 확인.
 - [x] Docker/Python/Node/현재 CI 및 self-hosted runner 상태 확인.
 - [x] 설계·단계별 계획 작성.
-- [x] fresh builder review 수행: 배경 우선순위 확정, YouTube/영상 playback 공유 범위는 사용자 질의 후 확인 중.
-- [ ] 사용자 설계/범위 검토 후 Task 0부터 제품 구현 시작.
+- [x] fresh builder review 수행 및 배경 우선순위 확정.
+- [x] 사용자 승인: YouTube 별도 플레이어, 재생 위치/일시정지/탐색 공유.
+- [x] 사용자 설계/범위 검토 후 Task 0부터 제품 구현 시작.
 
 작업 완료 표시는 실제 결과/테스트/commit 근거가 생긴 항목에만 한다. 계획 작성과 제품 구현 완료는 구분한다.

@@ -277,7 +277,8 @@ def wall_dto(wall):
     result = dto(wall)
     result['elements'] = [dto(item) for kind, slug in ELEMENTS.items()
                           for item in ordered_documents(wall, slug, RESOURCES[slug], 'wall')]
-    result['design'] = None
+    from .wall_designs import get_binding
+    result['design'] = get_binding(str(wall.pk))
     return result
 
 

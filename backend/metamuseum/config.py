@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     session_secure: bool = False
     frontend_root: Path | None = None
     media_root: Path | None = None
+    wall_media_root: Path = Path('wall_media')
+    wall_media_max_file_bytes: int = Field(default=2 * 1024**3, gt=0)
+    wall_media_quota_bytes: int = Field(default=20 * 1024**3, gt=0)
 
     @model_validator(mode="after")
     def secure_production_cookie(self):

@@ -23,6 +23,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         await run_in_threadpool(connect_database, settings)
         try:
+            from .services.wall_media import cleanup
+            await run_in_threadpool(cleanup, settings)
             yield
         finally:
             if hasattr(app.state, 'realtime'):
@@ -35,7 +37,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                session_cookie=settings.session_cookie, max_age=settings.session_max_age,
                                same_site="lax", https_only=settings.session_secure)
     application.include_router(router)
-    from .api import admin, gallery, legacy
+    from .api import admin, gallery, legacy, wall_designs, wall_media
+    application.include_router(wall_designs.router)
+    application.include_router(wall_media.router)
     application.include_router(gallery.router)
     application.include_router(admin.router)
     application.include_router(legacy.router)

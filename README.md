@@ -26,6 +26,8 @@ Alternatively, set the two secrets in `.env` and use `docker compose up -d --bui
 
 Screenshots from the final container: [catalog](docs/validation/catalog.png) · [wall editor](docs/validation/wall-editor.png).
 
+Feature-by-feature [before/after HTML report](docs/reports/migration-before-after.html) includes 19 screenshots and 8 embedded demonstration videos. See [capture conditions and report checks](docs/reports/README.md).
+
 ## Wall designs
 
 Open a wall's design action while signed in as an administrator, or visit `/wall-editor?wall_id=<id>`. The standalone designer is at `/wall-editor`.

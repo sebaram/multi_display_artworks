@@ -29,3 +29,5 @@ frontend/tests/fixtures/media/
 *.egg-info/
 /.test-tmp-*/
 /frontend/.tmp/
+/output/playwright/
+/.playwright-cli/

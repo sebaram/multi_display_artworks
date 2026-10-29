@@ -1,0 +1,43 @@
+{
+  "desktop": 36,
+  "mobile": 17,
+  "qhd": 6,
+  "roomFilter": 6,
+  "quest_empty": true,
+  "details": true,
+  "csv": "performance-desktop-filtered.csv",
+  "json": "performance-results.json",
+  "images": 5,
+  "zoom_escape": true,
+  "width": {
+    "viewport": 390,
+    "scroll": 390
+  },
+  "errors": [],
+  "requests": [
+    "http://127.0.0.1:8099/performance-evaluation.html"
+  ],
+  "source_commit": "d80bd32845d8716f77f2aa7afdb7d3db626d73de",
+  "normal_conditions": 59,
+  "trials": 119,
+  "verified_at": "2026-10-29T18:37:54.613391+09:00",
+  "browser": "actual Chrome155 via Playwright CLI",
+  "html_sha256": "5e19005fcff755f8450d2b1a72351b22942c133e691b9301831a5a859d94795d",
+  "data_sha256": "ff72657a33eed53153f1f5b0d792a39351b88f120bd8a3180487bf880514dde3",
+  "csv_rows": 36,
+  "csv_columns": 30,
+  "json_export_matches": true,
+  "external_resource_requests": 0,
+  "normal_trials": 118,
+  "soak_seconds": 180.01180000007153,
+  "api_requests": 144,
+  "lifecycle_cycles": 10,
+  "instrumentation_controls": 4,
+  "physical_phone": false,
+  "physical_quest3": false,
+  "method_review": "Independent agent verified all59 aggregates against118 normal trials; scope corrections applied",
+  "open_findings": [
+    "GC retained heap rose4.55MiB across10 SPA cycles; cache/tool/leak cause not isolated",
+    "Physical phone/Quest3 performance and XR timing unmeasured"
+  ]
+}

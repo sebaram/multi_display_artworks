@@ -1,4 +1,8 @@
-# 기능별 전후 비교 보고서
+# 비교·성능 보고서
+
+[성능 평가 보고서](performance-evaluation.html)는 59개 조건의 일반 측정 118회, 라이브 월 3분 실행, API 동시 요청 144회와 SPA 왕복 10회를 포함합니다. FPS·프레임 간격·CPU·RAM·GPU 전용 메모리를 비교하고 CSV/JSON을 내보낼 수 있습니다. 실제 휴대폰·Quest 3는 미측정이며, 모바일 항목은 같은 PC의 화면·CPU 제한 조건입니다. [측정 방법과 재현](../../tools/performance/README.md), [원자료](performance-results.json)를 함께 보관했습니다.
+
+## 기능별 전후 비교
 
 [migration-before-after.html](migration-before-after.html)을 브라우저에서 엽니다. 스크린샷 19장과 영상 8개, 영상 포스터용 이미지가 모두 HTML 안에 포함되어 있습니다. 파일 하나만 복사해도 이미지 확대와 영상 재생을 사용할 수 있습니다. HTML 크기는 약 4.7MB입니다.
 

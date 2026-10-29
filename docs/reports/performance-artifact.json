@@ -1,0 +1,54 @@
+{
+  "created_at": "2026-10-29T09:36:58.478779+00:00",
+  "html": "performance-evaluation.html",
+  "bytes": 2374391,
+  "sha256": "5e19005fcff755f8450d2b1a72351b22942c133e691b9301831a5a859d94795d",
+  "data_sha256": "ff72657a33eed53153f1f5b0d792a39351b88f120bd8a3180487bf880514dde3",
+  "normal_cases": 59,
+  "normal_trials": 118,
+  "soak_trials": 1,
+  "screenshots": [
+    {
+      "file": "scene-desktop-images-shared-L30-N1000.jpg",
+      "sha256": "51e2850df126847a21fdbad544d15908d6c4598868709e60f5fe2e4e4c42a203",
+      "mode": "desktop",
+      "slug": "images-shared-L30-N1000"
+    },
+    {
+      "file": "scene-desktop-images-unique-L30-N300.jpg",
+      "sha256": "0433f9ab62df136670881d3e5f7323102bf3de7687ef8673311f44e52ad8d009",
+      "mode": "desktop",
+      "slug": "images-unique-L30-N300"
+    },
+    {
+      "file": "scene-desktop-binding-L30-four-walls.jpg",
+      "sha256": "001ccd2915bd199e2648f96ca1ee3c59c911c793676b7800803c6b2543b114b9",
+      "mode": "desktop",
+      "slug": "binding-L30-four-walls"
+    },
+    {
+      "file": "scene-mobile-images-shared-L30-N1000.jpg",
+      "sha256": "7d085d9e3e17794eff59ed15f9fadb6b62875dc9e2e7148b6f49e5b40286b50c",
+      "mode": "mobile",
+      "slug": "images-shared-L30-N1000"
+    },
+    {
+      "file": "scene-mobile-binding-L30-four-walls.jpg",
+      "sha256": "a636a02877ecfa7e9f950eedaf980deb5ef543630b7a1e6b494cda3ebea1f88d",
+      "mode": "mobile",
+      "slug": "binding-L30-four-walls"
+    }
+  ],
+  "input_hashes": {
+    "results.jsonl": "c660d3c0b229f8a2659316c2e82be03b3fc200fb9a59268979c459a390ec32fc",
+    "system-samples.jsonl": "0e7a75d79f0baaa12c800e46cea1187fb3c00cfdfdd19f2589fe891f8afb044e",
+    "gpu-process-memory.jsonl": "6c54ca97226348cca72b335f3edd590ed3fae07e36b3da3a1f946a513b4353d9",
+    "workload-manifest.json": "1472703d446ba30802631452a9a2f01ba7f559563abe63d7d02c3b055f8e6066",
+    "api-load.json": "096999653d9b2c6fdec116b6713c179df17ee479330fe3dd978fea4ca38151dd",
+    "cpu-calibration.json": "c08022ae746f97b33588072e684dbcc7ea0b19c3a10c91d68ff2e9806d44c867",
+    "lifecycle.json": "8246fe7a8b0283b13849240b803e65531d32927345627048e06ee08cdeef34e6",
+    "instrumentation-check.json": "5138eba33e751762745a9c2f811da58e9a910fa36ecbdea1e0185545a4656566"
+  },
+  "actual_phone": false,
+  "actual_quest3": false
+}

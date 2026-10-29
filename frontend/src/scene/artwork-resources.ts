@@ -257,11 +257,31 @@ export function createArtworkSource({
     imageWidth = 0,
     imageHeight = 0;
   const placeholder = entity("a-plane", {
-    class: "artwork-placeholder",
+    class: "artwork-placeholder artwork-pick-target",
     color: "#18576d",
     material: "side: double",
   });
   root.append(placeholder);
+  let proxyVisible = true;
+  function syncProxy() {
+    const object = placeholder.object3D, parent = (root as any).object3D;
+    if (!object || !parent) return;
+    object.visible = proxyVisible;
+    if (proxyVisible || data.wall_element_type === "gaussian_splat") { if (object.parent !== parent) parent.add(object); }
+    else object.removeFromParent();
+  }
+  function showPlaceholder(visible: boolean) {
+    proxyVisible = visible;
+    const pickable = visible || data.wall_element_type === "gaussian_splat";
+    const changed = placeholder.classList.contains("artwork-pick-target") !== pickable;
+    placeholder.classList.toggle("artwork-pick-target", pickable);
+    placeholder.setAttribute("visible", String(visible));
+    // Invisible A-Frame entities still incur matrix traversal; keep only the
+    // pick proxy's DOM identity until its artwork is evicted again.
+    syncProxy();
+    if (changed) root.dispatchEvent(new CustomEvent("artwork-pick-target-changed", { bubbles: true }));
+  }
+  placeholder.addEventListener("loaded", syncProxy);
 
   function dimensions() {
     return {
@@ -330,7 +350,7 @@ export function createArtworkSource({
       if (disposed || !resident || current !== generation) return;
       node.setObject3D?.("mesh", object);
       node.setAttribute("data-loaded", "true");
-      placeholder.setAttribute("visible", "false");
+      showPlaceholder(false);
       measure();
     };
     // A cached resource can finish before a detached A-Frame entity initializes.
@@ -351,7 +371,7 @@ export function createArtworkSource({
     source?.remove();
     source = undefined;
     root.removeAttribute("gaussian_splatting");
-    placeholder.setAttribute("visible", "true");
+    showPlaceholder(true);
   }
   function load() {
     const current = ++generation;
@@ -376,11 +396,10 @@ export function createArtworkSource({
         "gaussian_splatting",
         `src: ${url}${cutout ? `; cutoutEntity: #${cutout.id}` : ""}`,
       );
-      placeholder.setAttribute("visible", "false");
       return;
     }
     source = entity("a-entity", {
-      class: `${kind === "image" ? "image" : "gltf"}-source`,
+      class: `artwork-source ${kind === "image" ? "image" : "gltf"}-source`,
       "data-source-url": url,
     });
     root.append(source);
@@ -538,12 +557,16 @@ export function createArtworkSource({
       }, failed);
     else start();
   }
-  const splatError = (event: Event) =>
+  const splatError = (event: Event) => {
+    showPlaceholder(true);
     report(
       `Gaussian splat: ${(event as CustomEvent).detail?.message || "불러오지 못했습니다."}`,
       generation,
     );
+  };
+  const splatLoaded = () => { if (!disposed && resident) showPlaceholder(false); };
   root.addEventListener("splat-error", splatError);
+  root.addEventListener("splat-loaded", splatLoaded);
   updateMetadata();
   return {
     setData(next: ElementDTO) {
@@ -594,6 +617,8 @@ export function createArtworkSource({
       resident = false;
       unload();
       root.removeEventListener("splat-error", splatError);
+      root.removeEventListener("splat-loaded", splatLoaded);
+      placeholder.removeEventListener("loaded", syncProxy);
       cutout?.remove();
       placeholder.remove();
       if (!resources) registry.dispose();

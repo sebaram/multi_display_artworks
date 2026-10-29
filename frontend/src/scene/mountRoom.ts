@@ -109,9 +109,13 @@ export function mountRoom({
     background: "color: #1a2028",
     "xr-mode-ui": "enabled: false",
     cursor: "rayOrigin: mouse",
-    raycaster: "objects: .artwork, .wall-surface; interval: 50",
+    raycaster: "objects: .artwork-source, .artwork-pick-target, .wall-surface; interval: 50",
   });
   scene.setAttribute("aria-label", bootstrap.room?.name || "3D 전시 공간");
+  let refreshPicking = true;
+  const pickTargetsChanged = () => { refreshPicking = true; };
+  scene.addEventListener("artwork-pick-target-changed", pickTargetsChanged);
+  life.add(() => scene.removeEventListener("artwork-pick-target-changed", pickTargetsChanged));
   if (bootstrap.isArMarker) {
     scene.setAttribute(
       "arjs",
@@ -366,6 +370,7 @@ export function mountRoom({
             width: element.width || 1,
             height: element.height || 1,
             material: "side: double",
+            class: "artwork-source",
           }),
         );
       else if (element.wall_element_type === "gltf")
@@ -373,7 +378,7 @@ export function mountRoom({
           entity("a-entity", {
             "gltf-model": safeMediaUrl(element.gltf_url),
             rotation: element.default_rotation || "0 0 0",
-            class: "gltf-source",
+            class: "gltf-source artwork-source",
           }),
         );
       else if (element.wall_element_type === "gaussian_splat") {
@@ -408,6 +413,7 @@ export function mountRoom({
             height: element.height || 1,
             color: "#18576d",
             material: "side: double",
+            class: "artwork-source",
           }),
         );
       const select = () => { pinnedSelection = element.id; lastResidency = -Infinity; services.onSelect?.(element.id); };
@@ -656,8 +662,11 @@ export function mountRoom({
       if (!entry.source) continue;
       entry.source.setQuality({ maxImageSize: entry.imageLimit || performanceState.settings.maxImageSize });
       entry.source.setResident(wanted.has(id));
-      entry.node.classList.toggle("resident-artwork", entry.source.resident);
-      entry.node.dataset.resident = String(entry.source.resident);
+      const resident = String(entry.source.resident);
+      if (entry.node.dataset.resident !== resident) {
+        entry.node.classList.toggle("resident-artwork", entry.source.resident);
+        entry.node.dataset.resident = resident;
+      }
       if (entry.source.resident) performanceState.residentArtworks++;
     }
   }
@@ -685,6 +694,10 @@ export function mountRoom({
     }
     performanceState.level = level; performanceState.settings = settings;
     updateResidency(time);
+    if (refreshPicking) {
+      scene.components?.raycaster?.refreshObjects?.();
+      refreshPicking = false;
+    }
     performanceState.wallsRendered = performanceState.wallsSkipped = 0;
     for (const wall of walls.values()) {
       const epoch = wall.binding.animation_epoch_ms || 0;

@@ -397,6 +397,33 @@ describe("artwork resource ownership", () => {
     expect(meshB.material.map.disposed).toBe(1);
   });
 
+  it("detaches the hidden selection proxy from matrix traversal and restores it after eviction", () => {
+    const el = root();
+    const source = createArtworkSource({root:el,data:data(),AFRAME});
+    const proxy = el.querySelector(".artwork-placeholder") as any;
+    const object = proxy.object3D;
+    expect(object.parent).toBe((el as any).object3D);
+    source.setResident(true); completeImage();
+    expect(object.parent).toBeNull();
+    expect(el.querySelector(".artwork-placeholder")).toBe(proxy);
+    source.setResident(false);
+    expect(object.parent).toBe((el as any).object3D);
+    expect(proxy.getAttribute("visible")).toBe("true");
+    source.dispose();
+  });
+
+  it("retains a hidden but scene-attached picking proxy for loaded splats", () => {
+    const el = root();
+    const source = createArtworkSource({root:el,data:data({wall_element_type:"gaussian_splat",splat_url:"https://assets.test/cloud.splat"}),AFRAME});
+    source.setResident(true);
+    el.dispatchEvent(new Event("splat-loaded"));
+    const proxy = el.querySelector(".artwork-placeholder") as any;
+    expect(proxy.object3D.parent === (el as any).object3D).toBe(true);
+    expect(proxy.classList.contains("artwork-pick-target")).toBe(true);
+    expect(proxy.getAttribute("visible")).toBe("false");
+    source.dispose();
+  });
+
   it("removes canceled image subscribers while another copy is loading", () => {
     const a = root(),
       b = root(),

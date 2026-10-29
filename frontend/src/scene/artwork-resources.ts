@@ -9,19 +9,29 @@ type Options = {
   maxImageSize?: number;
 };
 
-export function createResourceRegistry(scene: any, THREE: any) {
+export function createResourceRegistry(scene: any, THREE: any, maxInactiveImageBytes = 32 * 1024 * 1024) {
   const references = new Map<string, number>();
   type Subscriber = { loaded: (texture: any) => void; failed: () => void };
   type DisplayImage = {
     image: HTMLImageElement;
     texture?: any;
     canvas?: HTMLCanvasElement;
+    bytes: number;
     failed: boolean;
     subscribers: Set<Subscriber>;
     dispose: () => void;
   };
   const displayImages = new Map<string, DisplayImage>();
+  const inactiveImages = new Map<string, DisplayImage>();
+  const inactiveLimit = Number.isFinite(maxInactiveImageBytes) ? Math.max(0, maxInactiveImageBytes) : 0;
+  let inactiveBytes = 0;
   let disposed = false;
+  function removeDisplay(key: string, entry: DisplayImage) {
+    if (displayImages.get(key) !== entry) return;
+    displayImages.delete(key);
+    if (inactiveImages.delete(key)) inactiveBytes -= entry.bytes;
+    entry.dispose();
+  }
   function evict(url: string) {
     // r184 prefixes loader cache keys; older A-Frame also used the plain URL.
     for (const key of [
@@ -51,6 +61,7 @@ export function createResourceRegistry(scene: any, THREE: any) {
         image.crossOrigin = "anonymous";
         const shared: DisplayImage = {
           image,
+          bytes: 0,
           failed: false,
           subscribers: new Set(),
           dispose: () => {},
@@ -94,6 +105,15 @@ export function createResourceRegistry(scene: any, THREE: any) {
           texture.colorSpace = THREE.SRGBColorSpace;
           texture.needsUpdate = true;
           if (shared.canvas) {
+            // Estimate the retained RGBA canvas and GPU mip chain; driver overhead is additional.
+            let width = shared.canvas.width, height = shared.canvas.height;
+            shared.bytes = width * height * 4;
+            for (;;) {
+              shared.bytes += width * height * 4;
+              if (width === 1 && height === 1) break;
+              width = Math.max(1, Math.floor(width / 2));
+              height = Math.max(1, Math.floor(height / 2));
+            }
             image.removeEventListener("error", error);
             image.removeAttribute("src");
           }
@@ -116,6 +136,7 @@ export function createResourceRegistry(scene: any, THREE: any) {
         shared.subscribers.add(subscriber);
         image.src = url;
       } else {
+        if (inactiveImages.delete(key)) inactiveBytes -= entry.bytes;
         entry.subscribers.add(subscriber);
         const shared = entry;
         if (entry.texture || entry.failed)
@@ -127,10 +148,16 @@ export function createResourceRegistry(scene: any, THREE: any) {
       }
       const shared = entry;
       return () => {
-        shared.subscribers.delete(subscriber);
-        if (!shared.subscribers.size && displayImages.get(key) === shared) {
-          displayImages.delete(key);
-          shared.dispose();
+        if (!shared.subscribers.delete(subscriber) || shared.subscribers.size || displayImages.get(key) !== shared) return;
+        if (shared.texture && !shared.failed && shared.canvas && shared.bytes <= inactiveLimit && inactiveLimit > 0) {
+          inactiveImages.set(key, shared);
+          inactiveBytes += shared.bytes;
+          while (inactiveBytes > inactiveLimit) {
+            const [oldestKey, oldest] = inactiveImages.entries().next().value!;
+            removeDisplay(oldestKey, oldest);
+          }
+        } else {
+          removeDisplay(key, shared);
         }
       };
     },
@@ -160,6 +187,8 @@ export function createResourceRegistry(scene: any, THREE: any) {
       references.clear();
       for (const image of displayImages.values()) image.dispose();
       displayImages.clear();
+      inactiveImages.clear();
+      inactiveBytes = 0;
     },
   };
 }

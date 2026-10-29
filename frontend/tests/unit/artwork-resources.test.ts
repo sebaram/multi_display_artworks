@@ -458,7 +458,7 @@ describe("artwork resource ownership", () => {
     resources.dispose();
   });
 
-  it("changes a resident image's texture cap without releasing a peer's shared texture", () => {
+  it("changes a resident image's texture cap without releasing a peer's shared texture", async () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       drawImage() {},
     } as any);
@@ -495,11 +495,16 @@ describe("artwork resource ownership", () => {
     first.setQuality({ maxImageSize: 512.9 });
     expect(images).toHaveLength(2);
     second.setResident(false);
-    expect(oldMap.disposed).toBe(1);
+    expect(oldMap.disposed).toBe(0);
     expect(newMap.disposed).toBe(0);
+    first.setQuality({ maxImageSize: 1024 });
+    await Promise.resolve();
+    expect(images).toHaveLength(2);
+    expect(attached(a.querySelector(".image-source")).material.map).toBe(oldMap);
     first.dispose();
     second.dispose();
     resources.dispose();
+    expect(oldMap.disposed).toBe(1);
     expect(newMap.disposed).toBe(1);
   });
 
@@ -789,6 +794,151 @@ describe("artwork resource ownership", () => {
     await Promise.resolve();
     expect(loads).toHaveLength(0);
     source.dispose();
+  });
+});
+
+describe("inactive display image cache", () => {
+  // 128² RGBA canvas plus its RGBA texture and complete mip chain.
+  const displayBytes = 152_916;
+  const canvasContext = () => vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage() {} } as any);
+
+  function loadDisplay(registry: ReturnType<typeof createResourceRegistry>, url: string, size = 128) {
+    const index = images.length, loaded = vi.fn();
+    const release = registry.acquireImage(url, size, loaded, vi.fn());
+    completeImage(index, size * 2, size * 2);
+    return { release, texture: loaded.mock.calls[0][0] };
+  }
+
+  it("reuses a ready downsampled texture on a later visit and delivers hits asynchronously", async () => {
+    canvasContext();
+    const registry = createResourceRegistry({}, THREE);
+    const first = loadDisplay(registry, "https://assets.test/revisit.png");
+    first.release(); first.release();
+    expect(first.texture.disposed).toBe(0);
+    expect(images[0].hasAttribute("src")).toBe(false);
+    const loaded = vi.fn();
+    const release = registry.acquireImage("https://assets.test/revisit.png", 128, loaded, vi.fn());
+    expect(images).toHaveLength(1);
+    expect(loaded).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(loaded).toHaveBeenCalledExactlyOnceWith(first.texture);
+    release(); registry.dispose(); registry.dispose();
+    expect(first.texture.disposed).toBe(1);
+    expect(first.texture.image.width).toBe(1);
+  });
+
+  it("evicts the least recently released display when estimated canvas and mip bytes exceed the budget", async () => {
+    canvasContext();
+    const registry = createResourceRegistry({}, THREE, displayBytes * 2);
+    const a = loadDisplay(registry, "https://assets.test/a.png"); a.release();
+    const b = loadDisplay(registry, "https://assets.test/b.png"); b.release();
+    const loaded = vi.fn();
+    const releaseA = registry.acquireImage("https://assets.test/a.png", 128, loaded, vi.fn());
+    await Promise.resolve(); releaseA();
+    const c = loadDisplay(registry, "https://assets.test/c.png"); c.release();
+    expect(images).toHaveLength(3);
+    expect(loaded).toHaveBeenCalledExactlyOnceWith(a.texture);
+    expect(b.texture.disposed).toBe(1);
+    expect(a.texture.disposed).toBe(0);
+    expect(c.texture.disposed).toBe(0);
+    registry.dispose();
+    expect(a.texture.disposed).toBe(1); expect(c.texture.disposed).toBe(1);
+  });
+
+  it("discards an oversized display without flushing useful smaller displays", async () => {
+    canvasContext();
+    const registry = createResourceRegistry({}, THREE, displayBytes);
+    const small = loadDisplay(registry, "https://assets.test/small.png"); small.release();
+    const large = loadDisplay(registry, "https://assets.test/large.png", 256); large.release();
+    expect(large.texture.disposed).toBe(1);
+    expect(small.texture.disposed).toBe(0);
+    const loaded = vi.fn();
+    registry.acquireImage("https://assets.test/small.png", 128, loaded, vi.fn());
+    await Promise.resolve();
+    expect(images).toHaveLength(2);
+    expect(loaded).toHaveBeenCalledExactlyOnceWith(small.texture);
+    registry.dispose();
+  });
+
+  it("never evicts an active shared display or double-counts an old release", async () => {
+    canvasContext();
+    const registry = createResourceRegistry({}, THREE, displayBytes);
+    const a = loadDisplay(registry, "https://assets.test/a.png");
+    const peer = vi.fn();
+    const releasePeer = registry.acquireImage("https://assets.test/a.png", 128, peer, vi.fn());
+    await Promise.resolve();
+    a.release();
+    const b = loadDisplay(registry, "https://assets.test/b.png"); b.release();
+    expect(a.texture.disposed).toBe(0);
+    releasePeer(); a.release(); releasePeer();
+    expect(b.texture.disposed).toBe(1);
+    const hit = vi.fn();
+    registry.acquireImage("https://assets.test/a.png", 128, hit, vi.fn());
+    await Promise.resolve();
+    expect(images).toHaveLength(2);
+    expect(hit).toHaveBeenCalledExactlyOnceWith(a.texture);
+    registry.dispose();
+    expect(a.texture.disposed).toBe(1);
+  });
+
+  it("does not cache pending, failed or original image entries", () => {
+    const registry = createResourceRegistry({}, THREE);
+    const pending = vi.fn(), failure = vi.fn(), original = vi.fn();
+    const cancel = registry.acquireImage("https://assets.test/pending.png", 128, pending, vi.fn());
+    cancel(); completeImage(0, 256, 256);
+    expect(pending).not.toHaveBeenCalled();
+    const releaseFailed = registry.acquireImage("https://assets.test/failed.png", 128, vi.fn(), failure);
+    images[1].dispatchEvent(new Event("error")); releaseFailed();
+    expect(failure).toHaveBeenCalledOnce();
+    const releaseOriginal = registry.acquireImage("https://assets.test/original.png", 128, original, vi.fn());
+    completeImage(2, 64, 64); releaseOriginal();
+    expect(original.mock.calls[0][0].disposed).toBe(1);
+    for (const name of ["pending", "failed", "original"]) registry.acquireImage(`https://assets.test/${name}.png`, 128, vi.fn(), vi.fn());
+    expect(images).toHaveLength(6);
+    registry.dispose();
+  });
+
+  it("cancels queued cache hits and late loads when disposed", async () => {
+    canvasContext();
+    const registry = createResourceRegistry({}, THREE);
+    const a = loadDisplay(registry, "https://assets.test/a.png"); a.release();
+    const loaded = vi.fn(), pending = vi.fn();
+    const releaseHit = registry.acquireImage("https://assets.test/a.png", 128, loaded, vi.fn());
+    const releasePending = registry.acquireImage("https://assets.test/pending.png", 128, pending, vi.fn());
+    registry.dispose(); releaseHit(); releasePending();
+    completeImage(1, 256, 256); await Promise.resolve();
+    expect(loaded).not.toHaveBeenCalled(); expect(pending).not.toHaveBeenCalled();
+    expect(a.texture.disposed).toBe(1);
+    registry.acquireImage("https://assets.test/a.png", 128, vi.fn(), vi.fn());
+    expect(images).toHaveLength(2);
+  });
+
+  it("keeps a cached texture when a subscriber cancels before its hit callback", async () => {
+    canvasContext();
+    const registry = createResourceRegistry({}, THREE);
+    const a = loadDisplay(registry, "https://assets.test/a.png"); a.release();
+    const canceled = vi.fn();
+    const release = registry.acquireImage("https://assets.test/a.png", 128, canceled, vi.fn());
+    release(); release(); await Promise.resolve();
+    expect(canceled).not.toHaveBeenCalled();
+    expect(a.texture.disposed).toBe(0);
+    const loaded = vi.fn();
+    registry.acquireImage("https://assets.test/a.png", 128, loaded, vi.fn());
+    await Promise.resolve();
+    expect(images).toHaveLength(1);
+    expect(loaded).toHaveBeenCalledExactlyOnceWith(a.texture);
+    registry.dispose();
+  });
+
+  it("includes narrow-image mip levels in the byte bound", () => {
+    canvasContext();
+    // 128×1 canvas = 512 bytes; texture mip widths sum to 255 = 1020 bytes.
+    const registry = createResourceRegistry({}, THREE, 1531);
+    const loaded = vi.fn();
+    const release = registry.acquireImage("https://assets.test/narrow.png", 128, loaded, vi.fn());
+    completeImage(0, 256, 2); release();
+    expect(loaded.mock.calls[0][0].disposed).toBe(1);
+    registry.dispose();
   });
 });
 

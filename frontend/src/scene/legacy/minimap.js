@@ -221,6 +221,7 @@ export function mountMinimap({
   const expandedContext = expandedCanvas.getContext('2d');
   let frameId = null;
   let destroyed = false;
+  let lastPaint = -Infinity;
 
   function sizeExpandedCanvas() {
     const measured = mapContainer.getBoundingClientRect?.().width || mapContainer.clientWidth || 640;
@@ -237,9 +238,9 @@ export function mountMinimap({
     }
   }
 
-  function tick() {
+  function tick(time = 0) {
     if (destroyed) return;
-    render();
+    if (time - lastPaint >= 100) { render(); lastPaint = time; }
     frameId = requestFrame?.(tick) ?? null;
   }
 

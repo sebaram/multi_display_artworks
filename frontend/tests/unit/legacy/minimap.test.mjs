@@ -156,10 +156,10 @@ function createFrameScheduler() {
       cancelled.push(id);
       pending.delete(id);
     },
-    runNext() {
+    runNext(time) {
       const [id, callback] = pending.entries().next().value;
       pending.delete(id);
-      callback();
+      callback(time);
     },
   };
 }
@@ -280,6 +280,21 @@ test('minimap redraw uses a cancellable animation-frame lifecycle', () => {
   assert.equal(fixture.frames.pending.size, 0);
   assert.equal(fixture.canvas.parentNode, null);
   assert.equal(fixture.dialog.parentNode, null);
+});
+
+test('minimap limits periodic painting to 10 Hz while opening paints immediately', () => {
+  const fixture = mountFixture();
+  const count = () => fixture.canvas.context.operations.filter(op => op.name === 'clearRect').length;
+  const initial = count();
+  fixture.frames.runNext(0);
+  fixture.frames.runNext(16);
+  fixture.frames.runNext(32);
+  assert.equal(count(), initial + 1);
+  fixture.frames.runNext(101);
+  assert.equal(count(), initial + 2);
+  fixture.canvas.dispatchEvent({type:'click'});
+  assert.equal(count(), initial + 3);
+  fixture.destroy();
 });
 
 function createMediaQuery(matches) {

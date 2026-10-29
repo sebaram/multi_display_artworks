@@ -35,7 +35,10 @@ export interface WallRenderer {
   setInteraction(pointer:{x:number;y:number}):void;
   /** Local device audio preference. Call with false only from a user gesture. */
   setMuted(muted:boolean):void;
-  render(timeSeconds:number,playback?:PlaybackClock):void;
+  /** Synchronize canonical media time without drawing, including while the wall is hidden. */
+  syncPlayback(playback:PlaybackClock):void;
+  /** Returns true only when the output canvas was repainted. */
+  render(timeSeconds:number,playback?:PlaybackClock):boolean;
   getElements():WallElement[];
   /** Canvas coordinates in [0,1], origin at the top left. Returns the source grouping target. */
   pick(xNormalized:number,yNormalized:number):{id:string;name?:string}|null;

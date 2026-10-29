@@ -216,6 +216,24 @@ afterEach(() => {
 });
 
 describe("artwork resource ownership", () => {
+  it("releases a failed model generation and late dependency caches while preserving its placeholder", () => {
+    const el = root(), error = vi.fn();
+    const source = createArtworkSource({root:el,data:data({wall_element_type:"gltf",gltf_url:"https://assets.test/corrupt.glb"}),AFRAME,onError:error});
+    source.setResident(true);
+    const manager = loads[0].manager;
+    const owned = manager.resolveURL(loads[0].url);
+    cache[`file:${owned}`] = new ArrayBuffer(2048);
+    loads[0].error(new Error("Invalid GLB"));
+    expect(error).toHaveBeenCalledOnce();
+    expect(manager.aborted).toBe(true);
+    expect(cache).toEqual({});
+    expect(el.querySelector(".artwork-placeholder")?.getAttribute("visible")).toBe("true");
+    const late = manager.resolveURL("https://assets.test/late.png"), close = vi.fn();
+    cache[`image-bitmap:${late}`] = {close};
+    manager.onLoad?.();
+    expect(close).toHaveBeenCalledOnce(); expect(cache).toEqual({});
+    source.dispose(); expect(close).toHaveBeenCalledOnce();
+  });
   it("keeps identity and a pickable placeholder while intentionally unloaded", () => {
     const el = root();
     el.dataset.elementId = "artwork";
@@ -278,7 +296,7 @@ describe("artwork resource ownership", () => {
     expect(
       el.querySelector(".image-source")?.getAttribute("data-source-url"),
     ).toBe("https://assets.test/large.png");
-    expect(images[0].src).toBe("https://assets.test/large.png");
+    expect(images[0].getAttribute("src")).toBeNull();
     source.dispose();
   });
 

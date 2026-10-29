@@ -93,6 +93,10 @@ export function createResourceRegistry(scene: any, THREE: any) {
           const texture = (shared.texture = new THREE.Texture(display));
           texture.colorSpace = THREE.SRGBColorSpace;
           texture.needsUpdate = true;
+          if (shared.canvas) {
+            image.removeEventListener("error", error);
+            image.removeAttribute("src");
+          }
           for (const consumer of [...shared.subscribers])
             if (shared.subscribers.has(consumer)) consumer.loaded(texture);
         };
@@ -477,6 +481,7 @@ export function createArtworkSource({
             detail: { format: "gltf", src: url },
           }),
         );
+        unload();
       }
     };
     const loader = new THREE.GLTFLoader(manager);

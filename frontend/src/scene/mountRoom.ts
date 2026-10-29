@@ -131,7 +131,8 @@ export function mountRoom({
   scene.append(assets);
   scene.append(
     entity("a-entity", {
-      light: "type: ambient; color: #ffffff; intensity: 1.5",
+      // Match A-Frame 1.6's legacy ambient irradiance after its PI factor was removed.
+      light: `type: ambient; color: #ffffff; intensity: ${1.5 * Math.PI}`,
     }),
   );
   const camera = entity("a-camera", {

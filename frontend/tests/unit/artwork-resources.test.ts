@@ -264,6 +264,7 @@ describe("artwork resource ownership", () => {
     expect(mesh.geometry.height).toBe(1);
     expect(mesh.material.map.image).toBe(images[0]);
     expect(mesh.material.map.colorSpace).toBe("srgb");
+    expect(mesh.material.forceSinglePass).toBe(true);
     source.setResident(false);
     expect(mesh.geometry.disposed).toBe(1);
     expect(mesh.material.disposed).toBe(1);

@@ -421,6 +421,7 @@ export function createArtworkSource({
               map: texture,
               side: THREE.DoubleSide,
               transparent: true,
+              forceSinglePass: true,
             }),
           );
           detach = attach(node, mesh, current);

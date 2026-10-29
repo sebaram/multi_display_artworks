@@ -310,6 +310,23 @@ test("real shared pointer, uploaded MP4 controls, late join, reconnect, isolatio
 
     // New page and a real offline/reconnect both recover the persisted paused position.
     await guest.reload();
+    // A persisted design must be visible on the actual 3D surface, not only
+    // rendering into an unattached canvas while its video clock still advances.
+    await expect
+      .poll(
+        () =>
+          guest.locator(".wall-surface").evaluate((surface: any) => {
+            const canvas = document.querySelector(
+              `#design-${surface.dataset.wallId}`,
+            );
+            return (
+              !!canvas &&
+              surface.getObject3D("mesh")?.material?.map?.image === canvas
+            );
+          }),
+        { timeout: 20000 },
+      )
+      .toBe(true);
     await expect
       .poll(async () => (await media(guest))?.ready, { timeout: 20000 })
       .toBeGreaterThanOrEqual(2);

@@ -235,10 +235,20 @@ export function mountRoom({
       height: wall.height,
       position: `0 0 ${wall.depth / 2 + 0.004}`,
       class: "wall-surface",
-      material: `shader: flat; side: double; src: #${canvas.id}`,
+      material: "shader: flat; side: double",
       "data-wall-id": wall.id,
     });
+    // Asset selectors resolve against document, so wait until an initially
+    // detached scene has connected before binding its design canvas.
+    const bindTexture = () =>
+      surface.setAttribute(
+        "material",
+        `shader: flat; side: double; src: #${canvas.id}`,
+      );
+    surface.addEventListener("loaded", bindTexture, { once: true });
     node.append(surface);
+    if ((surface as any).hasLoaded) bindTexture();
+    wallLife.add(() => surface.removeEventListener("loaded", bindTexture));
     wallLife.add(() => surface.remove());
     wallLife.add(() => renderer.dispose());
     walls.set(wall.id, {

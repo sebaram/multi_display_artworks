@@ -156,7 +156,7 @@ export default function Streams() {
             스트림 ID
             <input
               value={id}
-              pattern="[A-Za-z0-9_-]{1,64}"
+              pattern="[A-Za-z0-9_\-]{1,64}"
               disabled={recording}
               onChange={(event) => setId(event.target.value)}
             />

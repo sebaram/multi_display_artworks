@@ -141,10 +141,23 @@ function component(owner = scene(), data: Record<string, any> = {}) {
   instance.init();
   return instance;
 }
-async function download(index = 0) {
+function binarySamples(points = samples) {
+  const bytes = new ArrayBuffer(points.length * 32);
+  const view = new DataView(bytes);
+  points.forEach((point, index) => {
+    [...point.center, ...point.scales].forEach((value, field) =>
+      view.setFloat32(index * 32 + field * 4, value, true),
+    );
+    new Uint8Array(bytes, index * 32 + 24, 8).set([
+      255, 255, 255, 255, 255, 128, 128, 128,
+    ]);
+  });
+  return bytes;
+}
+async function download(index = 0, bytes = binarySamples()) {
   requests[index].done.resolve({
     ok: true,
-    arrayBuffer: async () => new ArrayBuffer(64),
+    arrayBuffer: async () => bytes,
   });
   await settle();
 }
@@ -172,6 +185,10 @@ beforeEach(() => {
     SplatEditSdfType: { BOX: "box" },
     SplatAccumulator: { generatorProgram: computePrograms },
     releaseSplatWorkerPool: vi.fn(),
+    getSplatFileType: (bytes: Uint8Array) =>
+      bytes[0] === 112 && bytes[1] === 108 && bytes[2] === 121
+        ? "ply"
+        : undefined,
   };
   const source = readFileSync(
     "public/vendor/gaussian-splatting.js",
@@ -320,17 +337,144 @@ describe("shared Gaussian splat adapter", () => {
       nonLod: true,
       fileName: "/first.splat",
     });
-    expect(c.boundingBox.min.x).toBeCloseTo(-11.41421356);
-    expect(c.boundingBox.min.y).toBeCloseTo(-5.82842712);
-    expect(c.boundingBox.min.z).toBeCloseTo(-6.82842712);
-    expect(c.boundingBox.max.x).toBeCloseTo(4.82842712);
-    expect(c.boundingBox.max.y).toBeCloseTo(9.41421356);
-    expect(c.boundingBox.max.z).toBeCloseTo(7.41421356);
+    expect(c.boundingBox.min.x).toBeCloseTo(-11.4707821);
+    expect(c.boundingBox.min.y).toBeCloseTo(-5.94156421);
+    expect(c.boundingBox.min.z).toBeCloseTo(-6.94156421);
+    expect(c.boundingBox.max.x).toBeCloseTo(4.94156421);
+    expect(c.boundingBox.max.y).toBeCloseTo(9.4707821);
+    expect(c.boundingBox.max.z).toBeCloseTo(7.4707821);
     // Full source buffers can be released after bounds/count are measured.
     expect(c.splatMesh.extSplats.getNumSplats()).toBe(0);
     expect(c.splatMesh.extSplats.lodSplats).toBeTruthy();
     c.remove();
   });
+
+  it("measures a legacy binary's Gaussian extent without unpacking decoded splats", async () => {
+    const c = component(scene(), { src: "/legacy.SPLAT?version=2#asset" });
+    c.el.object3D.scale.set(2, 0.5, 3);
+    await download();
+    const mesh = meshes[0];
+    const unpack = vi
+      .spyOn(mesh.extSplats, "forEachSplat")
+      .mockImplementation(() => {
+        throw new Error("Legacy bounds must not unpack Spark splats");
+      });
+    mesh.done.resolve(mesh);
+    await settle();
+    expect(c.splatMesh).toBe(mesh);
+    expect(c.loadedVertexCount).toBe(2);
+    expect(c.boundingBox.min.x).toBeCloseTo(-11.4707821);
+    expect(c.boundingBox.min.y).toBeCloseTo(-5.94156421);
+    expect(c.boundingBox.min.z).toBeCloseTo(-6.94156421);
+    expect(c.boundingBox.max.x).toBeCloseTo(4.94156421);
+    expect(c.boundingBox.max.y).toBeCloseTo(9.4707821);
+    expect(c.boundingBox.max.z).toBeCloseTo(7.4707821);
+    expect(c.el.object3D.scale.toArray()).toEqual([2, 0.5, 3]);
+    expect(unpack).not.toHaveBeenCalled();
+    c.remove();
+  });
+
+  it.each(["/cloud.ply", "/cloud.spz", "/download?id=raw.splat"])(
+    "keeps decoded all-source bounds for the non-legacy URL %s",
+    async (src) => {
+      const c = component(scene(), { src });
+      await download();
+      const unpack = vi.spyOn(meshes[0].extSplats, "forEachSplat");
+      meshes[0].done.resolve(meshes[0]);
+      await settle();
+      expect(unpack).toHaveBeenCalledTimes(1);
+      expect(c.loadedVertexCount).toBe(2);
+      expect(c.boundingBox.min.x).toBeCloseTo(-11.41421356);
+      c.remove();
+    },
+  );
+
+  it("encloses scales rounded upward by Spark's half-float logarithmic encoding", async () => {
+    samples = [
+      { center: [0, 0, 0], scales: [Math.fround(Math.exp(-80.03)), 0, 0] },
+    ];
+    const c = component();
+    await initialize();
+    // At this magnitude a half-float logarithm rounds -80.03 to -80.
+    expect(c.boundingBox.max.x).toBeGreaterThanOrEqual(
+      Math.sqrt(8) * Math.exp(-80),
+    );
+    c.remove();
+  });
+
+  it("preserves signed Float32 centers with valid positive scales", async () => {
+    samples = [{ center: [-2.5, 3.5, -4.5], scales: [1, 0.25, 0.5] }];
+    const c = component();
+    await initialize();
+    expect(c.loadedVertexCount).toBe(1);
+    expect(c.boundingBox.min.x).toBeLessThanOrEqual(-2.5 - Math.sqrt(8));
+    expect(c.boundingBox.min.y).toBeLessThanOrEqual(-3.5 - Math.sqrt(8));
+    expect(c.boundingBox.max.z).toBeGreaterThanOrEqual(4.5 + Math.sqrt(8));
+    c.remove();
+  });
+
+  it.each([
+    ["negative", -1, NaN],
+    ["near Float32 maximum", Math.fround(3.39e38), Infinity],
+  ])(
+    "keeps bounds unknown when %s raw scales decode to a nonfinite extent",
+    async (_label, rawScale, decodedScale) => {
+      samples = [
+        { center: [0, 0, 0], scales: [rawScale as number, 0.25, 0.5] },
+      ];
+      const bytes = binarySamples();
+      // Match Spark's decoded invalid scale rather than hiding it behind the raw value.
+      samples = [
+        { center: [0, 0, 0], scales: [decodedScale as number, 0.25, 0.5] },
+      ];
+      const c = component();
+      await download(0, bytes);
+      const unpack = vi.spyOn(meshes[0].extSplats, "forEachSplat");
+      meshes[0].done.resolve(meshes[0]);
+      await settle();
+      expect(unpack).toHaveBeenCalledTimes(1);
+      expect(c.splatMesh).toBe(meshes[0]);
+      expect(c.loadedVertexCount).toBe(1);
+      expect(c.boundingBox).toBeUndefined();
+      c.remove();
+    },
+  );
+
+  it.each([
+    "empty",
+    "partial-record",
+    "nonfinite-center",
+    "nonfinite-scale",
+    "wrong-count",
+    "recognized-format",
+  ])(
+    "falls back to decoded source bounds for %s instead of trusting raw bytes",
+    async (kind) => {
+      const c = component();
+      let bytes =
+        kind === "empty"
+          ? new ArrayBuffer(0)
+          : kind === "partial-record"
+            ? new ArrayBuffer(63)
+            : kind === "wrong-count"
+              ? binarySamples([...samples, samples[0]])
+              : binarySamples();
+      if (kind === "nonfinite-center")
+        new DataView(bytes).setFloat32(0, NaN, true);
+      if (kind === "nonfinite-scale")
+        new DataView(bytes).setFloat32(12, Infinity, true);
+      if (kind === "recognized-format")
+        new Uint8Array(bytes, 0, 4).set([112, 108, 121, 10]);
+      await download(0, bytes);
+      const unpack = vi.spyOn(meshes[0].extSplats, "forEachSplat");
+      meshes[0].done.resolve(meshes[0]);
+      await settle();
+      expect(unpack).toHaveBeenCalledTimes(1);
+      expect(c.loadedVertexCount).toBe(2);
+      expect(c.boundingBox.min.x).toBeCloseTo(-11.41421356);
+      c.remove();
+    },
+  );
 
   it("keeps a local box cutout under its existing transform and removes only its own SDF", async () => {
     const cutoutEntity = { object3D: new THREE.Object3D() },

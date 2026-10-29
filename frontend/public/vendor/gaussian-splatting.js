@@ -1,9 +1,12 @@
-import { SparkRenderer, SplatMesh, SplatEdit, SplatEditSdf, SplatEditSdfType, SplatAccumulator, releaseSplatWorkerPool } from "./spark-2.4.0.module.js";
+import { SparkRenderer, SplatMesh, SplatEdit, SplatEditSdf, SplatEditSdfType, SplatAccumulator, releaseSplatWorkerPool, getSplatFileType } from "./spark-2.4.0.module.js";
 
 // Spark and A-Frame share the same Three classes and WebGL renderer.
 const THREE = AFRAME.THREE;
 const SYSTEM = "gaussian-splatting-system";
 const MAX_STD_DEV = Math.sqrt(8);
+// ExtSplats stores half-float log(scales): within the fast path's safe range,
+// rounding can enlarge a radius by <3.2%. Pad 4% without per-point log/exp work.
+const BINARY_SCALE_PADDING = 1.04;
 const disposedMeshes = new WeakSet();
 const meshGenerators = new WeakMap();
 
@@ -36,6 +39,32 @@ function sourceBounds(source, mesh) {
   });
   mesh.updateMatrix();
   return valid && !box.isEmpty() ? box.applyMatrix4(mesh.matrix) : undefined;
+}
+
+function binarySplatBounds(bytes, src) {
+  if (!/\.splat$/i.test(src.split(/[?#]/, 1)[0]) || !bytes.byteLength || bytes.byteLength % 32) return;
+  // Other formats can be served under a .splat URL; keep Spark's format sniffing.
+  try { if (getSplatFileType(new Uint8Array(bytes))) return; } catch { return; }
+  const view = new DataView(bytes);
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  for (let offset = 0; offset < bytes.byteLength; offset += 32) {
+    const x = view.getFloat32(offset, true), y = view.getFloat32(offset + 4, true), z = view.getFloat32(offset + 8, true);
+    const sx = view.getFloat32(offset + 12, true), sy = view.getFloat32(offset + 16, true), sz = view.getFloat32(offset + 20, true);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z) ||
+        !Number.isFinite(sx) || !Number.isFinite(sy) || !Number.isFinite(sz)) return;
+    const maxScale = Math.max(sx, sy, sz);
+    // These inputs can decode to NaN/Infinity; preserve the decoded fallback's
+    // unknown bounds instead of assigning a misleading finite binary bound.
+    if (sx < 0 || sy < 0 || sz < 0 || maxScale > 3e38) return;
+    const radius = MAX_STD_DEV * BINARY_SCALE_PADDING * maxScale;
+    minX = Math.min(minX, x - radius); maxX = Math.max(maxX, x + radius);
+    minY = Math.min(minY, y - radius); maxY = Math.max(maxY, y + radius);
+    minZ = Math.min(minZ, z - radius); maxZ = Math.max(maxZ, z + radius);
+  }
+  return { count: bytes.byteLength / 32, box: new THREE.Box3(
+    new THREE.Vector3(minX, minY, minZ), new THREE.Vector3(maxX, maxY, maxZ),
+  ) };
 }
 
 AFRAME.registerComponent(SYSTEM, {
@@ -137,6 +166,9 @@ AFRAME.registerComponent("gaussian_splatting", {
       if (!response.ok) throw new Error(`Splat download failed (${response.status})`);
       const fileBytes = await response.arrayBuffer();
       if (token.cancelled) return;
+      // Scan before Spark transfers these bytes to its worker. No per-point
+      // quaternion/vector decoding or allocation is needed for legacy records.
+      const binaryBounds = binarySplatBounds(fileBytes, src);
       const generators = new Set();
       const mesh = token.mesh = new SplatMesh({
         fileBytes, fileName: src,
@@ -154,7 +186,10 @@ AFRAME.registerComponent("gaussian_splatting", {
       const full = mesh.extSplats;
       const source = full.getNumSplats() ? full : full.lodSplats;
       this.loadedVertexCount = source?.getNumSplats() || 0;
-      this.boundingBox = source ? sourceBounds(source, mesh) : undefined;
+      if (binaryBounds && binaryBounds.count === this.loadedVertexCount) {
+        mesh.updateMatrix();
+        this.boundingBox = binaryBounds.box.applyMatrix4(mesh.matrix);
+      } else this.boundingBox = source ? sourceBounds(source, mesh) : undefined;
       // Keep the hierarchy, release the original full-resolution buffers after
       // measuring every source splat. Bounds never depend on selected LOD points.
       if (full.lodSplats && full.getNumSplats()) {

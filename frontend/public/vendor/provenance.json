@@ -23,9 +23,10 @@
       "Retain full original splats temporarily for all-source Gaussian-extent bounds; release original buffers after measuring and retain the LOD hierarchy.",
       "Use covariance splats for nonuniform artwork transforms, a child PI rotation for legacy axes, and transform-preserving box SDF cutouts.",
       "Release the owned SplatMesh edit SDF texture omitted by Spark 2.4 dispose.",
-      "Track every generated compute pipeline used by each mesh and dispose its cached compute material on mesh release."
+      "Track every generated compute pipeline used by each mesh and dispose its cached compute material on mesh release.",
+      "Scan validated legacy 32-byte .splat centers/scales directly before worker transfer; retain decoded all-source fallback for other formats, mismatched counts or malformed bytes. Add 4% radius padding for extended half-float logarithmic scale rounding; preserve the legacy child rotation and root-local bounds. Reject negative scales or scales above 3e38 from the binary fast path so decoded NaN/Infinity retains unknown bounds."
     ],
-    "sha256": "cfcbd02644979525498046265588a6671fded025bc220e5f88ceeb733c60012d"
+    "sha256": "f929baa12cbe9388401dafb8687ff595302d32a6bfc4caab39fe3eeb3e7a0e2a"
   },
   "arjs": {
     "license": "arjs-LICENSE",

@@ -1,22 +1,31 @@
 {
   "aframe": {
-    "version": "1.6.0",
-    "source": "https://aframe.io/releases/1.6.0/aframe.min.js",
-    "license": "MIT",
-    "sha256": "09bb15fb7da164dc911faaf036d60299e57939c5f53b4c82397e190ee019aacd"
+    "version": "1.8.0",
+    "source": "https://aframe.io/releases/1.8.0/aframe.min.js",
+    "license": "AFRAME-LICENSE",
+    "three": "super-three 0.184.0 (A-Frame-owned AFRAME.THREE)",
+    "sha256": "27a49c530c18c0710f5d0b9492934d5ba6670fe492be37a5e5ea890f26a9864f"
   },
   "gaussian-splatting": {
-    "repository": "https://github.com/quadjr/aframe-gaussian-splatting",
-    "commit": "b50238f8051cdccf753fa34cbee69ee62a1cbfc2",
-    "version": "0.0.22",
-    "license": "gaussian-splatting-LICENSE",
-    "modifications": [
-      "Use owning A-Frame scene and AFRAME.THREE; initialize already-loaded scenes.",
-      "Abort downloads, cancel reader, terminate worker and revoke worker Blob URL on remove.",
-      "Dispose owned geometry/material/textures and stop pending init/sort callbacks.",
-      "Emit scoped splat-error events on network failures."
+    "source": "Local A-Frame component adapter; Spark 2.4.0",
+    "legacyComponentContract": [
+      "src",
+      "cutoutEntity",
+      "pixelRatio",
+      "xrPixelRatio",
+      "loadedVertexCount",
+      "splatMesh",
+      "splat-error"
     ],
-    "sha256": "4a41468f676397f4440ebee1ad5bc072dc4b20f7c3b0b6ca4fa904f8da173439"
+    "modifications": [
+      "One SparkRenderer per owning scene with an aggregate LOD splat budget; no scene pixel-ratio mutation.",
+      "Abort fetches and guard late decoder completion, source replacement and scene teardown.",
+      "Retain full original splats temporarily for all-source Gaussian-extent bounds; release original buffers after measuring and retain the LOD hierarchy.",
+      "Use covariance splats for nonuniform artwork transforms, a child PI rotation for legacy axes, and transform-preserving box SDF cutouts.",
+      "Release the owned SplatMesh edit SDF texture omitted by Spark 2.4 dispose.",
+      "Track every generated compute pipeline used by each mesh and dispose its cached compute material on mesh release."
+    ],
+    "sha256": "cfcbd02644979525498046265588a6671fded025bc220e5f88ceeb733c60012d"
   },
   "arjs": {
     "license": "arjs-LICENSE",
@@ -37,5 +46,43 @@
     "weight_commit": "a86f011d72124e5fb93e59d5c4ab98f699dd5c9c",
     "version": "0.22.2",
     "sha256": "5d66ec95338d7fcc365ce15481b8599baf4b6e22c9a624b76d4ca821a669a659"
+  },
+  "aframe-legacy": {
+    "version": "1.6.0",
+    "source": "https://aframe.io/releases/1.6.0/aframe.min.js",
+    "license": "MIT",
+    "sha256": "09bb15fb7da164dc911faaf036d60299e57939c5f53b4c82397e190ee019aacd"
+  },
+  "spark": {
+    "version": "2.4.0",
+    "repository": "https://github.com/sparkjsdev/spark",
+    "source": "https://registry.npmjs.org/@sparkjsdev/spark/-/spark-2.4.0.tgz",
+    "license": "spark-LICENSE",
+    "upstreamModuleSha256": "5ae86ab35d4ceb655db486dcc336299775bb314c280d7e5b39f64e4539f8e0e9",
+    "sha256": "b90459f208c3f365304a51bf73a3c5a6fccff8da0bad0c00e09f219a6e0ee942",
+    "modifications": [
+      "Resolve both external Three imports through ./aframe-three-bridge.js and the matching local ./three-Pass.js.",
+      "Remove the source-map footer because its optional developer map is not shipped.",
+      "Export releaseSplatWorkerPool to terminate only idle decoder workers on final scene release or canceled decode completion; active loads are untouched."
+    ],
+    "embeddedAssets": {
+      "wasm": "Base64-inlined spark_rs_bg.wasm, compiled by WebAssembly.compile; no external WASM URL.",
+      "worker": "Inline worker source created as a local Blob URL with a data URL fallback; no external worker URL."
+    }
+  },
+  "threePass": {
+    "version": "super-three 0.184.0",
+    "source": "https://registry.npmjs.org/super-three/-/super-three-0.184.0.tgz",
+    "upstreamPath": "examples/jsm/postprocessing/Pass.js",
+    "license": "three-LICENSE",
+    "upstreamSha256": "aa5bfb6cbaebb9b81758138e6b823a8283e3a12e882ab3cecbfb0c2a71996efd",
+    "sha256": "4905cedf51a4dc53334e33c95fae808432af222694caecd44145e5bed8347a58",
+    "modifications": [
+      "Resolve the external Three import through ./aframe-three-bridge.js."
+    ]
+  },
+  "threeBridge": {
+    "source": "Local ES module bindings to window.AFRAME.THREE; no second Three runtime.",
+    "sha256": "ebe88b89bba1f4dc3fcd766f64a544b278150619676ff92e766c085a275f6ee2"
   }
 }

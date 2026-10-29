@@ -1,5 +1,11 @@
 type Device = { mobile: boolean; xr: boolean; dpr: number };
 
+export function imageSizeLimit(pixels: number, cap: number, previous: number | undefined, pinned: boolean) {
+  const desired = pinned ? cap : Math.min(cap, Math.max(128, 2 ** Math.ceil(Math.log2(Math.max(1, pixels * 1.5)))));
+  if (!previous || previous > cap || desired >= previous * 2 || desired <= previous / 4 || pinned) return desired;
+  return previous;
+}
+
 export function qualitySettings(device: Device, level: number) {
   const scale = [1, 0.85, 0.7][Math.max(0, Math.min(2, level))];
   const constrained = device.mobile || device.xr;
@@ -85,7 +91,7 @@ export function createViewVisibility(THREE: any, scene: any) {
       return !bound || !views.length || views.some(view => view.frustum.intersectsSphere(bound));
     },
     measure(box: any) {
-      if (!box || box.isEmpty?.() || !views.length) return { visible: true, near: true, distance: 0, pixels: Infinity };
+      if (!box || box.isEmpty?.() || !views.length || ![box.min.x,box.min.y,box.min.z,box.max.x,box.max.y,box.max.z].every(Number.isFinite)) return { visible: true, near: true, distance: 0, pixels: Infinity };
       box.getBoundingSphere(sphere);
       let distance = Infinity, pixels = 0;
       for (const view of views) {

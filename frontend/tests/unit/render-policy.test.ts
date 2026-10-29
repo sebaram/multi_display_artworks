@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import * as MathThree from "../../src/wall-engine/reference/vendor/three.module.js";
-import { createViewVisibility, createQualityController, qualitySettings, selectResidents } from "../../src/scene/render-policy";
+import { createViewVisibility, createQualityController, qualitySettings, selectResidents, imageSizeLimit } from "../../src/scene/render-policy";
 const THREE: any = MathThree;
 
 it("uses either stereo eye and conservatively keeps unknown bounds", () => {
@@ -76,4 +76,11 @@ it("ignores hidden samples and long suspension gaps and keeps device budgets bou
   expect(xr.pixelRatio).toBeLessThanOrEqual(1);
   expect(xr.splatBudget).toBeLessThanOrEqual(500000);
   expect(qualitySettings({ mobile: true, xr: false, dpr: 3 }, 0).pixelRatio).toBeLessThanOrEqual(1);
+});
+
+it("clamps retained image LOD when entering a lower-memory device mode", () => {
+  expect(imageSizeLimit(900, 1024, 2048, false)).toBe(1024);
+  expect(imageSizeLimit(20, 2048, undefined, false)).toBe(128);
+  expect(imageSizeLimit(20, 2048, 256, false)).toBe(256);
+  expect(imageSizeLimit(20, 1024, 256, true)).toBe(1024);
 });

@@ -106,6 +106,7 @@ afterEach(() => {
 it("offers canonical controls for uploaded-video-only walls", async () => {
   mount();
   await screen.findByRole("button", { name: "Wall 공유 일시정지" });
+  await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
   fireEvent.click(screen.getByRole("button", { name: "Wall 공유 일시정지" }));
   expect(mocks.command).toHaveBeenCalledWith("w", "pause", undefined);
 });

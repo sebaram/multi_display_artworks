@@ -225,6 +225,7 @@ export default function Room({
   const elements = data?.walls.flatMap((w) => w.elements) || [],
     original = elements.find((e) => e.id === selected),
     draft = selected ? drafts[selected] || original : undefined;
+  useEffect(() => { instance.current?.select?.(selected); }, [selected, ready]);
   const panelOwner = aiOwner.current;
   function ownsAI(owner: typeof panelOwner) {
     return (

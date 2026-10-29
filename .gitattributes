@@ -3,3 +3,8 @@
 /frontend/public/vendor/** -whitespace
 /docs/reports/*.html -text
 /docs/reports/*.json -text
+/frontend/public/vendor/aframe-1.8.0.min.js -text
+/frontend/public/vendor/gaussian-splatting.js -text
+/frontend/public/vendor/spark-2.4.0.module.js -text
+/frontend/public/vendor/aframe-three-bridge.js -text
+/frontend/public/vendor/three-Pass.js -text

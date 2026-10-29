@@ -5,6 +5,8 @@ import { elementPosition, vector } from "./coordinates";
 import { animationTime, mediaTime, createServerClock } from "./clocks";
 import { registerLocationComponents } from "./location-features.js";
 import { mountAR } from "./ar";
+import { createViewVisibility, registerRenderScheduler, createQualityController, qualitySettings, selectResidents, imageSizeLimit } from "./render-policy";
+import { createArtworkSource, createResourceRegistry } from "./artwork-resources";
 import type { ElementDTO, RoomScene, WallDTO } from "../api/types";
 type Entity = HTMLElement & {
   object3D?: any;
@@ -35,6 +37,7 @@ export function loadAFrame() {
     runtime = new Promise((resolve, reject) => {
       const splat = () => {
         const script = document.createElement("script");
+        script.type = "module";
         script.src = "/vendor/gaussian-splatting.js";
         script.onload = () => resolve();
         script.onerror = () => {
@@ -48,7 +51,7 @@ export function loadAFrame() {
         return;
       }
       const script = document.createElement("script");
-      script.src = "/vendor/aframe-1.6.0.min.js";
+      script.src = "/vendor/aframe-1.8.0.min.js";
       script.onload = splat;
       script.onerror = () => {
         runtime = undefined;
@@ -98,13 +101,15 @@ export function mountRoom({
   const clock = createServerClock();
   const AFRAME = (window as any).AFRAME;
   if (AFRAME) registerLocationComponents(AFRAME);
+  const ownsRenderLoop = !!AFRAME?.registerComponent;
+  if (ownsRenderLoop) registerRenderScheduler(AFRAME);
   const scene = entity("a-scene", {
     embedded: "",
     renderer: "colorManagement: true; antialias: true",
     background: "color: #1a2028",
     "xr-mode-ui": "enabled: false",
     cursor: "rayOrigin: mouse",
-    raycaster: "objects: .artwork, .wall-surface",
+    raycaster: "objects: .artwork, .wall-surface; interval: 50",
   });
   scene.setAttribute("aria-label", bootstrap.room?.name || "3D 전시 공간");
   if (bootstrap.isArMarker) {
@@ -140,7 +145,7 @@ export function mountRoom({
   scene.append(camera);
   const elementNodes = new Map<
       string,
-      { node: Entity; wall: WallDTO; data: ElementDTO }
+      { node: Entity; wall: WallDTO; data: ElementDTO; source?: ReturnType<typeof createArtworkSource>; lastVisible: number; imageLimit?: number }
     >(),
     walls = new Map<
       string,
@@ -156,6 +161,17 @@ export function mountRoom({
     >();
   let realtime: any;
   let frame = 0;
+  const view = AFRAME?.THREE?.Matrix4 ? createViewVisibility(AFRAME.THREE, scene) : undefined;
+  const quality = createQualityController();
+  let appliedQuality = "", lastWallWidth = 1024;
+  let fixedQuality: number | null = null;
+  const mobile = window.matchMedia?.("(pointer: coarse)")?.matches && window.innerWidth < 1100;
+  const performanceState = { level: 0, wallsRendered: 0, wallsSkipped: 0, residentArtworks: 0, settings: qualitySettings({ mobile: !!mobile, xr: false, dpr: window.devicePixelRatio }, 0),
+    setFixedQuality(level: number | null) { fixedQuality = level === null ? null : Math.max(0, Math.min(2, Math.round(level))); } };
+  (scene as any).galleryPerformance = performanceState;
+  const resourceRegistry = AFRAME?.THREE?.Texture && AFRAME?.THREE?.Mesh ? createResourceRegistry(scene, AFRAME.THREE) : undefined;
+  life.add(() => resourceRegistry?.dispose());
+  let pinnedSelection: string | null = null, lastResidency = -Infinity;
   let lastPointer = 0;
   let sequence = 0;
   const structures = new Map<
@@ -206,10 +222,10 @@ export function mountRoom({
     structures.get(wall.id)?.base.dispose();
     const wallLife = createLifetime();
     const canvas = document.createElement("canvas");
-    canvas.width = 1024;
+    canvas.width = performanceState.settings.wallWidth;
     canvas.height = Math.max(
       128,
-      Math.round((1024 * wall.height) / wall.width),
+      Math.round((canvas.width * wall.height) / wall.width),
     );
     canvas.id = `design-${wall.id}`;
     assets.append(canvas);
@@ -339,7 +355,11 @@ export function mountRoom({
         scale: `${element.scale_x ?? 1} ${element.scale_y ?? 1} ${element.scale_z ?? 1}`,
       });
       root.setAttribute("title", element.name || "작품");
-      if (element.wall_element_type === "image")
+      const source = resourceRegistry && ["image", "gltf", "gaussian_splat"].includes(element.wall_element_type)
+        ? createArtworkSource({ root, data: element, AFRAME, resources: resourceRegistry, onError: services.onError, maxImageSize: performanceState.settings.maxImageSize })
+        : undefined;
+      if (source) { /* Stable artwork root owns its lazily resident source. */ }
+      else if (element.wall_element_type === "image")
         root.append(
           entity("a-image", {
             src: safeMediaUrl(element.image_url),
@@ -390,11 +410,12 @@ export function mountRoom({
             material: "side: double",
           }),
         );
-      const select = () => services.onSelect?.(element.id);
+      const select = () => { pinnedSelection = element.id; lastResidency = -Infinity; services.onSelect?.(element.id); };
       root.addEventListener("click", select);
       const down = (event: any) => {
         if (!bootstrap.isAdmin || !event.detail?.intersection) return;
         services.onSelect?.(element.id);
+        pinnedSelection = element.id; lastResidency = -Infinity;
         dragging = element.id;
         camera.setAttribute("look-controls", "enabled: false");
       };
@@ -404,7 +425,7 @@ export function mountRoom({
         root.removeEventListener("mousedown", down);
       });
       node.append(root);
-      elementNodes.set(element.id, { node: root, wall, data: element });
+      elementNodes.set(element.id, { node: root, wall, data: element, source, lastVisible: -Infinity });
     }
   }
   let dragging: string | undefined;
@@ -613,24 +634,88 @@ export function mountRoom({
   }
   scene.addEventListener("loaded", ready);
   life.add(() => scene.removeEventListener("loaded", ready));
-  function render() {
+  function updateResidency(time: number) {
+    if (!resourceRegistry || time - lastResidency < 250) return;
+    lastResidency = time;
+    (scene as any).object3D?.updateMatrixWorld(true);
+    const candidates = [];
+    for (const [id, entry] of elementNodes) {
+      if (!entry.source) continue;
+      const measured = view?.measure(entry.source.bounds) || { visible: true, near: true, distance: 0, pixels: Infinity };
+      const pinned = id === pinnedSelection || id === dragging;
+      const visible = measured.visible && measured.pixels >= (entry.source.resident ? 4 : 8);
+      if (visible || pinned) entry.lastVisible = time;
+      if (entry.data.wall_element_type === "image") {
+        entry.imageLimit = imageSizeLimit(measured.pixels, performanceState.settings.maxImageSize, entry.imageLimit, pinned);
+      }
+      candidates.push({ id, visible, pinned, near: measured.near && measured.pixels >= 4, distance: measured.distance, lastVisible: entry.lastVisible, resident: entry.source.resident });
+    }
+    const wanted = selectResidents(candidates, time, performanceState.settings.prefetch);
+    performanceState.residentArtworks = 0;
+    for (const [id, entry] of elementNodes) {
+      if (!entry.source) continue;
+      entry.source.setQuality({ maxImageSize: entry.imageLimit || performanceState.settings.maxImageSize });
+      entry.source.setResident(wanted.has(id));
+      entry.node.classList.toggle("resident-artwork", entry.source.resident);
+      entry.node.dataset.resident = String(entry.source.resident);
+      if (entry.source.resident) performanceState.residentArtworks++;
+    }
+  }
+  function render(time = performance.now(), delta = 16) {
     if (life.disposed) return;
+    view?.update();
+    const xr = !!scene.renderer?.xr?.isPresenting;
+    const target = 1000 / (xr ? scene.renderer.xr.getSession?.()?.frameRate || 72 : 60);
+    const level = fixedQuality ?? quality.sample(time, delta, target, document.visibilityState !== "hidden");
+    const settings = qualitySettings({ mobile: !!mobile, xr, dpr: window.devicePixelRatio }, level);
+    const qualityKey = `${xr}/${level}/${settings.pixelRatio}`;
+    if (scene.renderer && qualityKey !== appliedQuality) {
+      appliedQuality = qualityKey;
+      if (!xr) scene.renderer.setPixelRatio(settings.pixelRatio);
+      else scene.renderer.xr.setFoveation?.([0, 0.4, 0.7][level]);
+      scene.components?.["gaussian-splatting-system"]?.setBudget?.(settings.splatBudget);
+      if (lastWallWidth !== settings.wallWidth) {
+        lastWallWidth = settings.wallWidth;
+        for (const wall of walls.values()) {
+          const image = wall.node.getObject3D?.("mesh")?.material?.map?.image;
+          const ratio = image?.width && image?.height ? image.height / image.width : 9 / 16;
+          wall.renderer?.resize(settings.wallWidth, Math.max(1, Math.round(settings.wallWidth * ratio)));
+        }
+      }
+    }
+    performanceState.level = level; performanceState.settings = settings;
+    updateResidency(time);
+    performanceState.wallsRendered = performanceState.wallsSkipped = 0;
     for (const wall of walls.values()) {
       const epoch = wall.binding.animation_epoch_ms || 0;
       const now = clock.now();
-      wall.renderer?.render(
+      const playback = wall.playback ? mediaTime(wall.playback, now) : { positionSeconds: animationTime(wall.binding.config, epoch, now), playing: !wall.binding.config.state?.paused, rate: wall.binding.config.state?.speed ?? 1 };
+      wall.renderer?.syncPlayback?.(playback);
+      const mesh = wall.node.getObject3D?.("mesh");
+      if (document.visibilityState === "hidden" || (view && !view.intersects(mesh))) {
+        performanceState.wallsSkipped++; continue;
+      }
+      const changed = wall.renderer?.render(
         animationTime(wall.binding.config, epoch, now),
-        wall.playback ? mediaTime(wall.playback, now) : undefined,
+        playback,
       );
-      const texture = wall.node.getObject3D?.("mesh")?.material?.map;
-      if (texture) texture.needsUpdate = true;
+      const texture = mesh?.material?.map;
+      if (texture && changed !== false) texture.needsUpdate = true;
+      if (changed !== false) performanceState.wallsRendered++;
+      else performanceState.wallsSkipped++;
     }
-    frame = requestAnimationFrame(render);
+    if (!ownsRenderLoop) frame = requestAnimationFrame(render);
   }
-  if (typeof requestAnimationFrame === "function")
+  if (ownsRenderLoop) {
+    (scene as any).galleryRenderWork = render;
+    scene.setAttribute("gallery-render-work", "");
+    life.add(() => { delete (scene as any).galleryRenderWork; scene.removeAttribute("gallery-render-work"); });
+  } else if (typeof requestAnimationFrame === "function")
     frame = requestAnimationFrame(render);
   life.add(() => cancelAnimationFrame(frame));
   life.add(() => {
+    for (const entry of elementNodes.values()) entry.source?.dispose();
+    resourceRegistry?.dispose();
     for (const video of media) {
       video.pause();
       video.removeAttribute("src");
@@ -645,6 +730,7 @@ export function mountRoom({
   });
   return {
     scene,
+    select(id: string | null) { pinnedSelection = id; lastResidency = -Infinity; },
     getCameraPose() {
       const position =
         camera.object3D?.position || vector(camera.getAttribute("position"));
@@ -711,7 +797,7 @@ export function mountRoom({
           entry.wall = destination.wall;
         }
         if (
-          entry.data.wall_element_type === "gaussian_splat" &&
+          !entry.source && entry.data.wall_element_type === "gaussian_splat" &&
           patch.splat_url !== undefined &&
           safeMediaUrl(patch.splat_url) !== safeMediaUrl(entry.data.splat_url) &&
           entry.node.hasAttribute("gaussian_splatting")
@@ -739,6 +825,7 @@ export function mountRoom({
           "rotation",
           `${entry.data.rotation_x || 0} ${entry.data.rotation_y || 0} ${entry.data.rotation_z || 0}`,
         );
+        if (entry.source) { entry.source.setData(entry.data); lastResidency = -Infinity; continue; }
         const image = entry.node.querySelector("a-image");
         if (image && patch.image_url)
           image.setAttribute("src", safeMediaUrl(patch.image_url));
@@ -749,6 +836,7 @@ export function mountRoom({
       }
     },
     teleport(preset: any) {
+      lastResidency = -Infinity;
       camera.setAttribute("position", preset.position);
       camera.setAttribute("rotation", preset.rotation);
       const rotation = vector(preset.rotation);

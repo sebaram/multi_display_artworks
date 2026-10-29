@@ -6,4 +6,6 @@ Original preset geometry, materials, lighting, floor scenes, research sculptures
 
 The copied Three.js runtime is MIT licensed. Its complete notice remains at `frontend/src/wall-engine/reference/vendor/THREE-LICENSE.txt`.
 
+The gallery uses A-Frame 1.8.0 with its bundled super-three r184 and Spark 2.4.0. Spark's external Three imports bind to A-Frame's existing runtime, with the matching super-three `Pass.js` helper. Their complete MIT notices, pinned SHA-256 hashes, source URLs, and local import/lifecycle modifications are recorded in `frontend/public/vendor/NOTICE.md`, `provenance.json`, `AFRAME-LICENSE`, `spark-LICENSE`, and `three-LICENSE`. Spark's WASM and worker are embedded in its vendored module.
+
 Host Grotesk and Atkinson Hyperlegible Mono are licensed under the SIL Open Font License 1.1. Their complete licenses remain with the bundled font files at `frontend/public/wall-reference/fonts/hostgrotesk-OFL.txt` and `frontend/public/wall-reference/fonts/atkinsonhyperlegiblemono-OFL.txt`.

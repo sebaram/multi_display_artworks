@@ -3,6 +3,7 @@ import { copyFile, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { captureErrors, login, mutate } from "./helpers";
+
 test("actual splat source replacement preserves clipping and disposes each old component", async ({
   page,
 }) => {
@@ -20,6 +21,134 @@ test("actual splat source replacement preserves clipping and disposes each old c
     staticFile,
   );
   let id: string | undefined;
+  const artwork = page.locator("[gaussian_splatting]");
+  const waitForSource = async (count: number) => {
+    await expect
+      .poll(
+        () =>
+          artwork.evaluate(
+            (el: any) => el.components?.gaussian_splatting?.loadedVertexCount,
+          ),
+        { timeout: 20000 },
+      )
+      .toBe(count);
+    await expect
+      .poll(
+        () =>
+          artwork.evaluate(
+            (el: any) =>
+              el.sceneEl.components["gaussian-splatting-system"].statistics
+                .activeSplats,
+          ),
+        { timeout: 10000 },
+      )
+      .toBeGreaterThan(0);
+    expect(
+      await artwork.evaluate((el: any) => {
+        const c = el.components.gaussian_splatting;
+        const stats =
+          el.sceneEl.components["gaussian-splatting-system"].statistics;
+        return (
+          !!c.splatMesh &&
+          !c.boundingBox.isEmpty() &&
+          stats.meshes === 1 &&
+          stats.loadedVertexCount === c.loadedVertexCount
+        );
+      }),
+    ).toBe(true);
+  };
+  const trackDisposal = () =>
+    artwork.evaluate((el: any) => {
+      const c = el.components.gaussian_splatting;
+      const renderer =
+        el.sceneEl.components["gaussian-splatting-system"].renderer;
+      const mesh = c.splatMesh;
+      const record: any = {
+        component: c,
+        mesh,
+        renderer,
+        controller: c.loadToken.controller,
+        terminated: 0,
+        disposed: new Set(),
+        resources: [],
+        textures: [],
+      };
+      (window as any).__splatRoom.components.push(record);
+      const workers = [
+        renderer.sortWorker?.worker,
+        renderer.lodWorker?.worker,
+      ].filter(Boolean);
+      record.workers = workers.length;
+      for (const worker of workers) {
+        const terminate = worker.terminate.bind(worker);
+        worker.terminate = () => {
+          record.terminated++;
+          terminate();
+        };
+      }
+      const targets = [
+        ...new Set(
+          [renderer.current, renderer.display, ...renderer.accumulators]
+            .map((acc: any) => acc.target)
+            .filter(Boolean),
+        ),
+      ] as any[];
+      const textures = [
+        ...mesh.extSplats.lodSplats.textures,
+        mesh.rgbaDisplaceEdits?.sdfTexture,
+        renderer.orderingTexture,
+        ...targets.flatMap((target: any) => target.textures),
+      ].filter(Boolean);
+      const resources = [
+        ...new Set(
+          [
+            renderer.geometry,
+            renderer.material,
+            renderer.orderingTexture,
+            mesh.rgbaDisplaceEdits?.sdfTexture,
+            ...mesh.extSplats.lodSplats.textures,
+            ...targets,
+          ].filter(Boolean),
+        ),
+      ];
+      record.resources = resources;
+      for (const resource of resources)
+        resource.addEventListener("dispose", () =>
+          record.disposed.add(resource),
+        );
+      record.gl = el.sceneEl.renderer.getContext();
+      record.textures = [
+        ...new Set(
+          textures
+            .map(
+              (texture: any) =>
+                el.sceneEl.renderer.properties.get(texture).__webglTexture,
+            )
+            .filter(Boolean),
+        ),
+      ];
+      return {
+        resources: resources.length,
+        textures: record.textures.length,
+        workers: workers.length,
+      };
+    });
+  const disposed = () =>
+    page.evaluate(() =>
+      (window as any).__splatRoom.components.every(
+        (r: any) =>
+          r.component.disposed &&
+          r.controller.signal.aborted &&
+          !r.component.splatMesh &&
+          !r.mesh.parent &&
+          !r.renderer.parent &&
+          r.renderer.isDisposed &&
+          r.terminated === r.workers &&
+          r.disposed.size === r.resources.length &&
+          r.textures.length > 0 &&
+          r.textures.every((texture: any) => !r.gl.isTexture(texture)),
+      ),
+    );
   try {
     await login(page);
     const original = await (
@@ -58,165 +187,71 @@ test("actual splat source replacement preserves clipping and disposes each old c
       (await (await page.request.get(`/api/v1/admin/splats/${id}`)).json())
         .splat_url,
     ).toBe(originalSource);
-    await expect
-      .poll(
-        () =>
-          page
-            .locator("[gaussian_splatting]")
-            .evaluate(
-              (el: any) => el.components?.gaussian_splatting?.loadedVertexCount,
-            ),
-        { timeout: 20000 },
-      )
-      .toBe(512);
-    await expect
-      .poll(
-        () =>
-          page
-            .locator("[gaussian_splatting]")
-            .evaluate(
-              (el: any) =>
-                el.components.gaussian_splatting.splatMesh.geometry
-                  .instanceCount,
-            ),
-        { timeout: 10000 },
-      )
-      .toBeGreaterThan(0);
-    const clipped = await page
-      .locator("[gaussian_splatting]")
-      .evaluate((el: any) => {
-        const c = el.components.gaussian_splatting;
-        return c.splatMesh.geometry.instanceCount;
-      });
-    expect(clipped).toBeLessThan(512);
+    await waitForSource(512);
     await page
       .locator("video")
       .evaluateAll((videos) =>
         videos.forEach((video) => (video as HTMLVideoElement).pause()),
       );
+    expect(
+      await artwork.evaluate((el: any) => {
+        const c = el.components.gaussian_splatting;
+        (window as any).__splatRoom = {
+          scene: el.sceneEl,
+          canvas: el.sceneEl.canvas,
+          camera: el.sceneEl.camera,
+          artwork: el,
+          cutout: c.data.cutoutEntity,
+          components: [],
+        };
+        return (
+          c.cutoutSdf?.parent === c.data.cutoutEntity.object3D &&
+          c.splatMesh.edits.length === 1
+        );
+      }),
+    ).toBe(true);
     const clippedPixels = await page
       .locator("a-scene canvas")
       .screenshot({ path: "test-results/splat-clipped.png" });
-    await page.locator("[gaussian_splatting]").evaluate((el: any) => {
-      el.components.gaussian_splatting.cutout = null;
-    });
+    await artwork.evaluate((el: any) =>
+      el.setAttribute("gaussian_splatting", "cutoutEntity", ""),
+    );
     await expect
       .poll(() =>
-        page
-          .locator("[gaussian_splatting]")
-          .evaluate(
-            (el: any) =>
-              el.components.gaussian_splatting.splatMesh.geometry.instanceCount,
-          ),
+        artwork.evaluate(
+          (el: any) => el.components.gaussian_splatting.cutoutSdf,
+        ),
       )
-      .toBeGreaterThan(clipped);
+      .toBeNull();
     const unclippedPixels = await page
       .locator("a-scene canvas")
       .screenshot({ path: "test-results/splat-unclipped.png" });
     expect(clippedPixels.equals(unclippedPixels)).toBe(false);
-    await page.locator("[gaussian_splatting]").evaluate((el: any) => {
-      const c = el.components.gaussian_splatting;
-      c.cutout = c.data.cutoutEntity.object3D;
-      (window as any).__splatRoom = {
-        scene: el.sceneEl,
-        canvas: el.sceneEl.canvas,
-        camera: el.sceneEl.camera,
-        artwork: el,
-        cutout: c.cutout,
-        components: [],
-      };
-    });
+    await artwork.evaluate((el: any) =>
+      el.setAttribute(
+        "gaussian_splatting",
+        "cutoutEntity",
+        (window as any).__splatRoom.cutout,
+      ),
+    );
     await expect
       .poll(() =>
-        page
-          .locator("[gaussian_splatting]")
-          .evaluate(
-            (el: any) =>
-              el.components.gaussian_splatting.splatMesh.geometry.instanceCount,
-          ),
-      )
-      .toBe(clipped);
-    const trackDisposal = async () =>
-      page.locator("[gaussian_splatting]").evaluate((el: any) => {
-        const c = el.components.gaussian_splatting;
-        const record: any = {
-          component: c,
-          terminated: false,
-          cancelled: false,
-          disposed: [],
-        };
-        (window as any).__splatRoom.components.push(record);
-        const terminate = c.worker.terminate.bind(c.worker);
-        c.worker.terminate = () => {
-          record.terminated = true;
-          terminate();
-        };
-        const cancel = c.reader.cancel.bind(c.reader);
-        c.reader.cancel = () => {
-          record.cancelled = true;
-          return cancel();
-        };
-        const resources = {
-          geometry: c.splatMesh.geometry,
-          material: c.splatMesh.material,
-          centers: c.centerAndScaleTexture,
-          colors: c.covAndColorTexture,
-        };
-        for (const [name, resource] of Object.entries(resources) as any)
-          resource.addEventListener("dispose", () =>
-            record.disposed.push(name),
-          );
-        const gl = c.renderer.getContext();
-        record.gl = gl;
-        record.textures = [c.centerAndScaleTexture, c.covAndColorTexture].map(
-          (t) => c.renderer.properties.get(t).__webglTexture,
-        );
-      });
-    const disposed = () =>
-      page.evaluate(() =>
-        (window as any).__splatRoom.components.every(
-          (r: any) =>
-            r.component.disposed &&
-            r.component.abortController.signal.aborted &&
-            r.terminated &&
-            r.cancelled &&
-            r.disposed.length === 4 &&
-            !r.component.splatMesh.parent &&
-            r.textures.every((t: any) => !r.gl.isTexture(t)),
+        artwork.evaluate(
+          (el: any) =>
+            el.components.gaussian_splatting.cutoutSdf?.parent ===
+            (window as any).__splatRoom.cutout.object3D,
         ),
-      );
-    await trackDisposal();
+      )
+      .toBe(true);
+    const first = await trackDisposal();
+    expect(first.textures).toBeGreaterThan(0);
+    expect(first.workers).toBe(2);
     const originalPixels = await page.locator("a-scene canvas").screenshot();
     await page
       .getByLabel("미디어 URL")
       .fill("http://127.0.0.1:8766/alternate.splat");
-    await expect
-      .poll(() =>
-        page
-          .locator("[gaussian_splatting]")
-          .evaluate(
-            (el: any) => el.components.gaussian_splatting.loadedVertexCount,
-          ),
-      )
-      .toBe(343);
-    await expect
-      .poll(() =>
-        page
-          .locator("[gaussian_splatting]")
-          .evaluate(
-            (el: any) =>
-              el.components.gaussian_splatting.splatMesh.geometry.instanceCount,
-          ),
-      )
-      .toBeGreaterThan(0);
-    const alternateCount = await page
-      .locator("[gaussian_splatting]")
-      .evaluate(
-        (el: any) =>
-          el.components.gaussian_splatting.splatMesh.geometry.instanceCount,
-      );
-    expect(alternateCount).toBeLessThan(343);
-    expect(await disposed()).toBe(true);
+    await waitForSource(343);
+    await expect.poll(disposed).toBe(true);
     const alternatePixels = await page
       .locator("a-scene canvas")
       .screenshot({ path: "test-results/splat-replaced.png" });
@@ -231,35 +266,20 @@ test("actual splat source replacement preserves clipping and disposes each old c
     ).toBe("http://127.0.0.1:8766/alternate.splat");
     await trackDisposal();
     await page.getByLabel("미디어 URL").fill(originalSource);
-    await expect
-      .poll(() =>
-        page
-          .locator("[gaussian_splatting]")
-          .evaluate(
-            (el: any) => el.components.gaussian_splatting.loadedVertexCount,
-          ),
-      )
-      .toBe(512);
-    await expect
-      .poll(() =>
-        page
-          .locator("[gaussian_splatting]")
-          .evaluate(
-            (el: any) =>
-              el.components.gaussian_splatting.splatMesh.geometry.instanceCount,
-          ),
-      )
-      .toBe(clipped);
-    expect(await disposed()).toBe(true);
+    await waitForSource(512);
+    await expect.poll(disposed).toBe(true);
     expect(
-      await page.locator("[gaussian_splatting]").evaluate((el: any) => {
+      await artwork.evaluate((el: any) => {
         const previous = (window as any).__splatRoom;
         return (
           el === previous.artwork &&
           el.sceneEl === previous.scene &&
           el.sceneEl.canvas === previous.canvas &&
           el.sceneEl.camera === previous.camera &&
-          el.components.gaussian_splatting.cutout === previous.cutout &&
+          el.components.gaussian_splatting.data.cutoutEntity ===
+            previous.cutout &&
+          el.components.gaussian_splatting.cutoutSdf.parent ===
+            previous.cutout.object3D &&
           el.getAttribute("position").x === 0.6
         );
       }),
@@ -274,7 +294,7 @@ test("actual splat source replacement preserves clipping and disposes each old c
     ).toBe(originalSource);
     await trackDisposal();
     await page.getByRole("link", { name: "← 전시 목록" }).click();
-    expect(await disposed()).toBe(true);
+    await expect.poll(disposed).toBe(true);
     expect(errors).toEqual([]);
   } finally {
     try {
@@ -287,6 +307,7 @@ test("actual splat source replacement preserves clipping and disposes each old c
     }
   }
 });
+
 test("real wall video advances with native or HLS player and image background renders", async ({
   page,
 }) => {
@@ -327,8 +348,15 @@ test("allowed webpage is usable in DOM player and blocked page retains external 
   await expect(
     page.frameLocator('iframe[title="작품 웹페이지"]').locator("body"),
   ).toContainText("Migration frame allowed");
-  await page.frameLocator('iframe[title="작품 웹페이지"]').getByRole('button',{name:'Interact'}).click();
-  await expect(page.frameLocator('iframe[title="작품 웹페이지"]').getByRole('button',{name:'Clicked'})).toBeVisible();
+  await page
+    .frameLocator('iframe[title="작품 웹페이지"]')
+    .getByRole("button", { name: "Interact" })
+    .click();
+  await expect(
+    page
+      .frameLocator('iframe[title="작품 웹페이지"]')
+      .getByRole("button", { name: "Clicked" }),
+  ).toBeVisible();
   await page.goto(
     "/element?wall_element_id=000000000000000000000019&type=webpage",
   );

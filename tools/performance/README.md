@@ -1,5 +1,28 @@
 # Local performance evaluation
 
+## Optimization follow-up
+
+`run_optimization.mjs` compares the preserved `52ee0b4` product build on8101 and frozen optimized production bundle on8102, using the same retained synthetic DB/fixture server. It writes separate `output/playwright/render-optimization/` results and never overwrites the original report. Start `monitor_windows.py` with that directory's `monitor-targets.json` and `system-samples.jsonl` before timing.
+
+```powershell
+node tools/performance/run_optimization.mjs dry
+node tools/performance/run_optimization.mjs desktop
+node tools/performance/run_optimization.mjs stationary
+node tools/performance/run_optimization.mjs mobile
+node tools/performance/run_optimization.mjs adaptive
+# Stop the owned monitor after all modes finish so its evidence hash is stable.
+python tools/performance/assemble_optimization_results.py
+python tools/performance/build_optimization_report.py
+```
+
+The follow-up uses 1440×900 or390×844 at DPR1, 8-second full-yaw warmup and10-second observation windows. Stationary trials also settle5seconds after warmup. FPS counts only the main scene's render calls, excluding Spark's internal passes. Fixed mode disables quality adaptation at level0; image/splat LOD and residency stay enabled. CPU-limited mobile runs remain a PC stress test. GPU dedicated usage follows screenshot capture; RAM samples cover the observation and trace-return window. Do not run other browsers/load generators or rebuild the served bundle during timing. Full original `.splat` data and glTF loads can still transiently consume memory during initial bounds/LOD generation.
+
+The packager audits the 46 selected repeats and preserves superseded development-iteration IDs separately. All 24 optimized trials use the final product revision, including the ambient-light compatibility correction; the 22 original baseline trials remain unchanged. The runner records the latest commit touching product paths, so documentation-only commits do not change the measured revision. Product working files must be clean. `node --test tools/performance/device_probe.test.mjs` checks that the actual-device collector uses the right loop and excludes Spark's internal passes from FPS; it is a synthetic collector test, not an actual headset measurement. `run_gallery_pick_checks.mjs` exercises real pointer clicks through Chrome and saves its four artwork-type results.
+
+After assembly, serve `docs/reports` on port 8099 and run `node tools/performance/run_optimization_report_check.mjs` through the existing `perfopt` Chrome session. It checks embedded screenshot decoding, filters/detail/zoom, 390px layout and the actual JSON download, then records the report/data hashes in `render-optimization-validation.json`.
+
+Current product details are in [rendering-performance.md](../../docs/rendering-performance.md); the original sections below describe the preserved baseline evaluation.
+
 The report is [performance-evaluation.html](../../docs/reports/performance-evaluation.html). All graphs, data and screenshots are embedded. [performance-results.json](../../docs/reports/performance-results.json) retains trial frame intervals, CPU counter bases, measurement-window system snapshots, and grouped values. These tools do not alter product code or production data.
 
 ## What is measured
@@ -70,6 +93,6 @@ The report preview is `http://127.0.0.1:8099/performance-evaluation.html`. All g
 
 No performance values are fabricated for missing hardware. With a developer-authorized USB device, `adb reverse tcp:8101 tcp:8101` and `adb reverse tcp:8767 tcp:8767` make the local app/assets available to its browser. Open the manifest's room URL using `http://localhost:8101`; localhost also provides the secure-context exception required for WebXR. Inspect that actual device page remotely. iOS requires its own Safari/device tooling.
 
-Paste `device_probe.js` into the inspected actual page. For Quest, enter immersive VR first; the collector uses `XRSession.requestAnimationFrame` rather than Window RAF. It keeps the actual refresh-rate/drawing-buffer data and exports JSON, leaving unsupported total-RAM/CPU/GPU fields null. Capture browser process memory/CPU with ADB and Quest OVR Metrics alongside it; browser JS alone cannot supply equivalent device OS counters. Check live-wall animation during immersive VR because its product update loop currently uses Window RAF. Verify splat quality with its default XR framebuffer scale0.5.
+Paste `device_probe.js` into the inspected actual page. For Quest, enter immersive VR first; the collector uses `XRSession.requestAnimationFrame` rather than Window RAF. It keeps the actual refresh-rate/drawing-buffer data and exports JSON, leaving unsupported total-RAM/CPU/GPU fields null. Capture browser process memory/CPU with ADB and Quest OVR Metrics alongside it; browser JS alone cannot supply equivalent device OS counters. Verify stereo live-wall visibility, image/splat detail and actual framebuffer dimensions. The preserved baseline used a window-RAF wall loop and a splat-specific XR scale0.5; current rendering uses A-Frame's XR loop and centralized quality policy.
 
 This report does not certify device thermals, battery life, immersive stereo cadence, mobile Safari/Android hardware, WAN/TURN, many simultaneous visitors, authoring-studio editing, active voice/camera or paid AI providers. The primary workload is a visitor entering and looking around real exhibition rooms.

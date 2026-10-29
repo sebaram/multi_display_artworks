@@ -30,6 +30,8 @@ Feature-by-feature [before/after HTML report](docs/reports/migration-before-afte
 
 [Performance evaluation](docs/reports/performance-evaluation.html) compares 59 conditions across room sizes, content types, desktop rendering and desktop mobile stress profiles. Actual phone/Quest 3 hardware was unavailable; the report separates those unmeasured targets from the workstation results. [Benchmark methods and reproduction](tools/performance/README.md).
 
+[Rendering optimization](docs/reports/render-optimization.html) compares the original runtime with visible-wall scheduling, bounded artwork residency, image LOD and a shared Spark 2.4 splat renderer. [Rendering policy and remaining limits](docs/rendering-performance.md).
+
 ## Wall designs
 
 Open a wall's design action while signed in as an administrator, or visit `/wall-editor?wall_id=<id>`. The standalone designer is at `/wall-editor`.

@@ -12,6 +12,7 @@
   const original = renderer.render;
   let frames = 0, first, previous;
   renderer.render = function (...args) {
+    if (args[0] !== scene.object3D) return original.apply(this, args);
     const start = performance.now();
     try { return original.apply(this, args); }
     finally { cpu.push(performance.now() - start); frames++; }

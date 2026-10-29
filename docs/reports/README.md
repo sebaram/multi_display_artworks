@@ -1,5 +1,9 @@
 # 비교·성능 보고서
 
+[렌더링 최적화 전후 비교](render-optimization.html)는 기존 빌드와 화면 밖 월 갱신 중단, 이미지 LOD·자산 해제, Spark 2.4 공유 렌더러를 적용한 빌드를 비교합니다. 동일 화면 버퍼 조건과 자동 품질 조절 조건을 구분하고, 화질·메모리 비용이 달라진 부분도 표시합니다. [적용 정책과 한계](../rendering-performance.md).
+
+최종 빌드의 46회 비교와 스크린샷 25장을 단일 HTML에 담았습니다. [원자료](render-optimization-results.json), [브라우저 검증](render-optimization-validation.json), [파일 해시](render-optimization-artifact.json)를 함께 보관합니다. 이미지 재방문 시 작은 축소 이미지를 재사용해 개발 중 발견한 모바일 FPS 퇴행을 해소했습니다. 라이브 월 고정 해상도 FPS 감소와 splat 메모리 증가는 첫 평가에 명시했습니다. 실제 휴대폰·Quest 3는 미측정입니다.
+
 [성능 평가 보고서](performance-evaluation.html)는 59개 조건의 일반 측정 118회, 라이브 월 3분 실행, API 동시 요청 144회와 SPA 왕복 10회를 포함합니다. FPS·프레임 간격·CPU·RAM·GPU 전용 메모리를 비교하고 CSV/JSON을 내보낼 수 있습니다. 실제 휴대폰·Quest 3는 미측정이며, 모바일 항목은 같은 PC의 화면·CPU 제한 조건입니다. [측정 방법과 재현](../../tools/performance/README.md), [원자료](performance-results.json)를 함께 보관했습니다.
 
 ## 기능별 전후 비교

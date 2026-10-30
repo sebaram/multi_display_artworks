@@ -94,6 +94,8 @@ function createHumanoidAvatar(profile, document) {
     if (controller.signal.aborted) return;
     const scene = wrapper.sceneEl || document.querySelector('a-scene');
     instance = await createAvatarInstance({ scene: scene.object3D, preset, appearance: pendingAppearance, signal: controller.signal });
+    // A profile may change while the shared GLB request is still pending.
+    instance.applyAppearance(pendingAppearance || preset.defaultAppearance);
     wrapper.avatarInstance = instance;
     if (bodyPose) wrapper.setBodyTransform(bodyPose);
     return instance;

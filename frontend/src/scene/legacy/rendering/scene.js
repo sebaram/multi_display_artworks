@@ -1,3 +1,5 @@
+import { AVATAR_CATALOG } from '../avatar-catalog.js';
+
 function removeElement(element) {
   if (!element) return;
   element.disposeAvatar?.();
@@ -48,7 +50,7 @@ function updateProfile(camera, user, createAvatarEntity) {
   if (camera.getAttribute('data-profile-key') !== profileKey) {
     const current = camera.querySelector('.remote-avatar');
     if (current?.canApplyProfile?.(user)) {
-      current.applyAppearance(user.appearance);
+      current.applyAppearance(user.appearance || AVATAR_CATALOG[avatarId]?.defaultAppearance);
     } else {
       removeElement(current);
       const profile = { avatarId, color, ...(user.appearance ? { appearance: user.appearance } : {}) };

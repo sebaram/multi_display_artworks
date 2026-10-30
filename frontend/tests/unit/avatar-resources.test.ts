@@ -2,6 +2,8 @@ import { beforeAll, expect, test, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createAvatarInstance } from '../../src/avatar/resources';
 import { loadAvatarCatalog } from '../../src/avatar/catalog';
+import { createAvatarEntity } from '../../src/scene/legacy/avatar-renderer.js';
+import { createSceneRenderer } from '../../src/scene/legacy/rendering/scene.js';
 let THREE: any, preset: any;
 beforeAll(async () => {
   window.eval(readFileSync('public/vendor/aframe-1.8.0.min.js', 'utf8'));
@@ -78,6 +80,81 @@ test('abort during shared load never attaches a disposed avatar and releases the
   expect(scene.children).toHaveLength(0);
   expect(released).toHaveBeenCalledTimes(1);
   THREE.GLTFLoader.prototype.loadAsync.mockImplementation(original);
+});
+
+test('aborting one concurrent load consumer preserves the surviving avatar until its final release', async () => {
+  const loader = THREE.GLTFLoader.prototype.loadAsync, original = loader.getMockImplementation();
+  let finish!: () => void, markStarted!: () => void;
+  const started = new Promise<void>(resolve => { markStarted = resolve; });
+  const gate = new Promise<void>(resolve => { finish = resolve; });
+  const geometryReleased = vi.fn(), textureReleased = vi.fn();
+  loader.mockClear();
+  loader.mockImplementation(async function(this: any, url: string) {
+    markStarted(); await gate;
+    const gltf = await original.call(this, url), body = gltf.scene.getObjectByName('Body');
+    body.geometry.addEventListener('dispose', geometryReleased);
+    body.material.map.addEventListener('dispose', textureReleased);
+    return gltf;
+  });
+  const scene = new THREE.Scene(), controller = new AbortController();
+  const cancelled = createAvatarInstance({ scene, preset, signal: controller.signal });
+  const surviving = createAvatarInstance({ scene, preset });
+  await started;
+  controller.abort(); finish();
+  await expect(cancelled).rejects.toMatchObject({ name: 'AbortError' });
+  const survivor = await surviving;
+  expect(loader).toHaveBeenCalledTimes(1);
+  expect(scene.children).toEqual([survivor.root]);
+  expect(geometryReleased).not.toHaveBeenCalled();
+  expect(textureReleased).not.toHaveBeenCalled();
+  survivor.dispose();
+  expect(geometryReleased).toHaveBeenCalledTimes(1);
+  expect(textureReleased).toHaveBeenCalledTimes(1);
+  loader.mockImplementation(original);
+});
+
+// Only the DOM surface is supplied; factory, loader, rig and appearance updates
+// remain the real implementation used by the room renderer.
+class AvatarElement {
+  attributes = new Map<string, unknown>();
+  children: AvatarElement[] = [];
+  parentNode?: AvatarElement;
+  object3D = new THREE.Object3D();
+  avatarReady?: Promise<any>;
+  setAttribute(name: string, value: unknown) { this.attributes.set(name, value); }
+  getAttribute(name: string) { return this.attributes.get(name); }
+  appendChild(child: AvatarElement) { this.children.push(child); child.parentNode = this; }
+  querySelector(selector: string) { return this.children.find(child => child.getAttribute('class') === selector.slice(1)); }
+  remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(child => child !== this); }
+}
+test.each(['ready', 'loading'])('avatarId-only preset changes update colors and cap on the same %s humanoid root', async state => {
+  const scene = new AvatarElement(), loader = THREE.GLTFLoader.prototype.loadAsync;
+  const original = loader.getMockImplementation();
+  loader.mockClear();
+  let finish!: () => void, markStarted!: () => void;
+  const started = new Promise<void>(resolve => { markStarted = resolve; });
+  const gate = new Promise<void>(resolve => { finish = resolve; });
+  if (state === 'loading') loader.mockImplementation(async function(this: any, url: string) { markStarted(); await gate; return original.call(this, url); });
+  const find = (element: AvatarElement, id: string): AvatarElement | undefined => element.getAttribute('id') === id ? element : element.children.map(child => find(child, id)).find(Boolean);
+  const document = { createElement: () => new AvatarElement(), getElementById: (id: string) => find(scene, id), querySelector: () => scene };
+  const renderer = createSceneRenderer({ document, scene, selfId: 'self', createAvatarEntity: (profile: any) => createAvatarEntity(profile, document) });
+  renderer.syncRoster([{ userId: 'other', avatarId: 'casual' }]);
+  const wrapper = document.getElementById('camera-other')!.querySelector('.remote-avatar')!;
+  let initialRoot: any;
+  if (state === 'ready') {
+    initialRoot = (await wrapper.avatarReady).root;
+    expect(initialRoot.getObjectByName('Cap').visible).toBe(false);
+  } else await started;
+  renderer.syncRoster([{ userId: 'other', avatarId: 'sporty' }]);
+  if (state === 'loading') finish();
+  const instance = await wrapper.avatarReady, root = instance.root;
+  const sameWrapper = document.getElementById('camera-other')!.querySelector('.remote-avatar');
+  const actual = { top: root.getObjectByName('Body').material.userData.avatarColors.top.value.getHexString(), cap: root.getObjectByName('Cap').visible, hair: root.getObjectByName('HairShort').visible };
+  expect(sameWrapper).toBe(wrapper);
+  expect(loader).toHaveBeenCalledTimes(1);
+  if (state === 'ready') expect(root).toBe(initialRoot);
+  renderer.destroy(); loader.mockImplementation(original);
+  expect(actual).toEqual({ top: 'e86b50', cap: true, hair: false });
 });
 
 test('a caller asset URL never replaces the catalog URL and failed loads can be retried', async () => {

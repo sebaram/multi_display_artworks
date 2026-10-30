@@ -138,6 +138,7 @@ export function bootstrapRoomRealtime({
   // true→false transition that should tear down a stale hand entity — still
   // reaches the renderer, without resyncing the roster on every ordinary packet.
   const lastHandKeyByUser = new Map();
+  const avatarGenerationByUser = new Map();
   const handsChanged = (data) => {
     const userId = data?.userId;
     if (!userId) return false;
@@ -163,6 +164,7 @@ export function bootstrapRoomRealtime({
       // A reconnect can miss user_left events; replace caches with this snapshot.
       poseBuffer.userIds().forEach((userId) => poseBuffer.forget(userId));
       lastHandKeyByUser.clear();
+      avatarGenerationByUser.clear();
       // Seed the pose buffer with each peer's last-known pose so a late joiner's
       // first render frame doesn't sit everyone at the A-Frame default origin
       // until their next packet arrives (up to a full heartbeat away). Also seed
@@ -170,6 +172,7 @@ export function bootstrapRoomRealtime({
       // rather than treating each peer's first live packet as a hand "change".
       (data?.users ?? []).forEach((user) => {
         poseBuffer.record(user?.userId, user, Date.now());
+        if (user?.avatarPose?.generation) avatarGenerationByUser.set(user.userId, user.avatarPose.generation);
         handsChanged(user);
       });
       syncRoster();
@@ -187,6 +190,7 @@ export function bootstrapRoomRealtime({
       if (data?.userId) {
         poseBuffer.forget(data.userId);
         lastHandKeyByUser.delete(data.userId);
+        avatarGenerationByUser.delete(data.userId);
       }
       syncRoster();
       consumers.handleSocketEvent?.("user_left", data);
@@ -202,6 +206,11 @@ export function bootstrapRoomRealtime({
     },
     avatar_pose(data) {
       state.applyUpdate(data);
+      const generation = data?.generation;
+      const changedGeneration = typeof generation === 'string' && avatarGenerationByUser.get(data.userId) !== generation;
+      // The compatibility head/name/voice anchor must snap with the V2 body.
+      if (data?.pose?.teleport === true || changedGeneration) poseBuffer.forget(data.userId);
+      if (typeof generation === 'string') avatarGenerationByUser.set(data.userId, generation);
       const isNew = poseBuffer.record(data?.userId, data, Date.now());
       if (isNew) syncRoster();
       consumers.onPacketReceived?.();

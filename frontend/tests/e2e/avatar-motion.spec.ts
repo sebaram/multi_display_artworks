@@ -30,6 +30,8 @@ async function body(page: Page, id: string) {
     };
   });
 }
+const horizontalDistance = (a: number[], b: number[]) =>
+  Math.hypot(a[0] - b[0], a[2] - b[2]);
 test("owner walking, head independence, planted feet, teleport, stationary late join and reconnect at desktop/mobile", async ({
   page,
   context,
@@ -192,6 +194,15 @@ test("390px coarse-pointer movement pad drives the owner body shown to a peer", 
   const before = await page
     .locator("#camera")
     .evaluate((el: any) => el.object3D.position.toArray());
+  await expect
+    .poll(async () =>
+      horizontalDistance(
+        (await body(observer, owner.visitorId))!.position,
+        before,
+      ),
+    )
+    .toBeLessThan(0.03);
+  const beforeBody = (await body(observer, owner.visitorId))!.position;
   const forward = page.getByRole("button", { name: "앞으로", exact: true });
   await expect(forward).toBeVisible();
   const rect = (await forward.boundingBox())!;
@@ -201,13 +212,39 @@ test("390px coarse-pointer movement pad drives the owner body shown to a peer", 
   await page.mouse.up();
   await expect
     .poll(async () =>
-      Math.hypot(
-        ...(await body(observer, owner.visitorId))!.position.map(
-          (x: number, i: number) => x - before[i],
-        ),
+      horizontalDistance(
+        await page
+          .locator("#camera")
+          .evaluate((el: any) => el.object3D.position.toArray()),
+        before,
       ),
     )
     .toBeGreaterThan(0.2);
+  await expect
+    .poll(async () =>
+      horizontalDistance(
+        (await body(observer, owner.visitorId))!.position,
+        beforeBody,
+      ),
+    )
+    .toBeGreaterThan(0.2);
+  const ownerAfter = await page
+    .locator("#camera")
+    .evaluate((el: any) => el.object3D.position.toArray());
+  const observerAfter = (await body(observer, owner.visitorId))!.position;
+  await test
+    .info()
+    .attach("mobile-horizontal-motion", {
+      contentType: "application/json",
+      body: JSON.stringify({
+        ownerBefore: before,
+        ownerAfter,
+        observerBefore: beforeBody,
+        observerAfter,
+        ownerXZ: horizontalDistance(ownerAfter, before),
+        observerXZ: horizontalDistance(observerAfter, beforeBody),
+      }),
+    });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

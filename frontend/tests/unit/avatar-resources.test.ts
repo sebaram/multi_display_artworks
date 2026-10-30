@@ -6,6 +6,9 @@ import { createAvatarEntity } from '../../src/scene/legacy/avatar-renderer.js';
 import { createSceneRenderer } from '../../src/scene/legacy/rendering/scene.js';
 import { updateAvatarMotion } from '../../src/avatar/motion';
 import * as ik from '../../src/avatar/two-bone-ik';
+import { AvatarPoseBuffer, identityPose } from '../../src/avatar/pose';
+import { encodeAvatarPose } from '../../src/avatar/pose-codec';
+import { bootstrapRoomRealtime } from '../../src/scene/legacy/application.js';
 let THREE: any, preset: any;
 beforeAll(async () => {
   window.eval(readFileSync('public/vendor/aframe-1.8.0.min.js', 'utf8'));
@@ -216,4 +219,45 @@ test('pose uses frozen parent-relative bone order and rest hips offset without r
   expect(a.root.getObjectByName('hips').position.y).toBeCloseTo(1.02);
   expect(a.root.getObjectByName('head').rotation.y).toBeCloseTo(.5);
   a.dispose();
+});
+
+test('teleport and a new generation keep the real body and compatibility head together on the receipt frame and during interpolation delay', async () => {
+  const scene = new AvatarElement();
+  const find = (element: AvatarElement, id: string): AvatarElement | undefined => element.getAttribute('id') === id ? element : element.children.map(child => find(child, id)).find(Boolean);
+  const document = { createElement: () => new AvatarElement(), getElementById: (id: string) => find(scene, id), querySelector: () => scene };
+  const renderer = createSceneRenderer({ document, scene, selfId:'self', createAvatarEntity:(profile:any)=>createAvatarEntity(profile, document) });
+  const handlers: Record<string, (data:any)=>void> = {};
+  const socket = { on:(event:string, handler:any)=>{handlers[event]=handler;}, off() {}, connect() {}, disconnect() {}, emit() {} };
+  const realtime = bootstrapRoomRealtime({ bootstrapData:{roomId:'room'}, visitorSession:{visitorId:'self',capability:'signed'},
+    ioFactory:()=>socket, profileController:{joinPayload:()=>({room_id:'room'}),setSocketClient() {}},socketUrl:'https://museum.test',consumers:{syncRoster:renderer.syncRoster} });
+  const poses = new AvatarPoseBuffer();
+  let time=1850;
+  const clock=vi.spyOn(Date,'now').mockImplementation(()=>time);
+  const receive=(x:number,generation:string,teleport:boolean,sequence:number)=>{
+    const pose=identityPose();pose.root.position[0]=x;pose.sequence=sequence;pose.teleport=teleport;
+    handlers.avatar_pose({userId:'other',generation,serverTime:time,position:{x,y:1.64,z:0},rotation:{x:0,y:0,z:0},pose:encodeAvatarPose(pose)});
+    poses.record('other',pose,generation,time,time);
+  };
+  try {
+    const seed=identityPose();
+    handlers.room_state({room_id:'room',users:[{userId:'other',avatarId:'casual',position:{x:0,y:1.64,z:0},rotation:{x:0,y:0,z:0},avatarPose:{generation:'first',serverTime:time,pose:encodeAvatarPose(seed)}}]});
+    poses.record('other',seed,'first',time,time);
+    const camera=document.getElementById('camera-other')!;
+    const instance=await camera.querySelector('.remote-avatar')!.avatarReady;
+    const frame=(at:number,expectedX:number)=>{
+      renderer.applyPoses(new Map([['other',realtime.poseBuffer.poseAt('other',at)]]));
+      renderer.applyAvatarPoses(new Map([['other',poses.poseAt('other',at)]]));
+      const head=instance.root.getObjectByName('HeadAnchor').getWorldPosition(new THREE.Vector3());
+      expect(instance.root.position.x).toBe(expectedX);
+      expect(camera.object3D.position.x).toBe(expectedX);
+      expect(camera.object3D.position.distanceTo(head)).toBeLessThan(1e-6);
+    };
+    frame(time,0);
+    time=1900;receive(.5,'first',false,1);
+    frame(time,0);frame(1975,.25); // The first live packet keeps the authoritative join seed.
+    time=2000;receive(10,'first',true,2);
+    for(const elapsed of [0,25,75,99,100]) frame(time+elapsed,10);
+    time=2100;receive(20,'replacement',false,0);
+    for(const elapsed of [0,25,75,99,100]) frame(time+elapsed,20);
+  } finally { clock.mockRestore();realtime.destroy();renderer.destroy(); }
 });

@@ -34,8 +34,6 @@ import { avatarSocketParser } from '../avatar/socket-parser';
 import { AvatarPoseBuffer, avatarPoseChanged, sub, mul } from '../avatar/pose';
 import { mountAvatarXRInput } from '../avatar/xr-scene';
 import { createAvatarPoseTransport } from '../avatar/transport';
-import { SmplPlayback } from '../avatar/smpl-playback';
-import { validateParametric } from '../avatar/appearance-core.js';
 import type { AvatarInstance, AvatarPoseV2, Vec3, Quat } from '../avatar/types';
 import type { RoomScene } from "../api/types";
 export async function startRealtime(
@@ -88,36 +86,12 @@ export async function startRealtime(
   updateVisitorSession({ storage: sessionStorage, visitorSession: visitor });
   let closeEditor: (() => void) | undefined;
   life.add(() => closeEditor?.());
-  const importedMotion = new SmplPlayback();
-  importedMotion.resetOwner(`${visitor.visitorId}:${saved.ownerScopeToken}`);
-  life.add(() => importedMotion.dispose());
-  let motionReset = false;
-  const motionControls = document.createElement('span');
-  motionControls.setAttribute('aria-label', 'Imported motion controls');
-  const motionStatus = document.createElement('span'); motionStatus.setAttribute('role', 'status');
-  const playMotion = document.createElement('button'), pauseMotion = document.createElement('button'), stopMotion = document.createElement('button');
-  playMotion.textContent = 'Play motion'; pauseMotion.textContent = 'Pause motion'; stopMotion.textContent = 'Stop motion';
-  const refreshMotion = () => {
-    motionStatus.textContent = `Motion: ${importedMotion.state} `;
-    playMotion.disabled = importedMotion.state !== 'paused'; pauseMotion.disabled = importedMotion.state !== 'playing'; stopMotion.disabled = importedMotion.state === 'stopped';
-  };
-  playMotion.onclick = () => { importedMotion.play(performance.now()); refreshMotion(); };
-  pauseMotion.onclick = () => { importedMotion.pause(performance.now()); refreshMotion(); };
-  const stopImportedMotion = () => { importedMotion.stop(); motionReset = true; refreshMotion(); };
-  stopMotion.onclick = stopImportedMotion;
-  motionControls.append(motionStatus, playMotion, pauseMotion, stopMotion);
-  document.getElementById('room-toolbar')?.append(motionControls); refreshMotion();
-  scene.addEventListener('enter-vr', stopImportedMotion);
-  life.add(() => { scene.removeEventListener('enter-vr', stopImportedMotion); motionControls.remove(); });
   async function saveAppearance(draft: any, scope = saved) {
-    if ((draft.appearance ?? draft).parametric !== undefined) validateParametric((draft.appearance ?? draft).parametric);
     const appearance = normalizeAppearance(draft.appearance ?? draft, catalog);
     await refreshCsrf();
     saved = await write('/api/v1/me/avatar', 'PUT', {
       appearance, expectedRevision: scope.revision, ownerScopeToken: scope.ownerScopeToken,
     });
-    if (life.disposed) return draft;
-    importedMotion.resetOwner(`${visitor.visitorId}:${saved.ownerScopeToken}`); refreshMotion();
     return { ...draft, appearance: saved.appearance, avatarId: appearance.presetId, color: appearance.colors.top };
   }
   const publisher = createPosePublisher();
@@ -180,14 +154,7 @@ export async function startRealtime(
       let scope = saved;
       closeEditor = mountAvatarEditor({
         catalog, initial: normalizeAppearance(panel.profile.appearance ?? panel.profile, catalog),
-        onApply: async (appearance, clip) => {
-          const next = await saveAppearance({ ...panel.profile, appearance }, scope);
-          if (life.disposed) return;
-          panel.applyProfile(next);
-          if (clip && !scene.is('vr-mode') && !scene.is('ar-mode') && appearance.presetId && catalog.presets.find(p => p.id === appearance.presetId)?.kind === 'humanoid') {
-            importedMotion.apply(clip, performance.now()); motionReset = true; refreshMotion();
-          }
-        },
+        onApply: async appearance => { panel.applyProfile(await saveAppearance({ ...panel.profile, appearance }, scope)); },
         onReload: async () => {
           // Cancel must leave the public profile and its saved scope together.
           scope = await api<SavedAvatar>('/api/v1/me/avatar');
@@ -205,7 +172,6 @@ export async function startRealtime(
     },
     onNewVisitor: async () => {
       await replaceVisitorSession({ ...deps, tabMarker: visitor.tabMarker });
-      stopImportedMotion();
       location.reload();
     },
   });
@@ -274,9 +240,7 @@ export async function startRealtime(
   });
   life.add(xrInput.dispose);
   function avatarFrame(time: number) {
-    if (xrInput.active && importedMotion.state !== 'stopped') stopImportedMotion();
-    const explicitTeleport = requestedTeleport || motionReset;
-    motionReset = false;
+    const explicitTeleport = requestedTeleport;
     requestedTeleport = false;
     const xrSample = xrInput.sample(performance.now(), explicitTeleport);
     hands.tick(time);
@@ -287,7 +251,6 @@ export async function startRealtime(
         (p) => p.id === (profile.appearance?.presetId || profile.avatarId),
       );
     if (preset?.kind !== "humanoid") {
-      if (importedMotion.state !== 'stopped') stopImportedMotion();
       owner?.dispose();
       owner = undefined;
       previousPosition = undefined;
@@ -359,8 +322,7 @@ export async function startRealtime(
       .getObjectByName(preset.rigMap.head)
       .scale.setScalar(xrInput.active ? 0.00001 : 1);
     const motionStart = performance.now();
-    const importedPose = importedMotion.sample(preset, { position: [headPosition[0], ground?.height ?? headPosition[1] - 1.64, headPosition[2]], orientation: [0, 0, 0, 1] }, performance.now());
-    const pose = importedPose ?? updateAvatarMotion(
+    const pose = updateAvatarMotion(
       owner,
       xrSample ?? {
         version: 2,
@@ -383,7 +345,6 @@ export async function startRealtime(
       ground,
       "full",
     );
-    if (importedPose) owner.applyPose(importedPose);
     avatarDisplay.stats.ownerMs = performance.now() - motionStart;
     outgoingTeleport ||= xrSample?.locomotion.teleport ?? teleport;
     pose.teleport = outgoingTeleport;

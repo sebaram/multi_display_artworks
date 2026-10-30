@@ -1,40 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import fixture from '../../public/avatars/catalog.fixture.json';
 import { normalizeAppearance, resolveSavedProfile } from '../../src/avatar/appearance';
 import type { AvatarCatalog } from '../../src/avatar/types';
 import { createElement } from 'react';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import { AvatarEditor } from '../../src/features/avatar/AvatarEditor';
-import { validateParametric } from '../../src/avatar/appearance-core.js';
 const catalog = fixture as unknown as AvatarCatalog;
-
-it('preserves bounded source shape metadata; rejects malformed metadata at the write validator', () => {
-  const parametric = { model: 'smplx', betas: Array(300).fill(.125) };
-  expect(normalizeAppearance({ presetId: 'casual', parametric }, catalog).parametric).toEqual(parametric);
-  for (const bad of [null, { model: 'smpl', betas: [true] }, { model: 'smpl', betas: [Infinity] },
-    { model: 'smpl', betas: [NaN] }, { model: 'smpl', betas: [11] }, { model: 'smpl', betas: Array(301).fill(0) },
-    { ...parametric, url: 'bad' }, { model: 'other', betas: [] }]) expect(() => validateParametric(bad)).toThrow();
-});
-
-it('stages motion privately and keeps the draft after a rejected save', async () => {
-  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
-  const initial = normalizeAppearance({ presetId: 'casual' }, catalog);
-  const onApply = vi.fn().mockRejectedValue({ status: 409 }), onClose = vi.fn();
-  const view = render(createElement(AvatarEditor, { catalog, initial, onApply, onReload: async () => initial, onClose }));
-  const text = JSON.stringify({ model: 'smpl', fps: 30, units: 'm', coordinateSystem: 'y-up', betas: [.5], frames: [{ global_orient: [0,0,0], body_pose: Array(69).fill(0) }] });
-  const file = new File([text], 'motion.json'); Object.defineProperty(file, 'text', { value: async () => text });
-  fireEvent.change(screen.getByLabelText('Local SMPL motion JSON'), { target: { files: [file] } });
-  await screen.findByText(/1 frames/);
-  expect(onApply).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
-  await screen.findByText(/Save conflict/);
-  expect(onApply.mock.calls[0][0].parametric).toEqual({ model: 'smpl', betas: [.5] });
-  expect(onApply.mock.calls[0][1].frames).toHaveLength(1);
-  expect(onClose).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(onApply).toHaveBeenCalledTimes(1);
-  view.unmount();
-});
 
 it('restores an unsaved anonymous legacy look after logout instead of carrying the account look', () => {
   sessionStorage.clear();

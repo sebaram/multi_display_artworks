@@ -1,20 +1,17 @@
 import { useRef, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AvatarPreview } from './AvatarPreview';
-import { SmplImport } from './SmplImport';
-import type { SmplMotionClip } from '../../avatar/smpl';
 import { normalizeAppearance } from '../../avatar/appearance';
 import type { AvatarAppearanceV2, AvatarCatalog } from '../../avatar/types';
 export type { SavedAvatar } from '../../api/types';
 
 export function AvatarEditor({ catalog, initial, onApply, onReload, onClose }: {
   catalog: AvatarCatalog; initial: AvatarAppearanceV2;
-  onApply(appearance: AvatarAppearanceV2, clip?: SmplMotionClip): Promise<void>;
+  onApply(appearance: AvatarAppearanceV2): Promise<void>;
   onReload(): Promise<AvatarAppearanceV2>;
   onClose(): void;
 }) {
   const [draft, setDraft] = useState(initial), [busy, setBusy] = useState(false), [error, setError] = useState('');
-  const [clip, setClip] = useState<SmplMotionClip>();
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   const preset = catalog.presets.find(p => p.id === draft.presetId)!;
@@ -28,15 +25,12 @@ export function AvatarEditor({ catalog, initial, onApply, onReload, onClose }: {
     }
     finally { setBusy(false); }
   }
-  return <dialog ref={dialog} className="avatar-editor" aria-label="My avatar" onCancel={e => { e.preventDefault(); if (!busy) onClose(); }}
+  return <dialog ref={dialog} aria-label="My avatar" onCancel={e => { e.preventDefault(); if (!busy) onClose(); }}
     style={{ width: 'min(620px, calc(100vw - 24px))', maxHeight: '90dvh', overflow: 'auto', boxSizing: 'border-box', border: 0, borderRadius: 14, padding: 20, background: '#17232f', color: '#fff' }}>
     <h2 style={{ margin: '0 0 12px' }}>My avatar</h2>
-    <AvatarPreview preset={preset} appearance={draft} clip={clip} />
+    <AvatarPreview preset={preset} appearance={draft} />
     <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-      <label>Preset <select aria-label="Avatar preset" value={draft.presetId} onChange={e => {
-        setDraft(normalizeAppearance({ presetId: e.target.value, parametric: draft.parametric }, catalog));
-        if (catalog.presets.find(p => p.id === e.target.value)?.kind !== 'humanoid') setClip(undefined);
-      }}>
+      <label>Preset <select aria-label="Avatar preset" value={draft.presetId} onChange={e => setDraft(normalizeAppearance({ presetId: e.target.value }, catalog))}>
         {catalog.presets.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
       </select></label>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, margin: '12px 0' }}>
@@ -47,15 +41,10 @@ export function AvatarEditor({ catalog, initial, onApply, onReload, onClose }: {
           {options.map(option => <option key={option} value={option}>{option}</option>)}
         </select></label>)}
       </div>
-      {preset.kind === 'humanoid' ? <SmplImport clip={clip} onImport={next => {
-        setClip(next); patch({ parametric: { model: next.model, betas: [...(next.betas ?? [])] } });
-      }} /> : <p>Select a humanoid preset to import SMPL body motion.</p>}
-      {draft.parametric && <p>Saved source parameters: {draft.parametric.model.toUpperCase()}, {draft.parametric.betas.length} betas. Metadata only; no mesh deformation.
-        {' '}<button type="button" style={{ color: '#17232f' }} onClick={() => patch({ parametric: undefined })}>Remove shape metadata</button></p>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button className="primary" type="button" onClick={() => void perform(async () => { await onApply(draft, clip); onClose(); })}>{busy ? 'Saving…' : 'Apply'}</button>
+        <button className="primary" type="button" onClick={() => void perform(async () => { await onApply(draft); onClose(); })}>{busy ? 'Saving…' : 'Apply'}</button>
         <button type="button" style={{ color: '#17232f' }} onClick={onClose}>Cancel</button>
-        <button type="button" style={{ color: '#17232f' }} onClick={() => void perform(async () => { setDraft(await onReload()); setClip(undefined); })}>Reload saved appearance</button>
+        <button type="button" style={{ color: '#17232f' }} onClick={() => void perform(async () => setDraft(await onReload()))}>Reload saved appearance</button>
       </div>
     </fieldset>
     {error && <p role="alert">{error}</p>}

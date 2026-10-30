@@ -2,18 +2,6 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from .avatar_catalog import avatar_catalog
-import json
-import math
-
-
-def validate_parametric(value):
-    if (not isinstance(value, dict) or set(value) != {'model', 'betas'}
-            or value['model'] not in ('smpl', 'smplx') or not isinstance(value['betas'], list)
-            or len(value['betas']) > 300
-            or any(type(n) not in (float, int) or abs(n) > 10 or not math.isfinite(n) for n in value['betas'])
-            or len(json.dumps(value, separators=(',', ':'), allow_nan=False).encode()) > 8192):
-        raise ValueError('invalid_parametric')
-    return dict(model=value['model'], betas=list(value['betas']))
 
 
 def normalize_appearance(value: dict, *, strict=False) -> dict:
@@ -47,12 +35,6 @@ def normalize_appearance(value: dict, *, strict=False) -> dict:
         result[key] = item if item in preset['options'].get(key, ['none']) else fallback[key]
     if result['hatId'] == 'cap':
         result['hairId'] = 'none'
-    if value.get('parametric') is not None:
-        try:
-            result['parametric'] = validate_parametric(value['parametric'])
-        except (ValueError, TypeError, OverflowError):
-            if strict:
-                raise ValueError('invalid_parametric') from None
     return result
 
 class AvatarAppearanceV2(BaseModel):
@@ -64,12 +46,6 @@ class AvatarAppearanceV2(BaseModel):
     hairId: str
     hatId: str
     glassesId: str
-    parametric: dict | None = None
-
-    @field_validator('parametric', mode='before')
-    @classmethod
-    def parametric_metadata(cls, value):
-        return validate_parametric(value)
 
     @model_validator(mode='after')
     def canonical(self):

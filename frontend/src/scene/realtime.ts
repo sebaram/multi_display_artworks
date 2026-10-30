@@ -143,8 +143,9 @@ export async function startRealtime(
         catalog, initial: normalizeAppearance(panel.profile.appearance ?? panel.profile, catalog),
         onApply: async appearance => { panel.applyProfile(await saveAppearance({ ...panel.profile, appearance }, scope)); },
         onReload: async () => {
-          scope = saved = await api<SavedAvatar>('/api/v1/me/avatar');
-          return normalizeAppearance(scope.appearance ?? panel.profile, catalog);
+          // Cancel must leave the public profile and its saved scope together.
+          scope = await api<SavedAvatar>('/api/v1/me/avatar');
+          return resolveSavedProfile(panel.profile, scope, sessionStorage, catalog).appearance;
         },
         onClose: () => { closeEditor = undefined; },
       });

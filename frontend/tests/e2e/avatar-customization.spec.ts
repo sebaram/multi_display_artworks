@@ -124,6 +124,52 @@ test('account switches with no anonymous saved preference restore the anonymous 
   expect((await page.request.get('/api/v1/me/avatar').then(r => r.json())).appearance).toBeNull();
 });
 
+for (const transition of ['empty account', 'logout'] as const) {
+  test(`open editor reload resolves the new ${transition} owner without publishing the previous account look`, async ({ page, context }) => {
+    test.setTimeout(60000);
+    await enter(page);
+    const anonymous = await profile(page);
+    await login(page); await enter(page); await customize(page);
+    await page.getByLabel('Avatar preset', { exact: true }).selectOption('explorer');
+    await color(page, 'top color', '#a13579');
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'My avatar' })).toHaveCount(0);
+    const accountProfile = await profile(page);
+    const visitor = await page.evaluate(() => JSON.parse(sessionStorage.getItem('metamuseum.tab-visitor.v1')!));
+    const other = await context.newPage(); await enter(other);
+    await expect.poll(() => remoteLook(other, visitor.visitorId)).toMatchObject({ presetId: 'explorer', colors: { top: '#A13579' } });
+    await customize(page);
+    if (transition === 'empty account') {
+      await mutate(other, '/api/v1/auth/signin', 'POST', { email: 'visitor@migration.invalid', password: 'Migration-local-123!', next: '/' });
+    } else await mutate(other, '/api/v1/auth/signout', 'POST');
+    expect((await other.request.get('/api/v1/me/avatar').then(r => r.json())).appearance).toBeNull();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('conflict');
+    await page.getByRole('button', { name: 'Reload saved appearance' }).click();
+    const expected = transition === 'empty account' ? { avatarId: 'shiba', color: '#4CAF50' } : anonymous;
+    await expect(page.getByLabel('Avatar preset', { exact: true })).toHaveValue(expected.avatarId);
+    await expect(page.getByLabel('top color', { exact: true })).toHaveValue(expected.color.toLowerCase());
+    expect(await profile(page)).toEqual(accountProfile);
+    expect((await remoteLook(other, visitor.visitorId)).colors.top).toBe('#A13579');
+    if (transition === 'logout') {
+      await page.getByRole('button', { name: 'Apply', exact: true }).click();
+      await expect(page.getByRole('dialog', { name: 'My avatar' })).toHaveCount(0);
+      const saved = await page.request.get('/api/v1/me/avatar').then(r => r.json());
+      expect(saved.appearance).toMatchObject({ presetId: expected.avatarId, colors: { top: expected.color } });
+      expect(saved.appearance.colors.top).not.toBe('#A13579');
+      await expect.poll(() => remoteLook(other, visitor.visitorId)).toMatchObject({ presetId: expected.avatarId, colors: { top: expected.color } });
+    } else {
+      await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await customize(page);
+      await page.getByRole('button', { name: 'Apply', exact: true }).click();
+      await expect(page.getByRole('alert')).toContainText('conflict');
+      await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+      expect((await other.request.get('/api/v1/me/avatar').then(r => r.json())).appearance).toBeNull();
+    }
+    await other.close();
+  });
+}
+
 test('world preset panel selects, reverts and saves without a DOM editor', async ({ page }) => {
   await enter(page);
   await page.locator('a-scene').evaluate((scene: any) => scene.emit('enter-vr'));

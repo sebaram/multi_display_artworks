@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { ROOM } from './helpers';
+import { ROOM, login, mutate } from './helpers';
 const route = `/room?room_id=${ROOM}`;
 async function enter(page: Page) {
   await page.goto(route);
@@ -101,6 +101,29 @@ test('failed GLB loading leaves an explicit preview fallback and usable editor',
   await expect(page.getByRole('dialog', { name: 'My avatar' })).toHaveCount(0);
 });
 
+test('account switches with no anonymous saved preference restore the anonymous tab look', async ({ page }) => {
+  test.setTimeout(60000);
+  const initial = await enter(page);
+  const anonymous = await profile(page);
+  expect((await page.request.get('/api/v1/me/avatar').then(r => r.json())).appearance).toBeNull();
+  await login(page);
+  await enter(page); await customize(page);
+  await page.getByLabel('Avatar preset', { exact: true }).selectOption('explorer');
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'My avatar' })).toHaveCount(0);
+  await mutate(page, '/api/v1/auth/signin', 'POST', { email: 'visitor@migration.invalid', password: 'Migration-local-123!', next: '/' });
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Visitor', exact: true })).toBeVisible();
+  expect((await page.request.get('/api/v1/me/avatar').then(r => r.json())).appearance).toBeNull();
+  expect(await profile(page)).toMatchObject({ displayName: anonymous.displayName, avatarId: 'shiba', color: '#4CAF50' });
+  await page.goto('/logout'); await expect(page).toHaveURL(/\/$/);
+  const restored = await enter(page);
+  expect(restored.visitorId).toBe(initial.visitorId);
+  expect(restored.capability).toBe(initial.capability);
+  expect(await profile(page)).toMatchObject({ displayName: anonymous.displayName, avatarId: anonymous.avatarId, color: anonymous.color });
+  expect((await page.request.get('/api/v1/me/avatar').then(r => r.json())).appearance).toBeNull();
+});
+
 test('world preset panel selects, reverts and saves without a DOM editor', async ({ page }) => {
   await enter(page);
   await page.locator('a-scene').evaluate((scene: any) => scene.emit('enter-vr'));
@@ -115,4 +138,80 @@ test('world preset panel selects, reverts and saves without a DOM editor', async
   await expect.poll(() => profile(page)).toMatchObject({ appearance: { presetId: 'humanoid-robot' } });
   await page.locator('a-scene').evaluate((scene: any) => scene.emit('exit-vr'));
   await expect.poll(() => panel.evaluate((el: any) => el.object3D.visible)).toBe(false);
+});
+
+async function aimFuse(page: Page, label: string, exitAfterIntersection = false) {
+  return page.locator('a-scene').evaluate((scene: any, { text, exitAfterIntersection }) => {
+    const panel = scene.querySelector('#avatar-xr-panel');
+    const target = [...panel.querySelectorAll('.avatar-xr-action')].find((el: any) => el.querySelector('a-text').getAttribute('value') === text) as any;
+    const gaze = scene.querySelector('#camera a-cursor');
+    const THREE = (window as any).AFRAME.THREE;
+    scene.object3D.updateMatrixWorld(true);
+    const origin = gaze.object3D.getWorldPosition(new THREE.Vector3());
+    const point = target.object3D.getWorldPosition(new THREE.Vector3());
+    const direction = point.sub(origin).normalize();
+    gaze.setAttribute('cursor', 'fuseTimeout', 80);
+    gaze.setAttribute('raycaster', { useWorldCoordinates: true, origin, direction });
+    gaze.components.raycaster.refreshObjects();
+    gaze.components.raycaster.tock(performance.now());
+    const fusing = gaze.is('cursor-fusing');
+    if (exitAfterIntersection) scene.emit('exit-vr');
+    return fusing;
+  }, { text: label, exitAfterIntersection });
+}
+
+test('hidden XR controls cannot raycast or fuse Apply outside immersive mode', async ({ page }) => {
+  await enter(page);
+  expect(await page.locator('a-scene').evaluate((scene: any) =>
+    [...scene.querySelectorAll('[laser-controls], #camera a-cursor')].map((el: any) => el.components.raycaster.data.enabled)
+  )).toEqual([false, false, false]);
+  const before = await page.request.get('/api/v1/me/avatar').then(r => r.json());
+  await page.locator('a-scene').evaluate((scene: any) => { scene.emit('enter-vr'); scene.emit('exit-vr'); });
+  await aimFuse(page, 'Apply');
+  // Wait past the real bundled cursor's short fuse, then inspect persistence.
+  await page.waitForTimeout(250);
+  const after = await page.request.get('/api/v1/me/avatar').then(r => r.json());
+  expect(after.revision).toBe(before.revision);
+  const input = await page.locator('a-scene').evaluate((scene: any) => ({
+    own: [...scene.querySelectorAll('[laser-controls], #camera a-cursor')].map((el: any) => el.components.raycaster.data.enabled),
+    app: scene.components.raycaster.data.enabled,
+    fusing: scene.querySelector('#camera a-cursor').is('cursor-fusing'),
+  }));
+  expect(input.own).toEqual([false, false, false]);
+  expect(input.app).toBe(true);
+  expect(input.fusing).toBe(false);
+});
+
+test('exit cancels a pending real fuse and deferred Apply cannot change a later XR panel status', async ({ page }) => {
+  await enter(page);
+  const scene = page.locator('a-scene');
+  await scene.evaluate((el: any) => el.emit('enter-vr'));
+  expect(await aimFuse(page, 'Apply', true)).toBe(true);
+  await page.waitForTimeout(250);
+  expect((await page.request.get('/api/v1/me/avatar').then(r => r.json())).revision).toBe(0);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  let arrived!: () => void;
+  const request = new Promise<void>(resolve => { arrived = resolve; });
+  await page.route('**/api/v1/me/avatar', async route => {
+    if (route.request().method() === 'PUT') { arrived(); await held; }
+    await route.continue();
+  });
+  await scene.evaluate((el: any) => el.emit('enter-vr'));
+  const selectedPreset = (await profile(page)).avatarId === 'casual' ? 'explorer' : 'casual';
+  await page.locator('#avatar-xr-panel .avatar-xr-action').evaluateAll((targets, preset) => {
+    const label = preset === 'casual' ? 'Casual' : 'Explorer';
+    (targets.find(el => el.querySelector('a-text')?.getAttribute('value') === label) as any).emit('click');
+  }, selectedPreset);
+  await aimFuse(page, 'Apply');
+  await request;
+  await scene.evaluate((el: any) => {
+    el.emit('exit-vr');
+    el.querySelector('#camera a-cursor').setAttribute('raycaster', { useWorldCoordinates: false, origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: -1 } });
+    el.emit('enter-vr');
+  });
+  const response = page.waitForResponse(r => r.url().endsWith('/api/v1/me/avatar') && r.request().method() === 'PUT');
+  release(); await response;
+  await expect.poll(async () => (await profile(page)).avatarId).toBe(selectedPreset);
+  await expect.poll(() => page.locator('#avatar-xr-panel > a-text').evaluate((el: any) => el.getAttribute('value'))).toBe('My avatar - select, Apply or Revert');
 });

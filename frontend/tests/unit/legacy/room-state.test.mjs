@@ -2,6 +2,25 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createRoomState } from '../../../src/scene/legacy/core/room-state.js';
+import { normalizeProfile } from '../../../src/scene/legacy/profile-store.js';
+import { installAvatarCatalog } from '../../../src/scene/legacy/avatar-catalog.js';
+import { readFileSync } from 'node:fs';
+
+test('a three-field legacy profile update replaces an observer humanoid appearance', () => {
+  const catalog = JSON.parse(readFileSync(new URL('../../../public/avatars/catalog.fixture.json', import.meta.url)));
+  installAvatarCatalog(catalog);
+  const state = createRoomState('self');
+  state.applyJoin({ userId: 'other', displayName: 'Other', avatarId: 'casual', color: '#4587C4', appearance: catalog.presets[0].defaultAppearance });
+  state.applyUpdate({ userId: 'other', displayName: 'Other', avatarId: 'robot', color: '#123456' });
+  expectLegacy(state.users()[0]);
+  state.applyUpdate({ userId: 'other', appearance: null, avatarId: 'robot', color: '#123456' });
+  expectLegacy(state.users()[0]);
+  function expectLegacy(user) {
+    assert.equal(user.appearance == null, true);
+    assert.equal(normalizeProfile(user).avatarId, 'robot');
+    assert.equal(normalizeProfile(user).color, '#123456');
+  }
+});
 
 test('room state excludes the local user and removes departed users', () => {
   const state = createRoomState('self');

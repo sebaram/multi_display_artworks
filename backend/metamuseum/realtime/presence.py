@@ -74,6 +74,7 @@ class PresenceService:
         return {
             "userId": user["userId"],
             **normalized_profile,
+            "appearance": normalized_profile.get("appearance"),
             "room_id": room_id,
         }
 

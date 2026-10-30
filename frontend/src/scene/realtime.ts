@@ -24,7 +24,7 @@ import { mountSyncDebug } from "./legacy/ui/sync-debug.js";
 import qrcode from "qrcode-generator";
 import { api, write, refreshCsrf } from "../api/client";
 import { loadAvatarCatalog } from '../avatar/catalog';
-import { normalizeAppearance } from '../avatar/appearance';
+import { normalizeAppearance, resolveSavedProfile } from '../avatar/appearance';
 import { mountAvatarEditor, type SavedAvatar } from '../features/avatar/AvatarEditor';
 import { mountAvatarXRPanel } from '../features/avatar/xr-panel';
 import type { RoomScene } from "../api/types";
@@ -74,8 +74,7 @@ export async function startRealtime(
   signal?.addEventListener("abort", life.dispose, { once: true });
   life.add(() => signal?.removeEventListener("abort", life.dispose));
   let visitor = owned.visitorSession;
-  if (saved.appearance) visitor.profile = { ...visitor.profile, appearance: saved.appearance,
-    avatarId: saved.appearance.presetId, color: saved.appearance.colors.top };
+  visitor.profile = resolveSavedProfile(visitor.profile, saved, sessionStorage, catalog);
   updateVisitorSession({ storage: sessionStorage, visitorSession: visitor });
   let closeEditor: (() => void) | undefined;
   life.add(() => closeEditor?.());

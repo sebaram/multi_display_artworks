@@ -3,10 +3,12 @@ export function createRoomState(selfId) {
 
   function applyUser(user) {
     if (!user?.userId || user.userId === selfId) return;
-    usersById.set(user.userId, {
+    const merged = {
       ...(usersById.get(user.userId) ?? {}),
       ...user,
-    });
+    };
+    if (Object.hasOwn(user, 'avatarId') && !Object.hasOwn(user, 'appearance')) delete merged.appearance;
+    usersById.set(user.userId, merged);
   }
 
   return {

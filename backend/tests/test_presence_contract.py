@@ -176,7 +176,7 @@ async def test_two_visitors_reconnect_and_displacement(live_realtime):
     await first.call('position_update', {'room_id': room, 'position': '99 99 99'})
     await replacement.call('profile_update', {'room_id': room, 'profile': {'displayName': '<script>', 'avatarId': [], 'color': 'red', 'sid': 'secret'}})
     profile = await wait_event(b, 'profile_updated')
-    assert profile == {'room_id': room, 'userId': a.visitor['visitorId'], 'displayName': 'Visitor', 'avatarId': 'shiba', 'color': '#4CAF50'}
+    assert profile == {'room_id': room, 'userId': a.visitor['visitorId'], 'displayName': 'Visitor', 'avatarId': 'shiba', 'color': '#4CAF50', 'appearance': None}
     assert len(server.app.state.realtime.presence.public_room_state(room)) == 2
     await first.disconnect()
     await replacement.disconnect()
@@ -190,6 +190,26 @@ async def test_two_visitors_reconnect_and_displacement(live_realtime):
     assert server.app.state.realtime.get_room_visitor(reconnected.get_sid(), room).visitor_id == b.visitor['visitorId']
     serialized = json.dumps(list(b.history))
     assert '"sid"' not in serialized
+
+
+@pytest.mark.asyncio
+async def test_legacy_profile_update_explicitly_clears_humanoid_for_current_and_late_peers(live_realtime):
+    from metamuseum.avatar_catalog import avatar_catalog
+    server = live_realtime
+    owner, a = await peer(server)
+    observer, b = await peer(server)
+    room = server.rooms[0]
+    look = avatar_catalog()['presets'][0]['defaultAppearance']
+    await owner.call('join_position_room', {'room_id': room, 'profile': {'displayName': 'Owner', 'appearance': look}})
+    await observer.call('join_position_room', {'room_id': room})
+    assert (await wait_event(b, 'room_state'))['users'][0]['appearance'] == look
+    await owner.call('profile_update', {'room_id': room, 'profile': {'displayName': 'Owner', 'avatarId': 'robot', 'color': '#123456'}})
+    update = await wait_event(b, 'profile_updated')
+    assert update['appearance'] is None and update['avatarId'] == 'robot'
+    late, c = await peer(server)
+    await late.call('join_position_room', {'room_id': room})
+    entry = next(user for user in (await wait_event(c, 'room_state'))['users'] if user['userId'] == a.visitor['visitorId'])
+    assert entry.get('appearance') is None and entry['avatarId'] == 'robot'
 
 
 @pytest.mark.asyncio

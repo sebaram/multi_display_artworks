@@ -100,7 +100,8 @@ def test_profile_legacy_migration_and_presence_snapshots():
     presence.update_profile('room', 'one', {**profile, 'appearance': look})
     assert presence.public_room_state('room')[0]['appearance'] == look
     assert 'ownerKey' not in str(presence.public_room_state('room'))
-    presence.update_profile('room', 'one', {'displayName': 'Guest', 'avatarId': 'robot', 'color': '#ABCDEF'})
+    event = presence.update_profile('room', 'one', {'displayName': 'Guest', 'avatarId': 'robot', 'color': '#ABCDEF'})
+    assert 'appearance' in event and event['appearance'] is None
     assert 'appearance' not in presence.public_room_state('room')[0]
 
 

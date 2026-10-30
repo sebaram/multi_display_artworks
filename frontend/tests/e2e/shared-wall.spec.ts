@@ -309,7 +309,12 @@ test("real shared pointer, uploaded MP4 controls, late join, reconnect, isolatio
     ).toBe(false);
 
     // New page and a real offline/reconnect both recover the persisted paused position.
+    const beforeReloadSnapshots = guestEvents.events.filter(event => event.name === "wall.snapshot").length;
     await guest.reload();
+    // HTTP-loaded media can be ready before the new realtime handshake. Establish
+    // the connection before testing its interruption/reconnection below.
+    await expect.poll(() => guestEvents.events.filter(event => event.name === "wall.snapshot").length,
+      { timeout: 20000 }).toBeGreaterThan(beforeReloadSnapshots);
     // A persisted design must be visible on the actual 3D surface, not only
     // rendering into an unattached canvas while its video clock still advances.
     await expect

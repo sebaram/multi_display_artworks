@@ -24,11 +24,12 @@
 
 **Interfaces:** Pure parser takes JSON data/text and produces a bounded immutable motion clip with explicit model/fps/basis/betas and supported/unsupported channels. Retarget sampling produces current AvatarPoseV2 from the clip and a caller-supplied visitor anchor/time; no transport import. A scene-owned controller handles play/pause/stop/dispose. The existing appearance gains optional parametric metadata `{model,betas}`. Choose and document minimal concrete exported names before implementing, and use those names consistently.
 
-- [ ] Add focused failing tests for malformed/oversized frames and metadata, SMPL/SMPL-X layout, neutral T-pose bind correction, rotated-parent elbow, root/basis conversion and playback pause/stop/XR/lifecycle isolation.
-- [ ] Implement parser, retargeter, a small self-authored example and scene-owned playback; preserve the current transport and default IK behavior.
-- [ ] Add private import preview and live playback controls, clear unsupported-feature/root-trajectory messages, and optional parameter persistence through existing owner-scoped Apply. Cancel and rejected saves do not affect active playback.
-- [ ] Validate optional metadata on frontend/server; test legacy absence, valid roundtrip and invalid model/bool/nonfinite/size/unknown fields. Inspect connected serializers so the field is not silently dropped.
-- [ ] Run only affected tests plus typecheck/build. Use isolated test DB if a targeted API check needs it; do not reset perf/prod DB or resume device work.
-- [ ] One short real two-page browser smoke of preview/apply/sync/pause/stop/reload. Write concise usage and a small HTML feature note with screenshots/limitations, commit, and report exact checks and remaining asset-dependent work.
+- [x] Add focused failing tests for malformed/oversized frames and metadata, SMPL/SMPL-X layout, neutral T-pose bind correction, rotated-parent elbow, root/basis conversion and playback pause/stop/XR/lifecycle isolation.
+- [x] Implement parser, retargeter, a small self-authored example and scene-owned playback; preserve the current transport and default IK behavior.
+- [x] Add private import preview and live playback controls, clear unsupported-feature/root-trajectory messages, and optional parameter persistence through existing owner-scoped Apply. Cancel and rejected saves do not affect active playback.
+- [x] Validate optional metadata on frontend/server; test legacy absence, valid roundtrip and invalid model/bool/nonfinite/size/unknown fields. Inspect connected serializers so the field is not silently dropped.
+- [x] Run only affected tests plus typecheck/build. Use isolated test DB if a targeted API check needs it; do not reset perf/prod DB or resume device work.
+- [x] One short real two-page browser smoke of preview/apply/sync/pause/stop/reload. Write concise usage and a small HTML feature note with screenshots/limitations, commit, and report exact checks and remaining asset-dependent work.
 
 Native SMPL/SMPL-X mesh deformation and finger/face channels are asset-dependent follow-up, not a claim made by this compatibility delivery.
+

@@ -203,6 +203,7 @@ export class AvatarPoseBuffer {
       generation: string;
       retired: Set<string>;
       offset: number;
+      discontinuity: object;
       samples: { at: number; pose: AvatarPoseV2 }[];
     }
   >();
@@ -223,6 +224,7 @@ export class AvatarPoseBuffer {
         generation,
         retired,
         offset: this.serverOffset ?? receivedAt - serverTime,
+        discontinuity: {},
         samples: [],
       };
       this.users.set(id, entry);
@@ -232,7 +234,7 @@ export class AvatarPoseBuffer {
       pose.sequence <= entry.samples.at(-1)!.pose.sequence
     )
       return false;
-    if (pose.teleport) entry.samples = [];
+    if (pose.teleport) { entry.samples = []; entry.discontinuity = {}; }
     entry.samples.push({ at: serverTime + entry.offset, pose });
     if (entry.samples.length > 8) entry.samples.shift();
     return true;
@@ -258,6 +260,8 @@ export class AvatarPoseBuffer {
   userIds() {
     return [...this.users.keys()];
   }
+  /** Changes only on accepted generation/teleport boundaries, not each render. */
+  discontinuity(id: string) { return this.users.get(id)?.discontinuity; }
   forget(id: string) {
     this.users.delete(id);
   }

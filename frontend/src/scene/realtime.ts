@@ -30,6 +30,7 @@ import { mountAvatarXRPanel } from '../features/avatar/xr-panel';
 import { createAvatarInstance } from '../avatar/resources';
 import { updateAvatarMotion } from '../avatar/motion';
 import { createRemoteAvatarDisplay } from '../avatar/display';
+import { avatarSocketParser } from '../avatar/socket-parser';
 import { AvatarPoseBuffer, avatarPoseChanged, sub, mul } from '../avatar/pose';
 import { mountAvatarXRInput } from '../avatar/xr-scene';
 import { createAvatarPoseTransport } from '../avatar/transport';
@@ -187,7 +188,7 @@ export async function startRealtime(
   const realtime = bootstrapRoomRealtime({
     bootstrapData: data,
     visitorSession: visitor,
-    ioFactory: io,
+    ioFactory: (url: string, options: any) => io(url, { ...options, parser: avatarSocketParser }),
     socketUrl: location.origin,
     socketAuth: data.isAdmin ? { csrfToken: socketCsrf } : {},
     profileController: panel,

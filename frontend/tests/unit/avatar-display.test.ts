@@ -16,3 +16,21 @@ test('remote joints stop offscreen; root stays render cadence; reentry gets late
   target=wrapper();display.frame(302);expect(target.applyAvatarPose).toHaveBeenCalledTimes(1);
   display.dispose();expect(display.stats.hidden).toBe(0);
 });
+test('a visible far teleport or accepted generation applies hips/joints once immediately, including an idle cached discontinuity', () => {
+  const buffer=new AvatarPoseBuffer(), target={applyAvatarRoot:vi.fn(),applyAvatarPose:vi.fn(),setAvatarDetail:vi.fn(),updateAvatarExpression:vi.fn()};
+  let visible=true;
+  const display=createRemoteAvatarDisplay({scene:{},buffer,targets:()=>new Map([['peer',target]]),visibility:{update(){},measure(){return {visible,distance:80};}},THREE:{Box3:class {min={set(){}};max={set(){}};}}});
+  buffer.record('peer',identityPose(),'old',0,0);display.frame(100);
+  const jump=identityPose();jump.sequence=1;jump.teleport=true;jump.hipsOffset=[0,-.5,0];jump.bodyScale=1.2;
+  buffer.record('peer',jump,'old',101,101);display.frame(101);
+  expect(target.applyAvatarPose).toHaveBeenCalledTimes(2);expect(target.applyAvatarPose).toHaveBeenLastCalledWith(jump);
+  display.frame(102);display.frame(103);expect(target.applyAvatarPose).toHaveBeenCalledTimes(2);
+  const replacement=identityPose();replacement.hipsOffset=[0,-.3,0];
+  buffer.record('peer',replacement,'new',104,104);display.frame(104);
+  expect(target.applyAvatarPose).toHaveBeenCalledTimes(3);expect(target.applyAvatarPose).toHaveBeenLastCalledWith(replacement);
+  visible=false;const hidden=identityPose();hidden.teleport=true;hidden.sequence=1;
+  buffer.record('peer',hidden,'new',105,105);display.frame(105);display.frame(106);
+  expect(target.applyAvatarPose).toHaveBeenCalledTimes(3);
+  visible=true;display.frame(107);expect(target.applyAvatarPose).toHaveBeenLastCalledWith(hidden);
+  display.frame(108);expect(target.applyAvatarPose).toHaveBeenCalledTimes(4);
+});

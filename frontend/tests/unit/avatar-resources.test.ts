@@ -9,6 +9,7 @@ import * as ik from '../../src/avatar/two-bone-ik';
 import { AvatarPoseBuffer, identityPose } from '../../src/avatar/pose';
 import { encodeAvatarPose } from '../../src/avatar/pose-codec';
 import { bootstrapRoomRealtime } from '../../src/scene/legacy/application.js';
+import { createRemoteAvatarDisplay } from '../../src/avatar/display';
 let THREE: any, preset: any;
 beforeAll(async () => {
   window.eval(readFileSync('public/vendor/aframe-1.8.0.min.js', 'utf8'));
@@ -29,6 +30,21 @@ beforeAll(async () => {
   });
 });
 const appearance = (top: string, hatId = 'none') => ({ ...preset.defaultAppearance, colors: { ...preset.defaultAppearance.colors, top }, hatId });
+
+test('far displayed real rig applies teleported hips and scale on the receipt frame once', async () => {
+  const scene=new THREE.Scene(),instance=await createAvatarInstance({scene,preset}),buffer=new AvatarPoseBuffer();
+  const apply=vi.fn((pose:any)=>instance.applyPose(pose));
+  const target={applyAvatarRoot(p:any){instance.root.position.fromArray(p.root.position);instance.root.scale.setScalar(p.bodyScale??1);},applyAvatarPose:apply,setAvatarDetail:(d:any)=>instance.setDetail(d),updateAvatarExpression(){}};
+  const display=createRemoteAvatarDisplay({scene,buffer,targets:()=>new Map([['peer',target]]),THREE,visibility:{update(){},measure(){return {visible:true,distance:80};}}});
+  buffer.record('peer',identityPose(),'g',0,0);display.frame(100);
+  const jump=identityPose();jump.sequence=1;jump.teleport=true;jump.bodyScale=1.2;jump.hipsOffset=[0,-.5,0];jump.root.position=[10,0,0];
+  buffer.record('peer',jump,'g',101,101);display.frame(101);
+  expect(instance.root.getObjectByName('HeadAnchor').getWorldPosition(new THREE.Vector3()).y).toBeCloseTo((1.64-.5)*1.2);
+  expect(instance.root.getObjectByName('hips').position.y).toBeCloseTo(.42);
+  expect(instance.root.getObjectByName('BodyLow').visible).toBe(true);
+  display.frame(102);expect(apply).toHaveBeenCalledTimes(2);
+  instance.dispose();display.dispose();
+});
 
 test('low detail has fewer real triangles, shared resources and latest hidden appearance restoration', async () => {
   const scene = new THREE.Scene(), a = await createAvatarInstance({scene,preset}), b = await createAvatarInstance({scene,preset});

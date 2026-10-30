@@ -1,5 +1,23 @@
 import {test,expect,Page} from '@playwright/test';
+import {io} from 'socket.io-client';
+import {avatarSocketParser} from '../../src/avatar/socket-parser';
 const room=process.env.AVATAR_TRACKING_ROOM || 'aabbccddeeff00112233aa01';
+for(const count of [20,50]) test(`a late observer decodes a room snapshot containing ${count} complete binary avatar poses`,async({page,request})=>{
+  test.setTimeout(45000);const clients:any[]=[];
+  try {
+    for(let i=0;i<count;i++) {
+      const identity=await (await request.post('/visitor-capability')).json();
+      const socket=io(process.env.E2E_BASE_URL||'http://127.0.0.1:8000',{parser:avatarSocketParser,transports:['websocket'],auth:{visitorCapability:identity.capability},autoConnect:false,reconnection:false});
+      clients.push(socket);
+      const generation=await new Promise<string>((resolve,reject)=>{socket.on('connect_error',reject);socket.on('connect',()=>socket.emit('join_position_room',{room_id:room,profile:{displayName:`Binary ${i}`,avatarId:'casual',color:'#4587C4'}}));socket.once('room_state',data=>resolve(data.generation));socket.connect();});
+      const floats=new Float32Array(98);floats[0]=i*.1;floats[2]=-3;floats[6]=1;for(let j=0;j<22;j++)floats[13+j*4]=1;
+      socket.emit('avatar_pose',{room_id:room,generation,pose:{version:2,rigVersion:'humanoid-v1',sequence:0,sampleTime:1,bodyScale:1,tracking:{head:true,left:false,right:false},teleport:false,floats:floats.buffer}});
+    }
+    await enter(page);
+    await expect.poll(()=>page.locator('.remote-avatar').evaluateAll(els=>els.filter((el:any)=>el.avatarInstance).length),{timeout:10000}).toBe(count);
+    await expect(page.getByText(/Visitor connection expired/)).toHaveCount(0);
+  }finally{clients.forEach(c=>c.disconnect());}
+});
 async function enter(page:Page) {
   await page.goto(`/room?room_id=${room}`);
   await expect(page.getByRole('button',{name:'Visitor',exact:true})).toBeVisible({timeout:20000});

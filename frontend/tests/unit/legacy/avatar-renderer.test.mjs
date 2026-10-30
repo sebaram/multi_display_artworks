@@ -52,3 +52,8 @@ test('unknown catalog id falls back to the shiba model', () => {
 test('none renders no avatar entity', () => {
   assert.equal(createAvatarEntity({ avatarId: 'none', color: '#123456' }, fakeDocument), null);
 });
+
+test('legacy appearance selection uses the selected catalog model rather than a stale compatibility avatarId', () => {
+  const entity = createAvatarEntity({ avatarId: 'robot', color: '#123456', appearance: { presetId: 'shiba' } }, fakeDocument);
+  assert.equal(entity.attributes['gltf-model'], AVATAR_CATALOG.shiba.assetUrl);
+});

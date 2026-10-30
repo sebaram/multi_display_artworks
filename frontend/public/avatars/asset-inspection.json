@@ -1,0 +1,15 @@
+{
+  "triangles": 1536,
+  "bones": 22,
+  "bodyMaterials": 1,
+  "accessoryMaterials": 1,
+  "textureSize": 1,
+  "meters": true,
+  "up": "+Y",
+  "forward": "-Z",
+  "animations": [
+    "idle",
+    "walk"
+  ],
+  "generator": "tools/avatars/generate_humanoid.py"
+}

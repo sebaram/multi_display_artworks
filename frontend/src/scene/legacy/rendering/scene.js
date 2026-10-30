@@ -1,5 +1,7 @@
 function removeElement(element) {
   if (!element) return;
+  element.disposeAvatar?.();
+  element.querySelector?.('.remote-avatar')?.disposeAvatar?.();
   if (typeof element.remove === 'function') {
     element.remove();
   } else {
@@ -41,12 +43,18 @@ function createHandEntity(document, handData, side) {
 function updateProfile(camera, user, createAvatarEntity) {
   const avatarId = user.avatarId || 'shiba';
   const color = user.color || '#4CAF50';
-  const profileKey = `${avatarId}:${color}`;
+  const profileKey = JSON.stringify([avatarId, color, user.appearance]);
 
   if (camera.getAttribute('data-profile-key') !== profileKey) {
-    removeElement(camera.querySelector('.remote-avatar'));
-    const avatar = createAvatarEntity({ avatarId, color });
-    if (avatar) camera.appendChild(avatar);
+    const current = camera.querySelector('.remote-avatar');
+    if (current?.canApplyProfile?.(user)) {
+      current.applyAppearance(user.appearance);
+    } else {
+      removeElement(current);
+      const profile = { avatarId, color, ...(user.appearance ? { appearance: user.appearance } : {}) };
+      const avatar = createAvatarEntity(profile);
+      if (avatar) camera.appendChild(avatar);
+    }
     camera.setAttribute('data-profile-key', profileKey);
   }
 
@@ -97,6 +105,7 @@ function createRemoteCamera(document, scene, user) {
 const DEG_TO_RAD = Math.PI / 180;
 
 function writeTransform(camera, pose) {
+  camera.querySelector('.remote-avatar')?.setBodyTransform?.(pose);
   if (camera.object3D?.position?.set && camera.object3D?.rotation?.set) {
     camera.object3D.position.set(pose.position.x, pose.position.y, pose.position.z);
     // A-Frame constructs every object3D with rotation.order === 'YXZ'. THREE's
@@ -117,8 +126,15 @@ function writeTransform(camera, pose) {
 
 export function createSceneRenderer({ document, scene, selfId, createAvatarEntity }) {
   const renderedIds = new Set();
+  let latestUsers = [], destroyed = false;
+  if (document.defaultView?.AFRAME) {
+    import('../../../avatar/catalog').then(({ loadAvatarCatalog }) => loadAvatarCatalog())
+      .then(() => { if (!destroyed) { for (const id of renderedIds) document.getElementById(id)?.setAttribute('data-profile-key', ''); syncRoster(latestUsers); } })
+      .catch(() => {}); // Legacy avatars remain usable when the catalog is offline.
+  }
 
   function syncRoster(users = []) {
+    latestUsers = users;
     const activeIds = new Set();
 
     users.forEach((user) => {
@@ -151,6 +167,7 @@ export function createSceneRenderer({ document, scene, selfId, createAvatarEntit
     syncRoster,
     applyPoses,
     destroy() {
+      destroyed = true;
       syncRoster([]);
     },
   };

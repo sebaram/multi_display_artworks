@@ -73,11 +73,42 @@ function createGltfAvatar(avatarId, color, document) {
   return avatar;
 }
 
+function createHumanoidAvatar(profile, document) {
+  const wrapper = document.createElement('a-entity');
+  wrapper.setAttribute('class', 'remote-avatar');
+  const controller = new AbortController();
+  let instance, pendingAppearance = profile.appearance, bodyPose;
+  const preset = AVATAR_CATALOG[profile.appearance?.presetId || profile.avatarId];
+  wrapper.canApplyProfile = next => AVATAR_CATALOG[next.appearance?.presetId || next.avatarId]?.rigVersion === preset.rigVersion;
+  wrapper.applyAppearance = next => { pendingAppearance = next; if (instance) instance.applyAppearance(next || preset.defaultAppearance); };
+  // The wrapper owns lifecycle under the head/name entity; the actual body is
+  // attached to scene coordinates so camera pitch/roll cannot tilt the body.
+  wrapper.setBodyTransform = pose => {
+    bodyPose = pose;
+    if (!instance) return;
+    instance.root.position.set(pose.position.x, Math.max(0, pose.position.y - 1.65), pose.position.z);
+    instance.root.rotation.set(0, pose.rotation.y * Math.PI / 180, 0);
+  };
+  wrapper.disposeAvatar = () => { controller.abort(); instance?.dispose(); };
+  wrapper.avatarReady = import('../../avatar/resources').then(async ({ createAvatarInstance }) => {
+    if (controller.signal.aborted) return;
+    const scene = wrapper.sceneEl || document.querySelector('a-scene');
+    instance = await createAvatarInstance({ scene: scene.object3D, preset, appearance: pendingAppearance, signal: controller.signal });
+    wrapper.avatarInstance = instance;
+    if (bodyPose) wrapper.setBodyTransform(bodyPose);
+    return instance;
+  }).catch(error => { if (error.name !== 'AbortError') wrapper.emit?.('avatar-error', { message: error.message }); });
+  return wrapper;
+}
+
 export function createAvatarEntity(profile, document) {
   const normalized = normalizeProfile(profile);
-  const avatar = AVATAR_CATALOG[normalized.avatarId];
+  const candidate = profile?.appearance?.presetId || normalized.avatarId;
+  const id = Object.hasOwn(AVATAR_CATALOG, candidate) ? candidate : normalized.avatarId;
+  const avatar = AVATAR_CATALOG[id];
 
   if (avatar.kind === 'none') return null;
+  if (avatar.kind === 'humanoid') return createHumanoidAvatar({ ...normalized, avatarId: id, appearance: profile.appearance?.presetId === id ? profile.appearance : undefined }, document);
   if (avatar.kind === 'primitive') return createRobot(normalized.color, document);
-  return createGltfAvatar(normalized.avatarId, normalized.color, document);
+  return createGltfAvatar(id, normalized.color, document);
 }

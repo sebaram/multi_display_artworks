@@ -1,0 +1,104 @@
+import { beforeAll, expect, test, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { createAvatarInstance } from '../../src/avatar/resources';
+import { loadAvatarCatalog } from '../../src/avatar/catalog';
+let THREE: any, preset: any;
+beforeAll(async () => {
+  window.eval(readFileSync('public/vendor/aframe-1.8.0.min.js', 'utf8'));
+  THREE = (window as any).AFRAME.THREE;
+  // jsdom cannot decode images; keep the real GLTFLoader/skin parser and supply
+  // only the decoded 1px image at this browser boundary.
+  vi.spyOn(THREE.ImageLoader.prototype, 'load').mockImplementation((_url: unknown, onLoad: any) => {
+    const image = document.createElement('img'); image.width = image.height = 1;
+    queueMicrotask(() => onLoad(image));
+    return image;
+  });
+  const data = JSON.parse(readFileSync('public/avatars/catalog.fixture.json', 'utf8'));
+  vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => data }));
+  preset = (await loadAvatarCatalog()).presets.find((p: any) => p.id === 'casual');
+  vi.spyOn(THREE.GLTFLoader.prototype, 'loadAsync').mockImplementation(async () => {
+    const bytes = readFileSync('public/avatars/common-humanoid.glb');
+    return new Promise((resolve, reject) => new THREE.GLTFLoader().parse(new window.Uint8Array(bytes).buffer, '', resolve, reject));
+  });
+});
+const appearance = (top: string, hatId = 'none') => ({ ...preset.defaultAppearance, colors: { ...preset.defaultAppearance.colors, top }, hatId });
+test('real skinned humanoid clones isolate joints, palette and head attachments while sharing geometry/textures until last release', async () => {
+  const scene = new THREE.Scene();
+  const a = await createAvatarInstance({ scene, preset, appearance: appearance('#FF0000', 'cap') });
+  const b = await createAvatarInstance({ scene, preset: { ...preset, id: 'sporty' }, appearance: appearance('#0000FF') });
+  const ma = a.root.getObjectByName('Body'), mb = b.root.getObjectByName('Body');
+  expect(ma.isSkinnedMesh).toBe(true);
+  expect(ma.geometry.attributes.skinWeight.count).toBeGreaterThan(100);
+  expect(ma.skeleton).not.toBe(mb.skeleton);
+  expect(a.mixer).not.toBe(b.mixer);
+  expect(a.animations).toBe(b.animations);
+  expect(a.animations.map((clip: any) => clip.name)).toEqual(['idle', 'walk']);
+  expect(ma.skeleton.bones[0]).not.toBe(mb.skeleton.bones[0]);
+  ma.skeleton.bones[0].rotation.y = .8;
+  expect(mb.skeleton.bones[0].rotation.y).toBe(0);
+  expect(ma.material).not.toBe(mb.material);
+  expect(ma.material.userData.avatarColors.top.value.getHexString()).toBe('ff0000');
+  expect(mb.material.userData.avatarColors.top.value.getHexString()).toBe('0000ff');
+  expect(a.root.getObjectByName('Cap').visible).toBe(true);
+  expect(b.root.getObjectByName('Cap').visible).toBe(false);
+  expect(a.root.getObjectByName('Cap').parent.name).toBe('HeadAnchor');
+  expect(ma.geometry).toBe(mb.geometry);
+  expect(ma.material.map).toBe(mb.material.map);
+  const geometryDisposed = vi.fn(), textureDisposed = vi.fn(), materialDisposed = vi.fn();
+  ma.geometry.addEventListener('dispose', geometryDisposed);
+  ma.material.map.addEventListener('dispose', textureDisposed);
+  ma.material.addEventListener('dispose', materialDisposed);
+  a.dispose(); a.dispose();
+  expect(materialDisposed).toHaveBeenCalledTimes(1);
+  expect(geometryDisposed).not.toHaveBeenCalled();
+  expect(textureDisposed).not.toHaveBeenCalled();
+  expect(scene.children).toEqual([b.root]);
+  b.dispose();
+  expect(geometryDisposed).toHaveBeenCalledTimes(1);
+  expect(textureDisposed).toHaveBeenCalledTimes(1);
+});
+test('abort during shared load never attaches a disposed avatar and releases the last pending resource', async () => {
+  const original = THREE.GLTFLoader.prototype.loadAsync.getMockImplementation();
+  let finish!: () => void;
+  let markStarted!: () => void;
+  const started = new Promise<void>(resolve => { markStarted = resolve; });
+  const gate = new Promise<void>(resolve => { finish = resolve; });
+  const released = vi.fn();
+  THREE.GLTFLoader.prototype.loadAsync.mockImplementation(async function(this: any, url: string) {
+    markStarted(); await gate;
+    const gltf = await original.call(this, url);
+    gltf.scene.getObjectByName('Body').geometry.addEventListener('dispose', released);
+    return gltf;
+  });
+  const scene = new THREE.Scene(), controller = new AbortController();
+  const pending = createAvatarInstance({ scene, preset, appearance: appearance('#FF0000'), signal: controller.signal });
+  await started;
+  controller.abort(); finish();
+  await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+  expect(scene.children).toHaveLength(0);
+  expect(released).toHaveBeenCalledTimes(1);
+  THREE.GLTFLoader.prototype.loadAsync.mockImplementation(original);
+});
+
+test('a caller asset URL never replaces the catalog URL and failed loads can be retried', async () => {
+  const loader = THREE.GLTFLoader.prototype.loadAsync;
+  const original = loader.getMockImplementation();
+  loader.mockRejectedValueOnce(Error('offline'));
+  const scene = new THREE.Scene();
+  await expect(createAvatarInstance({ scene, preset, appearance: appearance('#123456') })).rejects.toThrow('offline');
+  loader.mockClear(); loader.mockImplementation(original);
+  const instance = await createAvatarInstance({ scene, preset: { ...preset, assetUrl: 'https://attacker.invalid/model.glb' }, appearance: appearance('#123456') });
+  expect(loader.mock.calls[0][0]).toBe('/avatars/common-humanoid.glb');
+  instance.dispose();
+});
+test('pose uses frozen parent-relative bone order and rest hips offset without re-solving IK', async () => {
+  const a = await createAvatarInstance({ scene: new THREE.Scene(), preset, appearance: appearance('#123456') });
+  const rotations = new Float32Array(preset.coreBones.length * 4);
+  for (let i = 3; i < rotations.length; i += 4) rotations[i] = 1;
+  rotations.set([0, Math.sin(.25), 0, Math.cos(.25)], 4 * preset.coreBones.indexOf('head'));
+  a.applyPose({ version: 2, rigVersion: 'humanoid-v1', sequence: 1, sampleTime: 0, root: { position: [1,0,2], orientation: [0,0,0,1] }, hipsOffset: [0,.1,0], boneRotations: rotations, tracking: { head: true, left: false, right: false }, teleport: false });
+  expect(a.root.position.toArray()).toEqual([1,0,2]);
+  expect(a.root.getObjectByName('hips').position.y).toBeCloseTo(1.02);
+  expect(a.root.getObjectByName('head').rotation.y).toBeCloseTo(.5);
+  a.dispose();
+});

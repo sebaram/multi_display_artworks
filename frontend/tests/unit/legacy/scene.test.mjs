@@ -188,3 +188,23 @@ test('unchanged hand payloads do not rebuild hand entities', () => {
   renderer.syncRoster([{ ...user, leftHand: { wrist: { position: [0, 2, 0] } } }]);
   assert.notEqual(document.getElementById('hand-left-other'), firstHand);
 });
+
+test('appearance updates reuse a humanoid instance and roster removal releases its separate body root', () => {
+  const scene = new FakeElement('a-scene'), document = createDocument(scene);
+  let creates = 0, releases = 0;
+  const applied = [];
+  const renderer = createSceneRenderer({ document, scene, selfId: 'self', createAvatarEntity() {
+    creates++;
+    const avatar = new FakeElement('a-entity'); avatar.setAttribute('class', 'remote-avatar');
+    avatar.applyAppearance = value => applied.push(value);
+    avatar.canApplyProfile = () => true;
+    avatar.disposeAvatar = () => { releases++; };
+    return avatar;
+  } });
+  renderer.syncRoster([{ userId: 'other', avatarId: 'casual', appearance: { schemaVersion: 2, presetId: 'casual', colors: { top: '#FF0000' } } }]);
+  renderer.syncRoster([{ userId: 'other', avatarId: 'casual', appearance: { schemaVersion: 2, presetId: 'casual', colors: { top: '#0000FF' } } }]);
+  assert.equal(creates, 1);
+  assert.equal(applied.at(-1).colors.top, '#0000FF');
+  renderer.destroy();
+  assert.equal(releases, 1);
+});

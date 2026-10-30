@@ -59,9 +59,11 @@
 
 ### Task 3: 데스크톱/모바일 전신 동작과 발 접지
 
-**Files:** Create `frontend/src/avatar/pose.ts`, `frontend/src/avatar/pose-codec.ts`, `frontend/src/avatar/motion.ts`, `frontend/src/avatar/two-bone-ik.ts`, `frontend/tests/unit/avatar-motion.test.ts`, `frontend/tests/unit/avatar-pose-codec.test.ts`; Modify `legacy/rendering/scene.js`, `legacy/rendering/render-loop.js`, `legacy/core/pose-buffer.js`, `legacy/core/pose-publisher.js`, `frontend/src/scene/realtime.ts`, `backend/metamuseum/schemas_avatar.py`, `realtime/presence.py`, `realtime/server.py`, `backend/tests/test_presence_contract.py`.
+**Files:** Create `frontend/src/avatar/pose.ts`, `frontend/src/avatar/pose-codec.ts`, `frontend/src/avatar/transport.ts`, `frontend/src/avatar/motion.ts`, `frontend/src/avatar/two-bone-ik.ts`, `frontend/tests/unit/avatar-motion.test.ts`, `frontend/tests/unit/avatar-pose-codec.test.ts`, `frontend/tests/unit/avatar-transport.test.ts`; Modify `legacy/rendering/scene.js`, `legacy/rendering/render-loop.js`, `legacy/core/pose-buffer.js`, `legacy/core/pose-publisher.js`, `frontend/src/scene/realtime.ts`, `backend/metamuseum/schemas_avatar.py`, `realtime/presence.py`, `realtime/server.py`, `backend/tests/test_presence_contract.py`.
 
 **Interfaces:** `AvatarInputV2`는 로컬 root/head/hand targets/tracking/locomotion이고 `AvatarPoseV2`는 spec의 version/rigVersion/sequence/sampleTime/root/hipsOffset/boneRotations/tracking/teleport다. `updateAvatarMotion(instance,input,delta,ground,detail)`는 본인의 idle/walk, 독립 head/torso yaw, 추정 hips, foot lock을 갱신하고 최종 pose를 생성한다. `encodeAvatarPose`/`decodeAvatarPose`는 메타데이터와 float32 binary 배열을 처리한다. `interpolateAvatarPose(a,b,t)`는 root와 최종 bone quaternion을 보간하며 원격 IK/보행을 실행하지 않는다. `solveTwoBone(chain,target,pole,limits)`는 도달 범위와 유한 값을 보장한다.
+
+`AvatarPoseTransport`는 `publish(pose)`, `subscribe(listener): unsubscribe`, `dispose()`의 작은 경계로 둔다. Socket.IO 이벤트 등록/해제·binary 전송은 여기에만 두고 모션/모델/codec은 transport SDK를 import하지 않는다. 같은 인터페이스에 후속 LiveKit 어댑터를 붙일 수 있지만 이번에는 Socket.IO 하나만 구현한다. room lifecycle의 연결 소유권은 기존 연결을 따른다.
 
 - [ ] 머리를 좌우/상하로 돌려도 몸통이 쓰러지지 않음, 보행/정지/후진/회전, 발 접지, 닿지 않는 목표, 발 위상 순환, teleport 즉시 초기화의 실패 테스트를 추가한다.
 - [ ] camera entity를 avatar root로 쓰던 구조를 분리하고 이름·표정·음성의 기존 lookup ID는 호환 anchor에 남긴다. 초기 바닥은 room boundary floor이며 standalone wall/AR처럼 바닥 정의가 없으면 foot planting을 끄고 안전한 idle을 사용한다.
@@ -74,7 +76,7 @@
 
 **Files:** Create `frontend/src/avatar/xr-input.ts`, `frontend/src/avatar/calibration.ts`, `frontend/tests/unit/avatar-xr-input.test.ts`, `frontend/tests/e2e/avatar-tracking.spec.ts`; Modify `legacy/interaction/hand-tracking.js`, `scene/realtime.ts`, `avatar/pose.ts`, `avatar/motion.ts`, `legacy/core/pose-buffer.js`, `legacy/rendering/scene.js`.
 
-**Interfaces:** `sampleAvatarInput({frame,referenceSpace,xrOrigin,calibration}): AvatarInputV2`는 같은 frame의 HMD/grip/wrist를 월드 좌표로 통일하는 로컬 전용 입력이다. 이를 본인 `updateAvatarMotion`에 넣어 계산한 관절 포즈만 송신한다. `calibrateAvatar({viewer,floorMode,posture}): Calibration`은 floorOffset/standingHeadHeight/posture를 반환한다. tracking loss는250ms 이후 untracked, 약300ms 동안 rest로 blend하며 최대20Hz 송신과 정지 heartbeat를 유지한다. session은 scene.renderer.xr.getSession()의 소유권을 가져오지 않는다.
+**Interfaces:** `sampleAvatarInput({frame,referenceSpace,xrOrigin,calibration}): AvatarInputV2`는 같은 frame의 HMD/grip/wrist를 월드 좌표로 통일하는 로컬 전용 입력이다. 이를 본인 `updateAvatarMotion`에 넣어 계산한 관절 포즈만 송신한다. `calibrateAvatar({viewer,floorMode,posture}): Calibration`은 Task1의 version/eyeHeight/floorOffset/mode/referenceSpace 계약을 반환한다. tracking loss는250ms 이후 untracked, 약300ms 동안 rest로 blend하며 최대20Hz 송신과 정지 heartbeat를 유지한다. session은 scene.renderer.xr.getSession()의 소유권을 가져오지 않는다.
 
 - [ ] floor/local, rig 이동/yaw, teleport, 좌우 한쪽만 존재, controller→hand 전환, session end, 잘못된 quaternion/과거 packet, 앉은 자세와 손의 도달 범위를 mock XR 실패 테스트로 확인한다.
 - [ ] 별도 session을 request하던 hand 경로를 renderer 소유 session 수집으로 대체한다. pointer ray 대신 grip/wrist를 팔 끝 목표로 삼고 같은 frame의 head/hand에서 본인 IK를 계산한다. 원격은 송신한 관절을 보간해 뼈/손 mesh를 갱신하며 손 DOM을 재생성하지 않는다.

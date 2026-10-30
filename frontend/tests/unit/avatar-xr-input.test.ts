@@ -1,8 +1,9 @@
-import { test, expect } from "vitest";
+import { test, expect, vi } from "vitest";
 import { calibrateAvatar } from "../../src/avatar/calibration";
 import {
   sampleAvatarInput,
   createXRInputState,
+  disposeXRInputState,
 } from "../../src/avatar/xr-input";
 import {
   avatarPoseChanged,
@@ -48,18 +49,80 @@ function fixture() {
     getJointPose: (s: any) => values.get(s),
   };
   const state = createXRInputState();
+  const referenceSpace = new EventTarget();
   const sample = (sampleTime: number, extra: any = {}) =>
     sampleAvatarInput({
       frame,
-      referenceSpace: {},
+      referenceSpace,
       xrOrigin: origin,
       calibration,
       sampleTime,
       state,
       ...extra,
     });
-  return { frame, session, values, grip, wrist, sample };
+  return { frame, session, values, grip, wrist, sample, referenceSpace, state };
 }
+test("a one-shot sample without persistent state does not leave a reference reset listener behind", () => {
+  const f = fixture(),
+    removed = vi.spyOn(f.referenceSpace, "removeEventListener");
+  const i = sampleAvatarInput({
+    frame: f.frame,
+    referenceSpace: f.referenceSpace,
+    xrOrigin: origin,
+    calibration,
+    sampleTime: 100,
+  });
+  expect(i.tracking.head).toBe(true);
+  expect(removed).toHaveBeenCalledTimes(1);
+});
+test("same-session reference replacement clears missing targets and small-change walking history once", () => {
+  const f = fixture();
+  f.sample(100);
+  f.session.inputSources = [];
+  f.frame.getViewerPose = () => transform(0.4, 1.64, -0.1);
+  const replacement = new EventTarget();
+  const changed = f.sample(150, { referenceSpace: replacement });
+  expect(changed.tracking.left).toBe(false);
+  expect(changed.left).toBeNull();
+  expect(changed.locomotion.velocity).toEqual([0, 0, 0]);
+  expect(changed.locomotion.teleport).toBe(true);
+  expect(
+    f.sample(200, { referenceSpace: replacement }).locomotion.teleport,
+  ).toBe(false);
+});
+test("same-object reset invalidates missing hands and yaw-only locomotion history, detaching old listeners", () => {
+  const f = fixture(),
+    removed = vi.spyOn(f.referenceSpace, "removeEventListener");
+  f.sample(100);
+  f.session.inputSources = [];
+  f.frame.getViewerPose = () => {
+    const p = transform(0.2, 1.64, -0.1);
+    p.transform.orientation = {
+      x: 0,
+      y: Math.sin(0.3),
+      z: 0,
+      w: Math.cos(0.3),
+    };
+    return p;
+  };
+  f.referenceSpace.dispatchEvent(new Event("reset"));
+  const changed = f.sample(150);
+  expect(changed.left).toBeNull();
+  expect(changed.tracking.left).toBe(false);
+  expect(changed.locomotion.teleport).toBe(true);
+  expect(changed.locomotion.velocity).toEqual([0, 0, 0]);
+  expect(f.sample(200).locomotion.teleport).toBe(false);
+  const replacement = new EventTarget(),
+    replacementRemoved = vi.spyOn(replacement, "removeEventListener");
+  f.sample(250, { referenceSpace: replacement });
+  expect(removed).toHaveBeenCalledTimes(1);
+  f.referenceSpace.dispatchEvent(new Event("reset"));
+  expect(
+    f.sample(300, { referenceSpace: replacement }).locomotion.teleport,
+  ).toBe(false);
+  disposeXRInputState(f.state);
+  expect(replacementRemoved).toHaveBeenCalledTimes(1);
+});
 test("one frame maps viewer and grip through the virtual origin exactly once; ray is never an arm target", () => {
   const i = fixture().sample(100);
   expect(i.head!.position[0]).toBeCloseTo(9.9);
@@ -136,6 +199,25 @@ test("local space establishes floor offset; seated height preserves known or def
       posture: "standing",
     }).eyeHeight,
   ).toBe(1.64);
+});
+test("standing calibration uses the rebased floor instead of shrinking after a vertical reset", () => {
+  const adjusted = calibrateAvatar({
+    viewer: transform(0, 1.49).transform,
+    floorMode: "local-floor",
+    posture: "standing",
+    previous: { ...calibration, floorOffset: -0.15 },
+  });
+  expect(adjusted.eyeHeight).toBeCloseTo(1.64);
+  expect(adjusted.floorOffset).toBe(-0.15);
+});
+test("standing measurement remains floor-relative when reset coordinates put the viewer below zero", () => {
+  const adjusted = calibrateAvatar({
+    viewer: transform(0, -0.2).transform,
+    floorMode: "local-floor",
+    posture: "standing",
+    previous: { ...calibration, floorOffset: -2 },
+  });
+  expect(adjusted.eyeHeight).toBeCloseTo(1.8);
 });
 test("origin teleport drops old cached hands and velocity; session replacement clears tracking history", () => {
   const f = fixture();

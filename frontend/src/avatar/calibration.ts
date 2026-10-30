@@ -17,17 +17,19 @@ export function calibrateAvatar({
 }): Calibration {
   const known = previous?.eyeHeight ?? AVATAR_EYE_HEIGHT;
   const measured = viewer?.position.y;
+  const previousFloor =
+    previous?.referenceSpace === floorMode ? previous.floorOffset : 0;
   const height = Number.isFinite(eyeHeight)
     ? eyeHeight!
     : posture === "standing" &&
         floorMode === "local-floor" &&
         Number.isFinite(measured) &&
-        measured! > 0.5
-      ? measured!
+        measured! - previousFloor > 0.5
+      ? measured! - previousFloor
       : known;
   const floorOffset =
     floorMode === "local-floor"
-      ? 0
+      ? previousFloor
       : previous?.referenceSpace === "local"
         ? previous.floorOffset
         : Number.isFinite(measured)

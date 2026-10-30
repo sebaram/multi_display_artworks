@@ -10,11 +10,62 @@ import { AVATAR_EYE_HEIGHT } from "./calibration";
 type Side = "head" | "left" | "right";
 type XRInputState = {
   session?: any;
+  referenceSpace?: any;
+  detachReference?: () => void;
+  referenceReset?: { transform: Transform | null };
   targets: Partial<Record<Side, { at: number; target: Transform }>>;
   last?: AvatarInputV2;
 };
 export function createXRInputState(): XRInputState {
   return { targets: {} };
+}
+export function disposeXRInputState(state: XRInputState) {
+  state.detachReference?.();
+  state.detachReference = undefined;
+  state.referenceSpace = undefined;
+  state.referenceReset = undefined;
+  state.session = undefined;
+  state.targets = {};
+  state.last = undefined;
+}
+/** Both identity replacement and reset invalidate coordinates, even when viewer motion is tiny. */
+export function syncXRInputReferenceSpace(
+  state: XRInputState,
+  referenceSpace: any,
+  session: any,
+) {
+  if (session !== state.session) {
+    disposeXRInputState(state);
+    state.session = session;
+  }
+  const previous = state.referenceSpace,
+    reset = state.referenceReset;
+  if (previous === referenceSpace && !reset) return null;
+  if (previous !== referenceSpace) {
+    state.detachReference?.();
+    state.referenceSpace = referenceSpace;
+    const onReset = (event: any) => {
+      const next = readXRTransform({ transform: event.transform });
+      const pending = state.referenceReset;
+      state.referenceReset = {
+        transform: pending
+          ? pending.transform &&
+            next &&
+            transformXRTarget(next, pending.transform)
+          : next,
+      };
+    };
+    referenceSpace?.addEventListener?.("reset", onReset);
+    state.detachReference = () =>
+      referenceSpace?.removeEventListener?.("reset", onReset);
+  }
+  state.referenceReset = undefined;
+  state.targets = {};
+  state.last = undefined;
+  return {
+    previous,
+    transform: previous === referenceSpace ? (reset?.transform ?? null) : null,
+  };
 }
 /** Invalid sensor quaternions are tracking loss, never fabricated identity orientation. */
 export function readXRTransform(pose: any): Transform | null {
@@ -53,7 +104,7 @@ export function sampleAvatarInput({
   xrOrigin,
   calibration,
   sampleTime,
-  state = createXRInputState(),
+  state: persistentState,
   floorHeight,
   teleport = false,
 }: {
@@ -66,11 +117,12 @@ export function sampleAvatarInput({
   floorHeight?: number;
   teleport?: boolean;
 }): AvatarInputV2 {
+  const state = persistentState ?? createXRInputState();
   const session = frame?.session;
-  if (session !== state.session || teleport || !frame) {
+  syncXRInputReferenceSpace(state, frame ? referenceSpace : undefined, session);
+  if (teleport || !frame) {
     state.targets = {};
     state.last = undefined;
-    state.session = session;
   }
   if (state.last && sampleTime <= state.last.sampleTime) return state.last;
   const current: Partial<Record<Side, Transform | null>> = {};
@@ -141,5 +193,6 @@ export function sampleAvatarInput({
     locomotion: { velocity, grounded: Number.isFinite(floorHeight), teleport },
   };
   state.last = input;
+  if (!persistentState) disposeXRInputState(state);
   return input;
 }

@@ -4,8 +4,10 @@ import {
   readXRTransform,
   sampleAvatarInput,
   transformXRTarget,
+  disposeXRInputState,
+  syncXRInputReferenceSpace,
 } from "./xr-input";
-import { axisAngle, rotate } from "./pose";
+import { axisAngle, rotate, product, inverse, sub } from "./pose";
 import type { Calibration, Transform, Vec3, Quat } from "./types";
 
 /** The pinned renderer's poseTarget is #camera.object3D: its parent is reference→world. */
@@ -30,6 +32,15 @@ export function mountAvatarXRInput({
   let calibration: Calibration | undefined,
     state = createXRInputState();
   let lastHead: Transform | null = null;
+  let referenceHead: Transform | null = null;
+  let pendingRebase:
+    | {
+        origin: Transform;
+        head: Transform | null;
+        floor: Vec3;
+        relation: Transform | null;
+      }
+    | undefined;
   let saved:
     | { position: any; quaternion: any; matrixAutoUpdate: boolean }
     | undefined;
@@ -69,8 +80,11 @@ export function mountAvatarXRInput({
     session?.removeEventListener("end", end);
     session = undefined;
     initialized = false;
+    disposeXRInputState(state);
     state = createXRInputState();
     lastHead = null;
+    referenceHead = null;
+    pendingRebase = undefined;
     if (origin) {
       origin.position.set(0, 0, 0);
       origin.quaternion.identity();
@@ -171,6 +185,75 @@ export function mountAvatarXRInput({
     );
     origin.updateMatrixWorld(true);
   }
+  function rebaseReference(
+    frame: any,
+    referenceSpace: any,
+    change: ReturnType<typeof syncXRInputReferenceSpace>,
+  ) {
+    if (change && initialized) {
+      let relation = change.transform;
+      if (!relation && change.previous && change.previous !== referenceSpace) {
+        try {
+          relation = readXRTransform(
+            frame.getPose(referenceSpace, change.previous),
+          );
+        } catch {
+          /* Unknown mapping: anchor the next valid viewer pose. */
+        }
+      }
+      const before = originTransform();
+      pendingRebase = {
+        origin: before,
+        head: referenceHead,
+        floor: transformXRTarget(
+          {
+            position: [0, calibration!.floorOffset, 0],
+            orientation: [0, 0, 0, 1],
+          },
+          before,
+        ).position,
+        relation,
+      };
+      pendingTeleport = true;
+    }
+    if (!pendingRebase || !origin) return;
+    const anchor = pendingRebase,
+      head = readXRTransform({ transform: viewer() });
+    let next: Transform;
+    if (anchor.relation)
+      next = transformXRTarget(anchor.relation, anchor.origin);
+    else if (anchor.head && head) {
+      const orientation = product(
+        anchor.head.orientation,
+        inverse(head.orientation),
+      );
+      next = {
+        orientation,
+        position: sub(anchor.head.position, rotate(orientation, head.position)),
+      };
+    } else return;
+    const matrix = new THREE.Matrix4().compose(
+      new THREE.Vector3().fromArray(next.position),
+      new THREE.Quaternion().fromArray(next.orientation),
+      new THREE.Vector3(1, 1, 1),
+    );
+    if (origin.parent) {
+      origin.parent.updateWorldMatrix(true, false);
+      matrix.premultiply(origin.parent.matrixWorld.clone().invert());
+    }
+    matrix.decompose(origin.position, origin.quaternion, origin.scale);
+    origin.updateMatrixWorld(true);
+    calibration = {
+      ...calibration!,
+      referenceSpace: floorMode(),
+      floorOffset: rotate(
+        inverse(next.orientation),
+        sub(anchor.floor, next.position),
+      )[1],
+    };
+    pendingRebase = undefined;
+    pendingTeleport = true;
+  }
   function teleport() {
     if (!session || !initialized) return;
     const head = readXRTransform({ transform: viewer() });
@@ -178,10 +261,13 @@ export function mountAvatarXRInput({
     // Existing teleport presets address scene-local eye XZ/yaw, even while the entity is tracked.
     placeOrigin(camera.object3D.position, camera.object3D.quaternion, head);
     pendingTeleport = true;
-    state = createXRInputState();
     onReset();
   }
   camera?.addEventListener("avatar-teleport", teleport);
+  const originClamped = () => {
+    pendingTeleport = true;
+  };
+  camera?.addEventListener("avatar-xr-origin-clamped", originClamped);
   return {
     get active() {
       return !!session;
@@ -202,6 +288,12 @@ export function mountAvatarXRInput({
       if (!session) return null;
       const frame = manager.getFrame?.(),
         referenceSpace = manager.getReferenceSpace?.();
+      const referenceChange = syncXRInputReferenceSpace(
+        state,
+        frame ? referenceSpace : undefined,
+        frame?.session,
+      );
+      rebaseReference(frame, referenceSpace, referenceChange);
       if (!initialized) {
         const head = readXRTransform({ transform: viewer() });
         if (!head) return null;
@@ -218,6 +310,7 @@ export function mountAvatarXRInput({
         initialized = true;
         controls.hidden = false;
       }
+      camera.components?.["boundary-clamp"]?.clampXRBoundary?.();
       const input = sampleAvatarInput({
         frame,
         referenceSpace,
@@ -232,6 +325,7 @@ export function mountAvatarXRInput({
         scene.emit("avatar-xr-origin-changed", { head: input.head }, false);
       pendingTeleport = false;
       lastHead = input.head;
+      if (input.head) referenceHead = input.head;
       return input;
     },
     transformHand(hand: any) {
@@ -270,6 +364,8 @@ export function mountAvatarXRInput({
       scene.removeEventListener("exit-vr", exit);
       scene.removeEventListener("avatar-calibration", calibrationAction);
       camera?.removeEventListener("avatar-teleport", teleport);
+      camera?.removeEventListener("avatar-xr-origin-clamped", originClamped);
+      disposeXRInputState(state);
       controls.remove();
     },
   };

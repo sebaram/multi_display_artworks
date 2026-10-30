@@ -8,9 +8,12 @@ export type HumanoidBone = 'hips' | 'spine' | 'chest' | 'upperChest' | 'neck' | 
   | 'leftUpperLeg' | 'leftLowerLeg' | 'leftFoot' | 'leftToes'
   | 'rightUpperLeg' | 'rightLowerLeg' | 'rightFoot' | 'rightToes';
 export type AvatarColors = Record<'skin' | 'top' | 'bottom' | 'hair' | 'eyes', string>;
+export type AvatarParametric = { model: 'smpl' | 'smplx'; betas: number[] };
 export interface AvatarAppearanceV2 {
   schemaVersion: 2; presetId: string; colors: AvatarColors;
   faceId: string; hairId: string; hatId: string; glassesId: string;
+  /** Source parameters only; the current mesh does not deform from betas. */
+  parametric?: AvatarParametric;
 }
 export interface AvatarPreset {
   id: string; label: string; kind: 'humanoid' | 'gltf' | 'primitive' | 'none';

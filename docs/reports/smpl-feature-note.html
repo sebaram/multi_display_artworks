@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMPL motion compatibility · Feature note</title>
+<style>
+body{margin:0;background:#f2f5f6;color:#182d3b;font:17px/1.6 system-ui,sans-serif}main{max-width:1080px;margin:auto;padding:48px 24px}h1{font-size:clamp(32px,5vw,52px);line-height:1.1;margin:12px 0 24px}h2{font-size:25px;margin-top:40px}.eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#466172}a{color:#145782}figure{margin:24px 0;background:white;border:1px solid #d3dfe5;border-radius:12px;overflow:hidden}img{display:block;width:100%;height:auto}figcaption{padding:16px;color:#415563}aside{background:#dfeaf0;border-left:4px solid #296787;padding:18px 24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}li{margin:8px 0}code{font-size:.9em}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<div class="eyebrow">Meta Museum · 30 October 2026 · Development feature check</div>
+<h1>SMPL body motion on the current humanoids</h1>
+<p>Load compatible SMPL or SMPL-X axis-angle JSON, preview it privately, then Apply to share body motion through the existing core22 relay. No licensed model assets are needed for this compatibility layer.</p>
+<aside><strong>What is not available:</strong> native SMPL meshes, learned shape/pose deformation, SMPL-X fingers and face. Betas are stored as source metadata and do not change the current mesh. No model/package was downloaded and no license was accepted.</aside>
+<h2>Try the included example</h2>
+<p>Open <strong>Visitor → Customize</strong>, choose a humanoid, and select <strong>Load synthetic example</strong>. This self-authored elbow wave is compatible parameter data, not captured human movement. Cancel stays private; Apply starts playback only after a successful save. The room toolbar pauses, resumes, or stops playback.</p>
+<figure><img src="smpl-feature-assets/preview.png" alt="Private editor preview showing a humanoid with arms retargeted from a T-pose and a bent elbow"><figcaption>Private preview uses the target bind-pose correction. The file remains in this tab.</figcaption></figure>
+<div class="grid">
+<section><h2>Safe, explicit boundaries</h2><ul><li>8 MiB JSON, 1800 frames maximum, 1–120 fps.</li><li>SMPL 69 body floats; SMPL-X 63. Full hand axis-angle channels may be retained but are not rendered. PCA hands are rejected.</li><li>File trajectories never move the camera. XR entry clears playback.</li><li>Only optional <code>{model, betas}</code> metadata is saved with appearance; clips are not stored or restored.</li><li>The live packet remains 392 bytes.</li></ul></section>
+<section><h2>Observed development results</h2><ul><li>14 focused frontend tests and 10 schema tests passed.</li><li>TypeScript check and production build passed; existing bundle warnings remain.</li><li>Two actual Chrome pages: preview/Cancel privacy, save/reload, changing observer elbow, pause/resume, loop and Stop verified.</li><li>Paused elbow delta: 0. Camera stayed at [0, 1.6, 0] throughout playback.</li></ul></section>
+</div>
+<figure><img src="smpl-feature-assets/observer.png" alt="Observer sees the owner's humanoid elbow wave through the room relay"><figcaption>Actual observer page rendering the owner's imported body pose. The toolbar reports this observer's own playback state, which is stopped.</figcaption></figure>
+<figure><img src="smpl-feature-assets/import-limits.png" alt="Import controls disclose ignored translation, unavailable native deformation, and saved betas metadata"><figcaption>The editor discloses unsupported channels, trajectory policy, and metadata-only betas before Apply.</figcaption></figure>
+<h2>Scope of this evidence</h2>
+<p>This is a short desktop feature smoke check, not a new performance evaluation. No physical XR device, emulated XR rendering, exhaustive regression suite, or performance matrix was run. The existing Three.js multiple-instance console warning and Vite chunk warnings were observed; this feature adds no Three dependency.</p>
+<p><a href="../smpl-compatibility.md">Usage, JSON contract and implementation boundaries</a> · <a href="avatar-evaluation.html">Historical avatar evaluation (unchanged measured build)</a></p>
+</main></body></html>

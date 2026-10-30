@@ -119,6 +119,9 @@ h3 {
 p {
   color: #667277;
 }
+.avatar-editor p {
+  color: #d4e0eb;
+}
 .muted,
 small {
   color: #778184;

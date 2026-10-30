@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { createAvatarInstance } from '../../avatar/resources';
 import type { AvatarAppearanceV2, AvatarPreset, AvatarInstance } from '../../avatar/types';
+import { sampleSmplMotion, type SmplMotionClip } from '../../avatar/smpl';
+import { identityPose } from '../../avatar/pose';
 
-export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; appearance: AvatarAppearanceV2 }) {
+export function AvatarPreview({ preset, appearance, clip }: { preset: AvatarPreset; appearance: AvatarAppearanceV2; clip?: SmplMotionClip }) {
   const host = useRef<HTMLDivElement>(null), avatar = useRef<AvatarInstance | null>(null);
   const [error, setError] = useState('');
   const [rotation, setRotation] = useState(0), [zoom, setZoom] = useState(2.8);
   const controls = useRef({ rotation, zoom });
   const latest = useRef(appearance); latest.current = appearance;
+  const motion = useRef({ clip, started: performance.now() });
+  if (motion.current.clip !== clip) motion.current = { clip, started: performance.now() };
   controls.current = { rotation, zoom };
   useEffect(() => { avatar.current?.applyAppearance(appearance); }, [appearance]);
   useEffect(() => {
@@ -41,6 +45,10 @@ export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; ap
       const focusHeight = .92 + Math.max(0, Math.min(1, (2.8 - distance) / 1.4)) * .65;
       camera.position.set(0, focusHeight + .1, -distance); camera.lookAt(0, focusHeight, 0);
       group.rotation.y = controls.current.rotation * Math.PI / 180;
+      const now = performance.now();
+      avatar.current?.applyPose(motion.current.clip
+        ? sampleSmplMotion(motion.current.clip, preset, (now - motion.current.started) / 1000, { position: [0, 0, 0], orientation: [0, 0, 0, 1] }, now)
+        : identityPose());
       renderer.render(world, camera); frame = requestAnimationFrame(draw);
     };
     draw();

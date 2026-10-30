@@ -1,6 +1,6 @@
 # Customizable Avatars Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 복수 프리셋·개인 외형 저장·연결된 전신 움직임을 지원하되 현재 방 동기화와 성능을 보존한다.
 
@@ -39,10 +39,10 @@
 
 **Interfaces:** `types.ts`에 spec의 `AvatarPreset`, `AvatarAppearanceV2`, 로컬 전용 `AvatarInputV2`, 최종 관절 전송용 `AvatarPoseV2`, `Calibration` 계약을 먼저 정의한다. `AvatarPreset`는 id/assetUrl/thumbnail/rigVersion/rigMap/materialSlots/headAnchor/capabilities/budgets를 제공한다. root transform/hipsOffset과 고정 bone 순서의 부모 기준 회전 배열을 계약으로 정하고 전송/수신에서 같은 rig를 사용한다. `createAvatarInstance({scene,preset,appearance}): Promise<{root,applyAppearance,applyPose,setDetail,dispose}>`는 공유 자산 참조와 사용자별 skeleton/material을 소유한다. 여기서 `GET /api/v1/avatars/catalog`를 등록하고 `loadAvatarCatalog()`가 이를 읽도록 한다. 후속 작업은 이 계약을 가져와 정규화/송수신을 구현한다.
 
-- [ ] 기준 사람형 한 개를 확보하고 뼈 이름/방향·meter scale·idle/walk clip·재질 슬롯·head anchor·라이선스를 검사한다. 목표20k triangles/70bones/본체2material/1024px를 확인한다. 네 외형은 같은 rig를 사용하는 조합으로 정의한다.
-- [ ] `avatar-resources.test.ts`에 두 인스턴스의 bone 회전·상의 색·모자 분리, geometry/texture 공유 및 마지막 해제, load 도중 dispose 후 재부착 없음의 실패 검증을 작성하고 실행한다.
-- [ ] AFRAME.THREE와 같은 revision의 SkeletonUtils를 연결한다. 기존 avatar factory를 새 어댑터로 연결하되 레거시 모델은 그대로 읽는다. 프로필 갱신 때 외형 변경만으로 모델 전체를 재로드하지 않는다.
-- [ ] `npm.cmd exec vitest -- run tests/unit/avatar-resources.test.ts`, `npm.cmd run typecheck`와 실제 기준 모델 로드/두 방문자의 다른 색 표시를 검증하고 커밋한다.
+- [x] 기준 사람형 한 개를 확보하고 뼈 이름/방향·meter scale·idle/walk clip·재질 슬롯·head anchor·라이선스를 검사한다. 목표20k triangles/70bones/본체2material/1024px를 확인한다. 네 외형은 같은 rig를 사용하는 조합으로 정의한다.
+- [x] `avatar-resources.test.ts`에 두 인스턴스의 bone 회전·상의 색·모자 분리, geometry/texture 공유 및 마지막 해제, load 도중 dispose 후 재부착 없음의 실패 검증을 작성하고 실행한다.
+- [x] AFRAME.THREE와 같은 revision의 SkeletonUtils를 연결한다. 기존 avatar factory를 새 어댑터로 연결하되 레거시 모델은 그대로 읽는다. 프로필 갱신 때 외형 변경만으로 모델 전체를 재로드하지 않는다.
+- [x] `npm.cmd exec vitest -- run tests/unit/avatar-resources.test.ts`, `npm.cmd run typecheck`와 실제 기준 모델 로드/두 방문자의 다른 색 표시를 검증하고 커밋한다.
 
 ### Task 2: 버전 있는 외형·저장·프리셋 편집
 
@@ -50,12 +50,12 @@
 
 **Interfaces:** `AvatarAppearanceV2`는 spec에 열거한 필드만 수용한다. `normalizeAppearance(input,catalog): AvatarAppearanceV2`. `GET /api/v1/avatars/catalog`, `GET /api/v1/me/avatar`, `PUT /api/v1/me/avatar {appearance,expectedRevision,ownerScopeToken}`. GET/저장 성공은 `{appearance,revision,ownerScopeToken}`, 충돌/소유자 전환은409다. 기존 profile_update/profile_updated의 정규화된 appearance를 join/room_state에도 포함한다. legacy onSave의 동기식 즉시 닫기를 바꾸어 Promise 성공 때만 적용/닫기 처리한다.
 
-- [ ] 기존3필드 이전, 무효 ID/색/부품URL 거부, 지원하지 않는 얼굴/모자 조합 정규화, 소유자 분리, CSRF, revision 충돌, 익명 cookie와 account 전환을 계약 테스트로 작성하고 실패를 확인한다.
-- [ ] `AvatarProfile`의 ownerKey 고유 인덱스/익명90일TTL을 정의한다. 익명 owner는 서명 cookie, account는 기존 검증된 session_user에서 구한다. GET에서 익명 cookie를 준비하고 첫 PUT 때만 DB 기록을 만든다. 입장 위치나 다른 탭의 visitor capability를 공유하지 않는다.
-- [ ] 로그인 시 기존 계정 외형 우선/계정 기록 없으면 익명 외형을 미저장 draft로만 사용, 로그아웃 시 익명 저장값 복귀를 구현한다. 로그인/로그아웃/새 방문자 생성으로 저장 기록을 자동 덮어쓰지 않는다. 다른 탭의 계정 전환 중 PUT은 ownerScopeToken 불일치409를 반환하는 테스트를 추가한다.
-- [ ] React 미리보기 회전/확대,4프리셋, 부위 색/얼굴/헤어/모자/안경, 적용/취소/다시 불러오기를 구현한다. 적용 전에는 로컬 draft, 저장 성공 후에만 profile_updated를 방송한다. 다른 탭의 저장 충돌은 명시한다.
-- [ ] immersive XR에는 저장 프리셋 선택/되돌리기를 위한 world panel을 추가해 DOM overlay가 없어도 사용할 수 있게 한다. 정밀 편집은 XR 진입 전 React 편집기를 사용한다.
-- [ ] 두 브라우저/늦은 입장/재접속에서 외형 일치, 타인의 색 불변, 취소 시 비방송, 탭 독립, 모델 로드 실패 대체 표시를 실제 브라우저에서 검증한다. 기존 presence/profile/session 테스트도 통과시키고 커밋한다.
+- [x] 기존3필드 이전, 무효 ID/색/부품URL 거부, 지원하지 않는 얼굴/모자 조합 정규화, 소유자 분리, CSRF, revision 충돌, 익명 cookie와 account 전환을 계약 테스트로 작성하고 실패를 확인한다.
+- [x] `AvatarProfile`의 ownerKey 고유 인덱스/익명90일TTL을 정의한다. 익명 owner는 서명 cookie, account는 기존 검증된 session_user에서 구한다. GET에서 익명 cookie를 준비하고 첫 PUT 때만 DB 기록을 만든다. 입장 위치나 다른 탭의 visitor capability를 공유하지 않는다.
+- [x] 로그인 시 기존 계정 외형 우선/계정 기록 없으면 익명 외형을 미저장 draft로만 사용, 로그아웃 시 익명 저장값 복귀를 구현한다. 로그인/로그아웃/새 방문자 생성으로 저장 기록을 자동 덮어쓰지 않는다. 다른 탭의 계정 전환 중 PUT은 ownerScopeToken 불일치409를 반환하는 테스트를 추가한다.
+- [x] React 미리보기 회전/확대,4프리셋, 부위 색/얼굴/헤어/모자/안경, 적용/취소/다시 불러오기를 구현한다. 적용 전에는 로컬 draft, 저장 성공 후에만 profile_updated를 방송한다. 다른 탭의 저장 충돌은 명시한다.
+- [x] immersive XR에는 저장 프리셋 선택/되돌리기를 위한 world panel을 추가해 DOM overlay가 없어도 사용할 수 있게 한다. 정밀 편집은 XR 진입 전 React 편집기를 사용한다.
+- [x] 두 브라우저/늦은 입장/재접속에서 외형 일치, 타인의 색 불변, 취소 시 비방송, 탭 독립, 모델 로드 실패 대체 표시를 실제 브라우저에서 검증한다. 기존 presence/profile/session 테스트도 통과시키고 커밋한다.
 
 ### Task 3: 데스크톱/모바일 전신 동작과 발 접지
 
@@ -65,12 +65,12 @@
 
 `AvatarPoseTransport`는 `publish(pose)`, `subscribe(listener): unsubscribe`, `dispose()`의 작은 경계로 둔다. Socket.IO 이벤트 등록/해제·binary 전송은 여기에만 두고 모션/모델/codec은 transport SDK를 import하지 않는다. 같은 인터페이스에 후속 LiveKit 어댑터를 붙일 수 있지만 이번에는 Socket.IO 하나만 구현한다. room lifecycle의 연결 소유권은 기존 연결을 따른다.
 
-- [ ] 머리를 좌우/상하로 돌려도 몸통이 쓰러지지 않음, 보행/정지/후진/회전, 발 접지, 닿지 않는 목표, 발 위상 순환, teleport 즉시 초기화의 실패 테스트를 추가한다.
-- [ ] camera entity를 avatar root로 쓰던 구조를 분리하고 이름·표정·음성의 기존 lookup ID는 호환 anchor에 남긴다. 초기 바닥은 room boundary floor이며 standalone wall/AR처럼 바닥 정의가 없으면 foot planting을 끄고 안전한 idle을 사용한다.
-- [ ] v2 binary 왕복·정확한 길이/관절 순서/endianness·NaN/무효 quaternion/알 수 없는 rigVersion 거부·재접속 세대/sequence·서버 시간 매핑 테스트를 추가한다. v1 어댑터, 메타데이터 포함4KiB 상한,20Hz 지속+짧은 burst 제한을 적용한다. live packet은 오래된 버퍼를 버리고 join/reconnect는 최신 전체 스냅샷을 받게 한다.
-- [ ] 서버는 사용자별 최신 검증 스냅샷만 메모리에 보관하고 퇴장 시 해제한다. 본인1명의 모션/IK 결과를 송신하고 수신자는 이를 보간 적용한다. 수신 아바타 수를 늘려도 본인 IK 호출이 늘지 않고 서버/관찰자 IK 호출이0이며, GPU 스키닝은 계속 필요함을 검증한다. 자기 머리를 숨겨도 원격 표시용 포즈는 생성한다. MongoDB 고빈도 쓰기/녹화 기능은 추가하지 않는다.
-- [ ] 기존 presence unit/E2E와 함께 PC/390px mobile, 두 방문자의 머리/몸통/발과 teleport를 검증한다. 이 단계를 첫 실용 버전으로 삼아 XR 입력이 없어도 완결된 외형/동작을 제공한다.
-- [ ] 전체 frontend와 해당 backend 계약을 검증하고 커밋한다.
+- [x] 머리를 좌우/상하로 돌려도 몸통이 쓰러지지 않음, 보행/정지/후진/회전, 발 접지, 닿지 않는 목표, 발 위상 순환, teleport 즉시 초기화의 실패 테스트를 추가한다.
+- [x] camera entity를 avatar root로 쓰던 구조를 분리하고 이름·표정·음성의 기존 lookup ID는 호환 anchor에 남긴다. 초기 바닥은 room boundary floor이며 standalone wall/AR처럼 바닥 정의가 없으면 foot planting을 끄고 안전한 idle을 사용한다.
+- [x] v2 binary 왕복·정확한 길이/관절 순서/endianness·NaN/무효 quaternion/알 수 없는 rigVersion 거부·재접속 세대/sequence·서버 시간 매핑 테스트를 추가한다. v1 어댑터, 메타데이터 포함4KiB 상한,20Hz 지속+짧은 burst 제한을 적용한다. live packet은 오래된 버퍼를 버리고 join/reconnect는 최신 전체 스냅샷을 받게 한다.
+- [x] 서버는 사용자별 최신 검증 스냅샷만 메모리에 보관하고 퇴장 시 해제한다. 본인1명의 모션/IK 결과를 송신하고 수신자는 이를 보간 적용한다. 수신 아바타 수를 늘려도 본인 IK 호출이 늘지 않고 서버/관찰자 IK 호출이0이며, GPU 스키닝은 계속 필요함을 검증한다. 자기 머리를 숨겨도 원격 표시용 포즈는 생성한다. MongoDB 고빈도 쓰기/녹화 기능은 추가하지 않는다.
+- [x] 기존 presence unit/E2E와 함께 PC/390px mobile, 두 방문자의 머리/몸통/발과 teleport를 검증한다. 이 단계를 첫 실용 버전으로 삼아 XR 입력이 없어도 완결된 외형/동작을 제공한다.
+- [x] 전체 frontend와 해당 backend 계약을 검증하고 커밋한다.
 
 ### Task 4: XR 입력 통합·팔 IK·키 보정
 
@@ -78,23 +78,40 @@
 
 **Interfaces:** `sampleAvatarInput({frame,referenceSpace,xrOrigin,calibration}): AvatarInputV2`는 같은 frame의 HMD/grip/wrist를 월드 좌표로 통일하는 로컬 전용 입력이다. 이를 본인 `updateAvatarMotion`에 넣어 계산한 관절 포즈만 송신한다. `calibrateAvatar({viewer,floorMode,posture}): Calibration`은 Task1의 version/eyeHeight/floorOffset/mode/referenceSpace 계약을 반환한다. tracking loss는250ms 이후 untracked, 약300ms 동안 rest로 blend하며 최대20Hz 송신과 정지 heartbeat를 유지한다. session은 scene.renderer.xr.getSession()의 소유권을 가져오지 않는다.
 
-- [ ] floor/local, rig 이동/yaw, teleport, 좌우 한쪽만 존재, controller→hand 전환, session end, 잘못된 quaternion/과거 packet, 앉은 자세와 손의 도달 범위를 mock XR 실패 테스트로 확인한다.
-- [ ] 별도 session을 request하던 hand 경로를 renderer 소유 session 수집으로 대체한다. pointer ray 대신 grip/wrist를 팔 끝 목표로 삼고 같은 frame의 head/hand에서 본인 IK를 계산한다. 원격은 송신한 관절을 보간해 뼈/손 mesh를 갱신하며 손 DOM을 재생성하지 않는다.
-- [ ] 양팔 two-bone IK, elbow pole, body/head 분리, 키 보정/앉기 전환, 추정 다리와 접지,1인칭 자기 머리 숨김을 구현한다. 완전한 손가락/얼굴/다리 native SDK 지원은 전제하지 않는다.
-- [ ] 가상 XR 입력을 실제 A-Frame scene에 전달하는 E2E로 팔이 어깨와 연결됨·손목 목표 추종·rig 변환 중복 없음·추적 소실 후 복귀를 확인한다. 실기기가 있을 때만 Quest3 controller/hand/seated 측정을 추가한다.
-- [ ] 기존 AR/gesture/voice/shared-wall/room lifecycle도 검증하고 커밋한다. 실기기 미측정을 통과로 처리하지 않는다.
+- [x] floor/local, rig 이동/yaw, teleport, 좌우 한쪽만 존재, controller→hand 전환, session end, 잘못된 quaternion/과거 packet, 앉은 자세와 손의 도달 범위를 mock XR 실패 테스트로 확인한다.
+- [x] 별도 session을 request하던 hand 경로를 renderer 소유 session 수집으로 대체한다. pointer ray 대신 grip/wrist를 팔 끝 목표로 삼고 같은 frame의 head/hand에서 본인 IK를 계산한다. 원격은 송신한 관절을 보간해 뼈/손 mesh를 갱신하며 손 DOM을 재생성하지 않는다.
+- [x] 양팔 two-bone IK, elbow pole, body/head 분리, 키 보정/앉기 전환, 추정 다리와 접지,1인칭 자기 머리 숨김을 구현한다. 완전한 손가락/얼굴/다리 native SDK 지원은 전제하지 않는다.
+- [x] 가상 XR 입력을 실제 A-Frame scene에 전달하는 E2E로 팔이 어깨와 연결됨·손목 목표 추종·rig 변환 중복 없음·추적 소실 후 복귀를 확인한다. 실기기가 있을 때만 Quest3 controller/hand/seated 측정을 추가한다.
+- [x] 기존 AR/gesture/voice/shared-wall/room lifecycle도 검증하고 커밋한다. 실기기 미측정을 통과로 처리하지 않는다.
 
-### Task 5: 인원/거리 LOD·성능 평가·마무리
+### Task 5: 인원/거리 LOD·실시간 전송 자원 경계
 
-**Files:** Create `frontend/src/avatar/detail-policy.ts`, `frontend/tests/unit/avatar-detail-policy.test.ts`, `tools/performance/avatar-workloads.mjs`, `docs/reports/avatar-evaluation.html`; Modify `avatar/resources.ts`, `avatar/motion.ts`, `scene/legacy/rendering/render-loop.js`, `tools/performance/README.md`.
+**Files:** Create `frontend/src/avatar/detail-policy.ts`, `frontend/src/avatar/display.ts`와 해당 unit/E2E; Modify `avatar/resources.ts`, `avatar/pose.ts`, `scene/realtime.ts`, `scene/legacy/avatar-renderer.js`, 공통 GLB 생성기/자산, `backend/metamuseum/realtime/server.py`와 관련 계약 테스트. 실제 소유 모듈을 수정하고 변경이 필요 없는 계획 경로는 이유를 보고한다.
 
 **Interfaces:** `avatarDetail({distance,visible,device,quality}): {meshLevel,poseApplyHz,expressionHz}`는 관찰자의 표시 정책이다. 가까운 순서로30/15/5Hz의 초기 관절 보간/적용 단계를 시험하며 head anchor/root 표시 보간은 렌더 주기로 계속한다. 화면 밖에서는 표시용 skeleton/표정 갱신을 중지하되 수신 상태와 공유 자산 수명은 유지한다. 본인 모션/IK 생성 주기는 입력 지연/CPU를 별도로 측정해 정하며 관찰자 수/거리로 IK를 다시 풀지 않는다.
 
 - [ ] 화면 밖 외형/pose 변경→재등장, LOD 전환 hysteresis, 느린 로드 중 퇴장, 공유 자산의 다른 사용자 유지, 반복 SPA 왕복을 실패 테스트로 추가한다.
 - [ ] 자기 미리보기, 근거리 상세, 원거리 저폴리/간략 동작, 로드 공유/해제를 통합한다. 방문자마다 매 frame 뼈/손 DOM을 생성하지 않는다.
+- [ ] 기존 표정 이벤트의 간단한 얼굴 반응·표시용 깜박임을 expressionHz/가시성에 연결한다. 표시 중 새 텔레포트·세대 전환은 관절/골반을 한 번 즉시 적용하며 같은 신호를 매 프레임 반복하지 않는다.
+- [ ] 실제20/50명 늦은 입장 스냅샷을 받을 수 있게 클라이언트 binary 첨부 한도를64로 명시하고 초과/잘못된 개수는 거부한다. 현재 설치 버전을 고정하며 서버 출력 스냅샷 계약을 바꾸지 않는다.
+- [ ] 재현된 pending-disconnect 전송 잠금 순환을 막고 v2 포즈만 수신자별 최신 대기로 제한한다. binary 전체 메시지의 원자성·encode-once 공유, 느린 상대와 건강한 상대의 분리, 퇴장/외형/세대 변경 순서, ACK·월·음성 등 일반 메시지 신뢰성을 보존한다. 전역 async handler 정책이나 전송 프로토콜은 바꾸지 않는다.
+- [ ] binary 입력은 재조립 전에 포즈 첨부1개·392바이트와 전체4KiB 상한을 확인한다. 다른 정상 binary EVENT/ACK는 첨부64개 및 기존 Engine.IO 크기 이내로 제한하고 오류·연결 종료·앱 종료의 부분 상태를 정리한다. 출력20/50명 스냅샷과 lazy 텔레포트 인코딩을 유지한다.
+- [ ] 전체 frontend/build·관련 backend·실제 browser를 검증하고 제품 코드 독립 리뷰를 통과한다. 긴 측정 전에 코드 경계를 고정하며 이 단계에서는 최종 성능 수집/HTML 완료를 주장하지 않는다.
+
+### Task 6: 고정 빌드 성능 평가·전후 HTML 보고서
+
+**Files:** Create/finish `tools/performance/avatar-workloads.mjs`, 수집·캡처·진단·보고서 템플릿/생성·검증 도구, `docs/reports/avatar-evaluation.html`와 기계 판독 결과/검증 JSON; Modify `tools/performance/README.md`. Task5에서 준비한 도구·전후 미디어·진단 자료를 인수인계한다.
+
+**Interfaces:** Task5 제품 리뷰를 통과한 frontend/relay commit, 실제 bundle/model hash, collector/harness hash를 고정한다. 합성 Socket.IO 방문자와 실제 Chrome 관찰자의 결합 부하 및 별도 중계 시험을 구분한다. 표본은 정상 렌더링 여부와 전달 지연/연결 안정성을 별도 기록하며, 실제 전송·수신과 nominal/volatile 시도 횟수를 혼동하지 않는다. 모든 이전 버전·중단·실패 자료는 별도 진단으로 보존한다.
+
 - [ ] 1/5/10/20/50명,10/30/100m, 같은 모델의 다른 색/서로 다른 모델, image/splat/mixed 공존을 순차 측정한다. FPS/p95, 본인1명의 animation+IK CPU p95와 원격 관절 보간/적용 CPU p95, RAM/GPU memory, draw calls, bytes/s, 서버 fanout을 분리 기록한다. 원격10명 포즈 보간/적용 CPU p95≤2ms는 현재 PC의 초기 목표다. 모든 쌍 중계에서 인원 제곱으로 늘어나는 대역폭과 지연/혼잡을 평가하고 필요할 때만 거리/전달 빈도 제한을 설계한다.
+- [ ] 행별 렌더 아바타/본인/실제 소켓 참여자 수와 배치·거리·가시성·LOD를 기록한다. 함수 performance.now p95는 동기 실행 경과시간임을 표시하고 OS CPU, working set/private commit, GPU snapshot의 범위를 구분한다. 390px/4x는 PC main-thread 제한이며 실기기 GPU·열·배터리·immersive FPS로 해석하지 않는다.
+- [ ] 새 중계 버전으로65초50명+관찰자 유지, 실제 소켓 종료·빈 명단·유휴 부하·1명 후속 조건을 검증한 뒤 전체 행렬을 수집한다. 시험 사이 잔여 연결·명단·부하를 확인하고 강제 정리/실패/지연을 숨기거나 정상 FPS와 섞어 실시간 품질로 주장하지 않는다.
 - [ ] 기존 표시/새 프리셋/외형 편집/보행/추적 소실의 스크린샷·짧은 영상과 조건별 수치를 단일 HTML로 정리한다. PC 제한/mock XR/실기기를 구분한다.
-- [ ] 전체 suite/build·해당 backend·실제 browser를 검증하고 독립 리뷰 지적을 해소한다. 구현 브랜치에 커밋하며 별도 지시 없이 push/merge/deploy하지 않는다.
+- [ ] HTML은 데이터·이미지·동영상을 내장하고 외부 요청 없이 동작한다. 데스크톱/390px에서 필터·미디어·다운로드·레이아웃을 검증하며 기존 migration/performance/render-optimization 보고서는 보존한다. 판단·대안·한계와 미측정 기기를 명시한다.
+- [ ] 측정·보고서 독립 리뷰 후 전체 브랜치 리뷰 지적을 해소한다. 제품 변경이 없으면 이미 통과한 suite/build를 이유 없이 재실행하지 않고, 변경·실패·구체적 우려가 있는 범위만 추가 검증한다. 구현 브랜치에 커밋하며 별도 지시 없이 push/merge/deploy하지 않는다.
+
+Task5/6 분리는2026-10-30 실행 중 확인된 제품 경계 오류를 긴 측정 전에 독립 리뷰하기 위한 순서 변경이다. 원래의 기능·측정·보고서 요구사항은 유지한다.
 
 ## 권장 병렬 분담
 

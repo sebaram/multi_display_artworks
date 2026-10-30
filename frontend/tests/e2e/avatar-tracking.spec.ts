@@ -808,13 +808,49 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     )
     .toBeLessThan(0.035);
   const tracked = (await rig(observer, own.visitorId))!;
-  await page.evaluate(() => {
+  // Sample inside the observer's render loop: trace/locator round trips can exceed
+  // the 250 ms hold, so a Node-side 150 ms sleep cannot timestamp this assertion.
+  await observer.evaluate((id) => {
+    const w = window as any,
+      T = w.AFRAME.THREE;
+    const root = (document.querySelector(`#camera-${id} .remote-avatar`) as any)
+      .avatarInstance.root;
+    const samples: any[] = [];
+    w.avatarLossSamples = samples;
+    const end = Date.now() + 3000;
+    const sample = () => {
+      root.updateWorldMatrix(true, true);
+      samples.push({
+        at: Date.now(),
+        left: root
+          .getObjectByName("leftHand")
+          .getWorldPosition(new T.Vector3())
+          .toArray(),
+      });
+      if (Date.now() < end) w.avatarLossRAF = requestAnimationFrame(sample);
+    };
+    sample();
+  }, own.visitorId);
+  const lostAt = await page.evaluate(() => {
     (window as any).avatarXRMock.lost = true;
+    return Date.now();
   });
-  await page.waitForTimeout(150);
-  expect(
-    distance((await rig(observer, own.visitorId))!.left, tracked.left),
-  ).toBeLessThan(0.04);
+  await page.waitForTimeout(220);
+  const holdSamples = await observer.evaluate(() => {
+    const w = window as any;
+    cancelAnimationFrame(w.avatarLossRAF);
+    return w.avatarLossSamples as { at: number; left: number[] }[];
+  });
+  const duringHold = holdSamples.filter(
+    (s) => s.at - lostAt >= 100 && s.at - lostAt <= 200,
+  );
+  await test.info().attach("tracking-loss-observer-timing", {
+    body: JSON.stringify({ lostAt, tracked, samples: holdSamples }),
+    contentType: "application/json",
+  });
+  expect(duringHold.length).toBeGreaterThan(0);
+  for (const sample of duringHold)
+    expect(distance(sample.left, tracked.left)).toBeLessThan(0.04);
   await expect
     .poll(async () =>
       distance((await rig(observer, own.visitorId))!.left, tracked.left),

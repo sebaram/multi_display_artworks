@@ -88,6 +88,46 @@ class PacketServer(socketio.AsyncServer):
         self._pose_targets = {}
         self._pose_stopping = False
 
+    async def _handle_eio_message(self, eio_sid, data):
+        # Bound incoming assembly before Packet.add_attachment retains chunks.
+        # Keep packet_class unchanged: outgoing snapshots can contain many poses.
+        try:
+            partial = self._binary_packet.get(eio_sid)
+            if partial is not None:
+                if not isinstance(data, bytes):
+                    raise ValueError('Expected binary attachment')
+                size = partial._ingress_bytes + len(data)
+                if size > partial._ingress_limit or (partial._avatar_ingress and len(data) != 392):
+                    raise ValueError('Binary attachment exceeds message contract')
+                partial._ingress_bytes = size
+            elif isinstance(data, str) and data[:1] in ('5', '6'):
+                size = len(data.encode('utf-8'))
+                if size > self.eio.max_http_buffer_size:
+                    raise ValueError('Binary header exceeds message limit')
+                incoming = self.packet_class(encoded_packet=data)
+                if not 1 <= incoming.attachment_count <= 64:
+                    raise ValueError('Invalid binary attachment count')
+                namespace = incoming.namespace or '/'
+                sid = self.manager.sid_from_eio_sid(eio_sid, namespace)
+                if not sid or not self.manager.is_connected(sid, namespace):
+                    raise ValueError('Unexpected binary packet')
+                avatar = (incoming.packet_type == packet.BINARY_EVENT
+                          and isinstance(incoming.data, list) and incoming.data
+                          and incoming.data[0] == 'avatar_pose')
+                limit = min(self.eio.max_http_buffer_size, 4096) if avatar else self.eio.max_http_buffer_size
+                if avatar and (incoming.attachment_count != 1 or size + 392 > limit):
+                    raise ValueError('Avatar binary header exceeds pose contract')
+                incoming._avatar_ingress = bool(avatar)
+                incoming._ingress_bytes = size
+                incoming._ingress_limit = limit
+                self._binary_packet[eio_sid] = incoming
+                return
+            await super()._handle_eio_message(eio_sid, data)
+        except Exception:
+            # Reconstruction errors and interleaved text must not poison the next message.
+            self._binary_packet.pop(eio_sid, None)
+            raise
+
     def queue_avatar_pose(self, eio_sid, sid, namespace, source, batch):
         if self._pose_stopping:
             return
@@ -163,6 +203,7 @@ class PacketServer(socketio.AsyncServer):
             await self._stop_avatar_target(eio_sid)
 
     async def shutdown(self):
+        self._binary_packet.clear()
         await self.stop_avatar_relays()
         await super().shutdown()
 
@@ -181,6 +222,7 @@ class PacketServer(socketio.AsyncServer):
                 await self.eio.send(eio_sid, part)
 
     async def _handle_eio_disconnect(self, eio_sid, reason):
+        self._binary_packet.pop(eio_sid, None)
         await self._stop_avatar_target(eio_sid)
         try:
             await super()._handle_eio_disconnect(eio_sid, reason)

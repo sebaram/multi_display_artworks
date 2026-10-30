@@ -57,7 +57,7 @@ export function mountAvatarXRPanel({
         index % 2 ? 0.32 : -0.32,
         0.2 - Math.floor(index / 2) * 0.2,
         () => {
-          draft = structuredClone(p.defaultAppearance!);
+          draft = { ...structuredClone(p.defaultAppearance!), ...(draft.gaze ? { gaze: structuredClone(draft.gaze) } : {}) };
           status(`Selected: ${p.label} - Apply to save`);
         },
       ),

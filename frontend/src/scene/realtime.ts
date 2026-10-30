@@ -34,6 +34,7 @@ import { avatarSocketParser } from '../avatar/socket-parser';
 import { AvatarPoseBuffer, avatarPoseChanged, sub, mul } from '../avatar/pose';
 import { mountAvatarXRInput } from '../avatar/xr-scene';
 import { createAvatarPoseTransport } from '../avatar/transport';
+import { createSceneGaze } from '../avatar/gaze-scene';
 import type { AvatarInstance, AvatarPoseV2, Vec3, Quat } from '../avatar/types';
 import type { RoomScene } from "../api/types";
 export async function startRealtime(
@@ -239,6 +240,8 @@ export async function startRealtime(
     onReset: resetMotion,
   });
   life.add(xrInput.dispose);
+  const sceneGaze = createSceneGaze(scene, (window as any).AFRAME.THREE);
+  life.add(sceneGaze.dispose);
   function avatarFrame(time: number) {
     const explicitTeleport = requestedTeleport;
     requestedTeleport = false;
@@ -257,6 +260,9 @@ export async function startRealtime(
       sentPose = undefined;
       return;
     }
+    if (owner && owner.preset.nativeGaussian !== preset.nativeGaussian) {
+      owner.dispose(); owner = undefined; ownerProfile = ''; sentPose = undefined;
+    }
     if (!owner) {
       if (!loadingOwner && time >= nextOwnerAttempt) {
         loadingOwner = true;
@@ -265,6 +271,7 @@ export async function startRealtime(
           preset,
           appearance: profile.appearance,
           signal: ownerAbort.signal,
+          renderer: scene.renderer, aframeScene: scene,
         })
           .then((instance) => {
             if (life.disposed) {
@@ -344,6 +351,7 @@ export async function startRealtime(
       delta,
       ground,
       "full",
+      sceneGaze.sample(xrSample?.head ?? { position: headPosition, orientation }, profile.appearance?.gaze, performance.now(), teleport),
     );
     avatarDisplay.stats.ownerMs = performance.now() - motionStart;
     outgoingTeleport ||= xrSample?.locomotion.teleport ?? teleport;

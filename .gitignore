@@ -31,3 +31,4 @@ frontend/tests/fixtures/media/
 /frontend/.tmp/
 /output/playwright/
 /.playwright-cli/
+/FLAME/

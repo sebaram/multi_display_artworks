@@ -161,7 +161,7 @@ export function updateVisitorSession({ storage, visitorSession }) {
 
 function allowedDefaultAvatars(avatarIds) {
   return avatarIds.filter((avatarId) => (
-    avatarId !== 'none' && Object.hasOwn(AVATAR_CATALOG, avatarId)
+    avatarId !== 'none' && Object.hasOwn(AVATAR_CATALOG, avatarId) && !AVATAR_CATALOG[avatarId].nativeGaussian
   ));
 }
 

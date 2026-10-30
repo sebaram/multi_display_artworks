@@ -1,4 +1,5 @@
 import type { AvatarPoseV2, Quat, Vec3 } from "./types";
+import { validateGazePose } from './gaze-pose';
 export type PosePacket = Omit<
   AvatarPoseV2,
   "root" | "hipsOffset" | "boneRotations"
@@ -54,6 +55,7 @@ export function decodeAvatarPose(packet: any): AvatarPoseV2 {
     boneRotations: new Float32Array(values.slice(10)),
     tracking: { ...packet.tracking },
     teleport: packet.teleport,
+    ...(packet.gaze !== undefined ? { gaze: validateGazePose(packet.gaze) } : {}),
   };
 }
 export function encodeAvatarPose(pose: AvatarPoseV2): PosePacket {
@@ -75,6 +77,7 @@ export function encodeAvatarPose(pose: AvatarPoseV2): PosePacket {
     bodyScale: pose.bodyScale ?? 1,
     tracking: pose.tracking,
     teleport: pose.teleport,
+    ...(pose.gaze !== undefined ? { gaze: validateGazePose(pose.gaze) } : {}),
     floats,
   };
   decodeAvatarPose(packet);

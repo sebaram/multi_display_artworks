@@ -5,6 +5,7 @@ import type {
   Transform,
   Vec3,
 } from "./types";
+import { interpolateGaze } from './gaze-pose';
 export const CORE_BONES = [
   "hips",
   "spine",
@@ -126,6 +127,9 @@ export function avatarPoseChanged(
     a.tracking.head !== b.tracking.head ||
     a.tracking.left !== b.tracking.left ||
     a.tracking.right !== b.tracking.right
+    || !!a.gaze !== !!b.gaze
+    || Math.abs((a.gaze?.yaw ?? 0) - (b.gaze?.yaw ?? 0)) > .002
+    || Math.abs((a.gaze?.pitch ?? 0) - (b.gaze?.pitch ?? 0)) > .002
   )
     return true;
   const old = [
@@ -170,6 +174,7 @@ export function interpolateAvatarPose(
     bodyScale:
       (a.bodyScale ?? 1) + ((b.bodyScale ?? 1) - (a.bodyScale ?? 1)) * t,
     boneRotations,
+    gaze: interpolateGaze(a.gaze, b.gaze, t),
   };
 }
 export function jointWorldTransforms(

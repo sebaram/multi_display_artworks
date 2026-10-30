@@ -1,6 +1,8 @@
 import { canonicalPreset } from './catalog';
 import { cloneRig, inspectRig, applyRigPose } from './rig';
 import type { AvatarAppearanceV2, AvatarInstance, AvatarPreset } from './types';
+import { createProceduralEyes } from './procedural-eyes';
+import { attachNativeGaussianHead } from './native-head';
 
 type Entry = { refs: number; promise: Promise<any>; source?: any; animations?: readonly any[] };
 const cache = new WeakMap<object, Map<string, Entry>>();
@@ -71,15 +73,16 @@ function configurePalette(material: any, THREE: any) {
   };
   material.customProgramCacheKey = () => 'avatar-palette-v1';
 }
-export async function createAvatarInstance({ scene, preset: requested, appearance, signal }: {
-  scene: any; preset: AvatarPreset; appearance?: AvatarAppearanceV2; signal?: AbortSignal;
+export async function createAvatarInstance({ scene, preset: requested, appearance, signal, renderer, aframeScene }: {
+  scene: any; preset: AvatarPreset; appearance?: AvatarAppearanceV2; signal?: AbortSignal; renderer?: any; aframeScene?: any;
 }): Promise<AvatarInstance> {
   const preset = await canonicalPreset(requested.id);
   const THREE = (window as any).AFRAME?.THREE;
   if (!THREE?.GLTFLoader) throw Error('A-Frame avatar runtime unavailable');
   if (signal?.aborted) throw new DOMException('Avatar disposed during load', 'AbortError');
   const resource = acquire(THREE, preset);
-  let root: any, mixer: any;
+  let root: any, mixer: any, eyes: ReturnType<typeof createProceduralEyes> | undefined;
+  let native: Awaited<ReturnType<typeof attachNativeGaussianHead>> | undefined;
   const ownMaterials = new Map<any, any>();
   let disposed = false;
   const dispose = () => {
@@ -87,6 +90,8 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
     signal?.removeEventListener('abort', dispose);
     root?.removeFromParent();
     if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(root); }
+    eyes?.dispose();
+    native?.dispose();
     disposeSkeletons(root);
     ownMaterials.forEach(material => material.dispose());
     resource.release();
@@ -106,10 +111,18 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
       };
       node.material = Array.isArray(node.material) ? node.material.map(cloneMaterial) : cloneMaterial(node.material);
     });
+    eyes = createProceduralEyes(THREE, root.getObjectByName('HeadAnchor'));
+    if (preset.nativeGaussian) {
+      if (!renderer) throw Error('Native Gaussian renderer unavailable');
+      native = await attachNativeGaussianHead({ scene, renderer, aframeScene, anchor: root.getObjectByName('HeadAnchor'), signal });
+      if (disposed || signal?.aborted) { native.dispose(); throw new DOMException('Avatar disposed during native load', 'AbortError'); }
+      root.getObjectByName('Body').visible = false;
+    }
     let detail = 'full', savedFace = 'friendly', expressionFace = '', expressionUntil = 0;
     const face = (calm: boolean) => {
-      root.getObjectByName('FaceFriendly').visible = detail === 'full' && !calm;
-      root.getObjectByName('FaceCalm').visible = detail === 'full' && calm;
+      root.getObjectByName('FaceFriendly').visible = !native && detail === 'full' && !calm;
+      root.getObjectByName('FaceCalm').visible = !native && detail === 'full' && calm;
+      eyes?.visible(!native && detail === 'full' && !calm);
     };
     root.getObjectByName('BodyLow').visible = false;
     const instance: AvatarInstance = {
@@ -124,15 +137,16 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
           const color = /^#[0-9a-f]{6}$/i.test(next?.colors?.[slot] ?? '') ? next.colors[slot] : fallback.colors[slot];
           material.userData.avatarColors[slot].value.set(color);
         }
-        const hat = next?.hatId === 'cap';
+        const hat = !native && next?.hatId === 'cap';
         root.getObjectByName('Cap').visible = hat;
-        root.getObjectByName('HairShort').visible = next?.hairId === 'short' && !hat;
-        root.getObjectByName('GlassesRound').userData.wanted = next?.glassesId === 'round';
+        root.getObjectByName('HairShort').visible = !native && next?.hairId === 'short' && !hat;
+        root.getObjectByName('GlassesRound').userData.wanted = !native && next?.glassesId === 'round';
         root.getObjectByName('GlassesRound').visible = detail === 'full' && next?.glassesId === 'round';
         savedFace = next?.faceId || 'friendly';
+        eyes?.color(next?.colors?.eyes ?? fallback.colors.eyes);
         face(savedFace === 'calm');
       },
-      applyPose(pose) { if (!disposed) applyRigPose(root, preset, pose); },
+      applyPose(pose) { if (!disposed) { applyRigPose(root, preset, pose); eyes?.apply(native ? undefined : pose.gaze); native?.applyGaze(pose.gaze); } },
       // Blink is display-only on the caller's monotonic clock, not sensed or networked.
       updateExpression(time) { if (!disposed && detail === 'full') face(time % 4000 < 140 || (time < expressionUntil ? expressionFace : savedFace) === 'calm'); },
       showExpression(expression, time) { expressionFace = expression === '😐' ? 'calm' : 'friendly'; expressionUntil = time + 3000; },
@@ -141,10 +155,11 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
         root.visible = next !== 'hidden';
         if (detail === next) return;
         detail = next;
-        root.getObjectByName('Body').visible = next === 'full';
+        root.getObjectByName('Body').visible = !native && next === 'full';
         root.getObjectByName('BodyLow').visible = next === 'low';
         root.getObjectByName('GlassesRound').visible = next === 'full' && !!root.getObjectByName('GlassesRound').userData.wanted;
         face(savedFace === 'calm');
+        native?.setDetail(next);
       },
       dispose,
     };

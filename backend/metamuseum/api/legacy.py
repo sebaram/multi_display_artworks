@@ -33,6 +33,8 @@ def spa(request):
 @router.get('/logout')
 @router.get('/tools')
 @router.get('/tools/streams')
+@router.get('/tools/gaze-lab')
+@router.get('/tools/gaussian-avatar')
 @router.get('/wall-editor')
 @router.get('/ar-companion')
 @router.get('/gesture-mark')

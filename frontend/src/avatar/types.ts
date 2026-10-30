@@ -8,13 +8,16 @@ export type HumanoidBone = 'hips' | 'spine' | 'chest' | 'upperChest' | 'neck' | 
   | 'leftUpperLeg' | 'leftLowerLeg' | 'leftFoot' | 'leftToes'
   | 'rightUpperLeg' | 'rightLowerLeg' | 'rightFoot' | 'rightToes';
 export type AvatarColors = Record<'skin' | 'top' | 'bottom' | 'hair' | 'eyes', string>;
+export type GazePose = { version: 1; source: 'procedural'; yaw: number; pitch: number };
 export interface AvatarAppearanceV2 {
   schemaVersion: 2; presetId: string; colors: AvatarColors;
   faceId: string; hairId: string; hatId: string; glassesId: string;
+  gaze?: import('./gaze').GazeConfig;
 }
 export interface AvatarPreset {
   id: string; label: string; kind: 'humanoid' | 'gltf' | 'primitive' | 'none';
   assetUrl: string | null; thumbnail: string | null; rigVersion: string | null;
+  nativeGaussian?: 'subject-306';
   /** Immutable wire order. Rotations are absolute parent-relative, not rest deltas. */
   coreBones: readonly HumanoidBone[]; rigMap: Record<string, string>;
   restPose: Record<string, Transform & { parent: string | null }>;
@@ -40,6 +43,7 @@ export interface AvatarPoseV2 {
   root: Transform; hipsOffset: Vec3; bodyScale?: number;
   /** Exactly 4 * coreBones.length floats, xyzw in catalog order. */
   boneRotations: Float32Array; tracking: TrackingStatus; teleport: boolean;
+  gaze?: GazePose;
 }
 export interface Calibration {
   version: 1; eyeHeight: number; floorOffset: number;

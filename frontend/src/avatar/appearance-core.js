@@ -1,3 +1,5 @@
+import { normalizeGazeConfig } from './gaze-config.js';
+
 export function normalizeAppearance(input, catalog) {
   const preset = catalog.presets.find(p => p.id === (input?.presetId ?? input?.avatarId))
     ?? catalog.presets.find(p => p.id === 'shiba');
@@ -14,5 +16,6 @@ export function normalizeAppearance(input, catalog) {
     result[key] = (preset.options?.[key] ?? ['none']).includes(input?.[key]) ? input[key] : source[key];
   }
   if (result.hatId === 'cap') result.hairId = 'none';
+  if (input?.gaze != null) result.gaze = normalizeGazeConfig(input.gaze);
   return result;
 }

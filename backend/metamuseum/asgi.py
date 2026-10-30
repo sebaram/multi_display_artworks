@@ -44,13 +44,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                session_cookie=settings.session_cookie, max_age=settings.session_max_age,
                                same_site="lax", https_only=settings.session_secure)
     application.include_router(router)
-    from .api import admin, gallery, legacy, wall_designs, wall_media, integrations, avatars
+    from .api import admin, gallery, legacy, wall_designs, wall_media, integrations, avatars, gaussian_dev
     application.middleware('http')(integrations.bounded_integration_body)
     application.include_router(integrations.router)
     application.include_router(wall_designs.router)
     application.include_router(wall_media.router)
     application.include_router(gallery.router)
     application.include_router(avatars.router)
+    application.include_router(gaussian_dev.router)
     application.include_router(admin.router)
     application.include_router(legacy.router)
     # Existing media URLs keep their /static prefix, independently of the React build.

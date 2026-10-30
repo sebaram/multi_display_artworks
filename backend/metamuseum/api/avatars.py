@@ -54,7 +54,7 @@ def save_avatar(body: AvatarProfileWrite, request: Request, response: Response):
     key, anonymous, token = owner(request, response)
     if not hmac.compare_digest(body.ownerScopeToken, token):
         raise HTTPException(409, 'avatar_owner_changed_reload')
-    look = body.appearance.model_dump()
+    look = body.appearance.model_dump(exclude_none=True)
     now = datetime.now(timezone.utc)
     expires = now + timedelta(days=90) if key == anonymous else None
     if body.expectedRevision == 0:

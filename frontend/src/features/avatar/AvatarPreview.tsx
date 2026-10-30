@@ -28,7 +28,7 @@ export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; ap
     const light = new THREE.DirectionalLight(0xffffff, 2); light.position.set(-2, 4, -3); world.add(light);
     const group = new THREE.Group(); world.add(group);
     setError('');
-    void createAvatarInstance({ scene: group, preset, appearance, signal: controller.signal }).then(instance => {
+    void createAvatarInstance({ scene: group, preset, appearance, signal: controller.signal, renderer, aframeScene: world }).then(instance => {
       avatar.current = instance;
       instance.applyAppearance(latest.current);
     }).catch(reason => { if (!controller.signal.aborted) setError(`Preview unavailable: ${reason.message}`); });
@@ -37,8 +37,8 @@ export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; ap
       const width = host.current?.clientWidth || 300;
       renderer.setSize(width, 260, false);
       camera.aspect = width / 260; camera.updateProjectionMatrix();
-      const distance = controls.current.zoom;
-      const focusHeight = .92 + Math.max(0, Math.min(1, (2.8 - distance) / 1.4)) * .65;
+      const distance = controls.current.zoom * (preset.nativeGaussian ? .35 : 1);
+      const focusHeight = preset.nativeGaussian ? 1.6 : .92 + Math.max(0, Math.min(1, (2.8 - distance) / 1.4)) * .65;
       camera.position.set(0, focusHeight + .1, -distance); camera.lookAt(0, focusHeight, 0);
       group.rotation.y = controls.current.rotation * Math.PI / 180;
       renderer.render(world, camera); frame = requestAnimationFrame(draw);
@@ -48,7 +48,7 @@ export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; ap
       cancelAnimationFrame(frame); controller.abort(); avatar.current?.dispose(); avatar.current = null;
       renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove();
     };
-  }, [preset.kind, preset.rigVersion, preset.assetUrl]);
+  }, [preset.kind, preset.rigVersion, preset.assetUrl, preset.nativeGaussian]);
   return <section aria-label="Avatar preview">
     {preset.kind === 'humanoid' ? <div ref={host} style={{ height: 260, width: '100%' }} /> : <p>{preset.label} · Legacy avatar preview</p>}
     {error && <p role="status">{error} · Your saved appearance is kept. Try another preset or reload.</p>}

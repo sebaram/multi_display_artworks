@@ -1,0 +1,66 @@
+.gaze-lab { max-width: 1500px; padding-top: 36px; }
+.gaze-back { display: inline-block; margin-bottom: 26px; color: #4f6963; font-size: 13px; }
+.gaze-heading, .gaze-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.gaze-heading { margin-bottom: 24px; }
+.gaze-heading h1 { margin: 9px 0 12px; }
+.gaze-heading p { margin-bottom: 0; }
+.gaze-version { padding: 6px 12px; background: #e5ebe2; border-radius: 20px; white-space: nowrap; font-size: 12px; }
+.gaze-disclosure { padding: 16px 20px; border-left: 3px solid #8c9e78; background: #e9ede1; color: #4a5d4e; font-size: 13px; margin-bottom: 24px; }
+.gaze-workspace { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr); gap: 22px; align-items: start; }
+.gaze-preview, .gaze-panel { border: 1px solid #d7dfd6; border-radius: 12px; background: #fff; padding: 22px; min-width: 0; }
+.gaze-lab h2 { margin: 0 0 14px; font-size: 21px; }
+.gaze-section-heading { margin-bottom: 14px; }
+.gaze-section-heading h2 { margin-bottom: 0; }
+.gaze-section-heading button { font-size: 12px; padding: 7px 10px; flex-shrink: 0; }
+.gaze-preview canvas { display: block; width: 100%; height: auto; border-radius: 7px; }
+.gaze-readout { display: flex; gap: 10px 24px; flex-wrap: wrap; padding: 16px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gaze-readout strong { display: inline-block; min-width: 38px; margin-left: 4px; color: #185b60; }
+.gaze-help, .gaze-lab .gaze-help { font-size: 12px; line-height: 1.6; font-weight: 400; color: #6d7b73; margin: 10px 0; }
+.gaze-table-wrap { overflow-x: auto; }
+.gaze-score-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gaze-score-table caption { text-align: left; padding: 12px 0; font-weight: 600; color: #65776c; }
+.gaze-score-table th, .gaze-score-table td { text-align: left; padding: 9px 8px; border-bottom: 1px solid #e4e9e2; white-space: nowrap; }
+.gaze-score-table thead { color: #718075; }
+.gaze-score-table .is-selected { color: #185b60; background: #edf4ed; }
+.gaze-controls { border: 0; padding: 0; margin: 0; min-width: 0; }
+.gaze-controls label, .gaze-target label { font-size: 12px; }
+.gaze-controls input, .gaze-controls select, .gaze-target input { padding: 7px 9px; }
+.gaze-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.gaze-presets button { font-size: 11px; padding: 6px 9px; }
+.gaze-controls button { color: #202c30; }
+.gaze-controls details { border-top: 1px solid #dce3d8; padding: 12px 0; }
+.gaze-controls summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.gaze-controls summary:focus-visible { outline: 2px solid #33858c; outline-offset: 3px; }
+.gaze-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.gaze-scene, .gaze-recording { margin-top: 22px; }
+.gaze-scene > .gaze-section-heading > label { min-width: 180px; }
+.gaze-scene input[type=range] { padding: 0; accent-color: #185b60; }
+.gaze-target-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.gaze-target { border: 1px solid #dde4d9; border-radius: 8px; padding: 16px; min-width: 0; margin: 0; }
+.gaze-target legend { padding: 0 6px; font-size: 13px; font-weight: 600; }
+.gaze-toggles { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.gaze-toggles label { display: inline-flex; gap: 6px; align-items: center; font-weight: 400; }
+.gaze-toggles input { accent-color: #185b60; margin: 0; padding: 0; }
+.gaze-recording .gaze-section-heading > strong { flex-shrink: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gaze-recording-on { color: #a34a3c; }
+.gaze-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.gaze-actions button { font-size: 12px; }
+.gaze-file { font-size: 11px; min-width: 200px; }
+.gaze-file input { padding: 5px; font-size: 11px; }
+.gaze-recording .notice { margin-bottom: 0; }
+.gaze-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (max-width: 1000px) {
+  .gaze-workspace { grid-template-columns: minmax(0, 1fr); }
+  .gaze-target-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .gaze-lab { padding: 24px 16px; }
+  .gaze-heading, .gaze-section-heading { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .gaze-heading h1 { font-size: 36px; }
+  .gaze-preview, .gaze-panel { padding: 16px; }
+  .gaze-target-grid { grid-template-columns: minmax(0, 1fr); }
+  .gaze-readout { gap: 9px 14px; }
+  .gaze-fields { gap: 10px; }
+  .gaze-file { width: 100%; }
+  .gaze-actions button { flex-grow: 1; }
+}

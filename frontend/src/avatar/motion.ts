@@ -4,6 +4,7 @@ import type {
   AvatarPoseV2,
   Vec3,
   Quat,
+  GazePose,
 } from "./types";
 import {
   identityPose,
@@ -44,6 +45,7 @@ export function updateAvatarMotion(
   delta: number,
   ground: { height: number } | null,
   _detail: string,
+  gaze?: GazePose,
 ): AvatarPoseV2 {
   const validTarget = (t: AvatarInputV2["head"]) =>
     t && [...t.position, ...t.orientation].every(Number.isFinite)
@@ -101,6 +103,7 @@ export function updateAvatarMotion(
   const turn = wrap(desired - state.yaw) * Math.min(1, dt * 7);
   state.yaw = wrap(state.yaw + turn);
   const pose = identityPose();
+  pose.gaze = gaze;
   pose.sequence = state.sequence++;
   pose.sampleTime = input.sampleTime;
   pose.tracking = { ...input.tracking };

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     session_max_age: int = Field(default=86400, gt=0)
     session_secure: bool = False
     frontend_root: Path | None = None
+    # Explicit local research opt-in; licensed model data never ships in the web build.
+    gaussian_avatar_root: Path | None = None
     media_root: Path | None = None
     wall_media_root: Path = Path('wall_media')
     wall_media_max_file_bytes: int = Field(default=2 * 1024**3, gt=0)

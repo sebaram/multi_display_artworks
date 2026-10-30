@@ -22,6 +22,7 @@ const ARCompanion = lazy(() => import("../features/room/ARCompanion"));
 const GestureTool = lazy(() => import("../features/room/GestureTool"));
 const WallEditor = lazy(() => import("../features/wall-editor/WallEditor"));
 const Streams = lazy(() => import("../features/admin/Streams"));
+const GazeLab = lazy(() => import('../features/avatar/GazeLab'));
 import "./styles.css";
 const router = createBrowserRouter([{ path: "*", element: <Layout /> }]);
 function App() {
@@ -90,6 +91,8 @@ function Layout() {
             <Route path="/kwanri/*" element={<Admin />} />
             <Route path="/tools" element={<Tools />} />
             <Route path="/tools/streams" element={<Streams />} />
+            <Route path="/tools/gaze-lab" element={<GazeLab />} />
+            <Route path="/tools/gaussian-avatar" element={<GazeLab native />} />
             <Route path="/ar-companion" element={<ARCompanion />} />
             <Route path="/gesture-mark/*" element={<GestureTool />} />
             <Route path="/wall-editor" element={<WallEditorEntry />} />

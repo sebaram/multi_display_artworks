@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { AVATAR_CATALOG } from '../../../src/scene/legacy/avatar-catalog.js';
 
 import {
   createTabMarker,
@@ -418,4 +419,11 @@ test('createRandomProfile chooses only non-empty allowed avatars', () => {
   });
   assert.notEqual(profile.displayName, 'Visitor');
   assert.match(profile.color, /^#[0-9A-F]{6}$/u);
+});
+
+test('createRandomProfile leaves heavy private native presets as explicit choices', () => {
+  AVATAR_CATALOG['gaussian-306'] = { nativeGaussian: 'subject-306' };
+  try {
+    assert.equal(createRandomProfile({ avatarIds: ['robot', 'gaussian-306'], random: () => .999 }).avatarId, 'robot');
+  } finally { delete AVATAR_CATALOG['gaussian-306']; }
 });

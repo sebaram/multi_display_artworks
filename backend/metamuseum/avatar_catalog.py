@@ -1,5 +1,7 @@
 """Canonical, public avatar allowlist. Coordinates are meters, Y up, forward -Z."""
 from copy import deepcopy
+import os
+from pathlib import Path
 
 RIG_VERSION = 'humanoid-v1'
 # Ordered parent-relative bind offsets; identity bind rotations, no scale.
@@ -46,4 +48,16 @@ def avatar_catalog():
     for identifier, legacy in LEGACY.items():
         presets.append(dict(id=identifier, **legacy, thumbnail=None, rigVersion=None, coreBones=[], rigMap={}, restPose={}, materialSlots={}, headAnchor=None,
                             capabilities=dict(colors=identifier == 'robot', face=False, hair=False, accessories=False, fullBody=False), budgets=None, options={}, compatibility={}, defaultAppearance=None))
+    # Private demo assets are opt-in and never part of a production catalog/build.
+    native_root = os.environ.get('GAUSSIAN_AVATAR_ROOT')
+    if (native_root and os.environ.get('ENVIRONMENT', 'development') != 'production'
+            and all((Path(native_root) / name).is_file() for name in ['manifest.json', 'rig.bin', 'point_cloud.ply'])):
+        native = deepcopy(presets[0])
+        native.update(id='gaussian-306', label='GaussianAvatars 306 · Local research bust',
+                      nativeGaussian='subject-306', thumbnail=None,
+                      capabilities=dict(colors=False, face=False, hair=False, accessories=False, fullBody=False),
+                      options=dict(faceId=['none'], hairId=['none'], hatId=['none'], glassesId=['none']), compatibility={})
+        native['defaultAppearance'].update(presetId='gaussian-306', faceId='none', hairId='none', hatId='none', glassesId='none')
+        native['budgets']['gaussians'] = 89021
+        presets.append(native)
     return deepcopy(dict(schemaVersion=2, presets=presets))

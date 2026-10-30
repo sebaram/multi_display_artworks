@@ -31,6 +31,20 @@ beforeAll(async () => {
 });
 const appearance = (top: string, hatId = 'none') => ({ ...preset.defaultAppearance, colors: { ...preset.defaultAppearance.colors, top }, hatId });
 
+test('optional solved eyes follow head-local signs, stay private and hide on blink/LOD/legacy poses', async () => {
+  const scene = new THREE.Scene(), a = await createAvatarInstance({scene,preset}), b = await createAvatarInstance({scene,preset});
+  const pose = identityPose(); pose.gaze = {version:1,source:'procedural',yaw:.3,pitch:.1};
+  a.applyPose(pose); a.updateExpression(4200);
+  const eyes = a.root.getObjectByName('ProceduralEyes');
+  const direction = new THREE.Vector3(0,0,-1).applyQuaternion(eyes.children[0].quaternion);
+  expect(direction.x).toBeGreaterThan(0); expect(direction.y).toBeGreaterThan(0);
+  expect(eyes.visible).toBe(true); expect(b.root.getObjectByName('ProceduralEyes').visible).toBe(false);
+  a.updateExpression(4000); expect(eyes.visible).toBe(false);
+  a.updateExpression(4200); a.setDetail('low'); expect(eyes.visible).toBe(false);
+  a.setDetail('full'); a.applyPose(identityPose()); expect(eyes.visible).toBe(false);
+  a.dispose(); b.dispose();
+});
+
 test('far displayed real rig applies teleported hips and scale on the receipt frame once', async () => {
   const scene=new THREE.Scene(),instance=await createAvatarInstance({scene,preset}),buffer=new AvatarPoseBuffer();
   const apply=vi.fn((pose:any)=>instance.applyPose(pose));

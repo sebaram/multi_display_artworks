@@ -2,6 +2,7 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from .avatar_catalog import avatar_catalog
+from .avatar_gaze import normalize_gaze_config, validate_gaze_pose
 
 
 def normalize_appearance(value: dict, *, strict=False) -> dict:
@@ -35,6 +36,8 @@ def normalize_appearance(value: dict, *, strict=False) -> dict:
         result[key] = item if item in preset['options'].get(key, ['none']) else fallback[key]
     if result['hatId'] == 'cap':
         result['hairId'] = 'none'
+    if value.get('gaze') is not None:
+        result['gaze'] = normalize_gaze_config(value['gaze'], strict=strict)
     return result
 
 class AvatarAppearanceV2(BaseModel):
@@ -46,6 +49,7 @@ class AvatarAppearanceV2(BaseModel):
     hairId: str
     hatId: str
     glassesId: str
+    gaze: dict | None = None
 
     @model_validator(mode='after')
     def canonical(self):
@@ -79,7 +83,7 @@ def validate_avatar_pose(value):
     import math
     import struct
     from .avatar_catalog import RIG_VERSION
-    keys = {'version', 'rigVersion', 'sequence', 'sampleTime', 'bodyScale', 'tracking', 'teleport', 'floats'}
+    keys = {'version', 'rigVersion', 'sequence', 'sampleTime', 'bodyScale', 'tracking', 'teleport', 'floats', 'gaze'}
     if not isinstance(value, dict) or set(value) - keys:
         return None
     blob = value.get('floats')
@@ -87,6 +91,8 @@ def validate_avatar_pose(value):
         return None
     metadata = {k: v for k, v in value.items() if k != 'floats'}
     try:
+        if 'gaze' in metadata:
+            metadata['gaze'] = validate_gaze_pose(metadata['gaze'])
         if len(json.dumps(metadata, allow_nan=False).encode()) + len(blob) > 4096:
             return None
     except (ValueError, TypeError, OverflowError):

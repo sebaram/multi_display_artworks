@@ -12,6 +12,12 @@ export default function Tools() {
       <p>휴대폰과 XR 기기를 연결해 전시를 다른 방식으로 경험하세요.</p>
       <Status loading={loading} error={error} />
       <div className="tool-grid">
+        <article>
+          <div className="tool-symbol">◉</div>
+          <h2>시선 실험실</h2>
+          <p>관심 대상, 응시 시간과 필터를 조절하고 절차적 시선을 비교·기록합니다.</p>
+          <Link className="button" to="/tools/gaze-lab">실험실 열기 ↗</Link>
+        </article>
         {session.is_admin && (
           <article>
             <div className="tool-symbol">▰</div>

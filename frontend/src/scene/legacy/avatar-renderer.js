@@ -79,7 +79,10 @@ function createHumanoidAvatar(profile, document) {
   const controller = new AbortController();
   let instance, pendingAppearance = profile.appearance, bodyPose, humanoidPose, detail = 'full', expression;
   const preset = AVATAR_CATALOG[profile.appearance?.presetId || profile.avatarId];
-  wrapper.canApplyProfile = next => AVATAR_CATALOG[next.appearance?.presetId || next.avatarId]?.rigVersion === preset.rigVersion;
+  wrapper.canApplyProfile = next => {
+    const candidate = AVATAR_CATALOG[next.appearance?.presetId || next.avatarId];
+    return candidate?.rigVersion === preset.rigVersion && candidate?.nativeGaussian === preset.nativeGaussian;
+  };
   wrapper.applyAppearance = next => { pendingAppearance = next; if (instance) instance.applyAppearance(next || preset.defaultAppearance); };
   // The wrapper owns lifecycle under the head/name entity; the actual body is
   // attached to scene coordinates so camera pitch/roll cannot tilt the body.
@@ -105,7 +108,7 @@ function createHumanoidAvatar(profile, document) {
   wrapper.avatarReady = import('../../avatar/resources').then(async ({ createAvatarInstance }) => {
     if (controller.signal.aborted) return;
     const scene = wrapper.sceneEl || document.querySelector('a-scene');
-    instance = await createAvatarInstance({ scene: scene.object3D, preset, appearance: pendingAppearance, signal: controller.signal });
+    instance = await createAvatarInstance({ scene: scene.object3D, renderer: scene.renderer, aframeScene: scene, preset, appearance: pendingAppearance, signal: controller.signal });
     // A profile may change while the shared GLB request is still pending.
     instance.applyAppearance(pendingAppearance || preset.defaultAppearance);
     wrapper.avatarInstance = instance;

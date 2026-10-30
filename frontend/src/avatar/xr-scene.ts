@@ -1,4 +1,4 @@
-import { calibrateAvatar } from "./calibration";
+import { calibrateAvatar, AVATAR_EYE_HEIGHT } from "./calibration";
 import {
   createXRInputState,
   readXRTransform,
@@ -8,7 +8,13 @@ import {
   syncXRInputReferenceSpace,
 } from "./xr-input";
 import { axisAngle, rotate, product, inverse, sub } from "./pose";
-import type { Calibration, Transform, Vec3, Quat } from "./types";
+import type {
+  AvatarInputV2,
+  Calibration,
+  Transform,
+  Vec3,
+  Quat,
+} from "./types";
 
 /** The pinned renderer's poseTarget is #camera.object3D: its parent is reference→world. */
 export function mountAvatarXRInput({
@@ -33,6 +39,7 @@ export function mountAvatarXRInput({
     state = createXRInputState();
   let lastHead: Transform | null = null;
   let referenceHead: Transform | null = null;
+  let lastWorldInput: AvatarInputV2 | undefined;
   let pendingRebase:
     | {
         origin: Transform;
@@ -84,6 +91,7 @@ export function mountAvatarXRInput({
     state = createXRInputState();
     lastHead = null;
     referenceHead = null;
+    lastWorldInput = undefined;
     pendingRebase = undefined;
     if (origin) {
       origin.position.set(0, 0, 0);
@@ -164,6 +172,49 @@ export function mountAvatarXRInput({
         }
       : { position: [0, 0, 0], orientation: [0, 0, 0, 1] };
   }
+  function knownWorldHead(): Transform | null {
+    return (
+      referenceHead ??
+      (saved
+        ? transformXRTarget(
+            {
+              position: saved.position.toArray(),
+              orientation: saved.quaternion.toArray(),
+            },
+            originTransform(),
+          )
+        : null)
+    );
+  }
+  function untrackedWorldInput(sampleTime: number): AvatarInputV2 {
+    const head = knownWorldHead(),
+      eyeHeight = calibration?.eyeHeight ?? AVATAR_EYE_HEIGHT;
+    const root: Transform = lastWorldInput
+      ? {
+          position: [...lastWorldInput.root.position],
+          orientation: [...lastWorldInput.root.orientation],
+        }
+      : {
+          position: [
+            head?.position[0] ?? 0,
+            ground?.height ?? (head?.position[1] ?? eyeHeight) - eyeHeight,
+            head?.position[2] ?? 0,
+          ],
+          orientation: head?.orientation ?? [0, 0, 0, 1],
+        };
+    return {
+      version: 2,
+      sampleTime,
+      root,
+      bodyScale: lastWorldInput?.bodyScale ?? eyeHeight / AVATAR_EYE_HEIGHT,
+      posture: calibration?.mode ?? (posture.value as Calibration["mode"]),
+      head: null,
+      left: null,
+      right: null,
+      tracking: { head: false, left: false, right: false },
+      locomotion: { velocity: [0, 0, 0], grounded: !!ground, teleport: false },
+    };
+  }
   function placeOrigin(position: any, orientation: any, head: Transform) {
     if (!origin) return;
     const yaw = (q: Quat) => {
@@ -190,7 +241,7 @@ export function mountAvatarXRInput({
     referenceSpace: any,
     change: ReturnType<typeof syncXRInputReferenceSpace>,
   ) {
-    if (change && initialized) {
+    if (change && initialized && !pendingRebase) {
       let relation = change.transform;
       if (!relation && change.previous && change.previous !== referenceSpace) {
         try {
@@ -296,7 +347,7 @@ export function mountAvatarXRInput({
       rebaseReference(frame, referenceSpace, referenceChange);
       if (!initialized) {
         const head = readXRTransform({ transform: viewer() });
-        if (!head) return null;
+        if (!head) return untrackedWorldInput(sampleTime);
         // Entry may already be seated. Stature changes only through explicit calibration/manual size.
         calibration = calibrateAvatar({
           viewer: viewer(),
@@ -304,12 +355,15 @@ export function mountAvatarXRInput({
           posture: posture.value as Calibration["mode"],
           previous: calibration,
           eyeHeight: calibration?.eyeHeight ?? 1.64,
+          newSession: true,
         });
         height.value = calibration.eyeHeight.toFixed(2);
         placeOrigin(saved!.position, saved!.quaternion, head);
         initialized = true;
         controls.hidden = false;
       }
+      // New-space targets have no world meaning until the relation or viewer anchor resolves.
+      if (pendingRebase) return untrackedWorldInput(sampleTime);
       camera.components?.["boundary-clamp"]?.clampXRBoundary?.();
       const input = sampleAvatarInput({
         frame,
@@ -325,10 +379,12 @@ export function mountAvatarXRInput({
         scene.emit("avatar-xr-origin-changed", { head: input.head }, false);
       pendingTeleport = false;
       lastHead = input.head;
+      lastWorldInput = input;
       if (input.head) referenceHead = input.head;
       return input;
     },
     transformHand(hand: any) {
+      if (pendingRebase || !initialized) return null;
       const mapped: any = {};
       for (const [name, joint] of Object.entries(hand) as [string, any][]) {
         mapped[name] =
@@ -345,10 +401,11 @@ export function mountAvatarXRInput({
       return mapped;
     },
     legacyPose() {
-      if (!lastHead) return null;
-      const p = lastHead.position,
+      const head = session ? (lastHead ?? knownWorldHead()) : null;
+      if (!head) return null;
+      const p = head.position,
         r = new THREE.Euler().setFromQuaternion(
-          new THREE.Quaternion().fromArray(lastHead.orientation),
+          new THREE.Quaternion().fromArray(head.orientation),
           "YXZ",
         ),
         deg = 180 / Math.PI;

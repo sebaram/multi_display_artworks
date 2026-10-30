@@ -14,6 +14,8 @@ import {
 import { updateAvatarMotion } from "../../src/avatar/motion";
 import type { AvatarPreset, Transform } from "../../src/avatar/types";
 import catalog from "../../public/avatars/catalog.fixture.json";
+import { mountAvatarXRInput } from "../../src/avatar/xr-scene";
+import * as MathThree from "../../src/wall-engine/reference/vendor/three.module.js";
 const transform = (x = 0, y = 1.64, z = 0) => ({
   transform: { position: { x, y, z }, orientation: { x: 0, y: 0, z: 0, w: 1 } },
 });
@@ -28,6 +30,209 @@ const calibration = {
   mode: "standing",
   referenceSpace: "local-floor",
 } as const;
+function sceneFixture() {
+  const THREE: any = MathThree,
+    scene: any = document.createElement("div"),
+    rig: any = document.createElement("div"),
+    camera: any = document.createElement("div"),
+    toolbar = document.createElement("div");
+  toolbar.id = "room-toolbar";
+  document.body.append(toolbar, scene);
+  rig.id = "avatar-xr-origin";
+  scene.append(rig);
+  rig.append(camera);
+  scene.object3D = new THREE.Scene();
+  rig.object3D = new THREE.Group();
+  camera.object3D = new THREE.Group();
+  camera.object3D.position.set(0, 1.64, 0);
+  camera.components = {};
+  scene.object3D.add(rig.object3D);
+  rig.object3D.add(camera.object3D);
+  scene.emit = (name: string, detail: any) =>
+    scene.dispatchEvent(new CustomEvent(name, { detail }));
+  scene.systems = { webxr: { sessionReferenceSpaceType: "local-floor" } };
+  const grip = {},
+    newSession = () =>
+      Object.assign(new EventTarget(), {
+        inputSources: [{ handedness: "right", gripSpace: grip }],
+        end: vi.fn(),
+      });
+  const mock = {
+    session: newSession() as any,
+    reference: new EventTarget(),
+    head: [0, 1.64, 0] as number[] | null,
+    right: [0.3, 1.2, 0] as number[] | null,
+    referenceRelation: null as any,
+  };
+  const pose = (p: number[] | null) => (p ? transform(p[0], p[1], p[2]) : null);
+  const frame = {
+    get session() {
+      return mock.session;
+    },
+    getViewerPose: () => pose(mock.head),
+    getPose: (space: any) =>
+      space === grip ? pose(mock.right) : mock.referenceRelation,
+  };
+  scene.renderer = {
+    xr: {
+      getSession: () => mock.session,
+      getFrame: () => frame,
+      getReferenceSpace: () => mock.reference,
+    },
+  };
+  const driver = mountAvatarXRInput({
+    scene,
+    camera,
+    ground: { height: 0 },
+    THREE,
+    onReset: vi.fn(),
+  });
+  return {
+    driver,
+    mock,
+    scene,
+    rig,
+    newSession,
+    close() {
+      driver.dispose();
+      scene.remove();
+      toolbar.remove();
+    },
+  };
+}
+test("new local-floor session retains stature but discards the prior session vertical reset offset", () => {
+  const f = sceneFixture();
+  try {
+    expect(f.driver.sample(100)!.head!.position[1]).toBeCloseTo(1.64);
+    f.mock.head![1] = 1.49;
+    const reset = new Event("reset");
+    Object.defineProperty(reset, "transform", {
+      value: transform(0, 0.15, 0).transform,
+    });
+    f.mock.reference.dispatchEvent(reset);
+    expect(f.driver.sample(150)!.head!.position[1]).toBeCloseTo(1.64);
+    const old = f.mock.session;
+    f.mock.session = null;
+    old.dispatchEvent(new Event("end"));
+    f.mock.session = f.newSession();
+    f.mock.reference = new EventTarget();
+    f.mock.head = [0, 1.64, 0];
+    const fresh = f.driver.sample(200)!;
+    expect(fresh.bodyScale).toBeCloseTo(1);
+    expect(fresh.head!.position[1]).toBeCloseTo(1.64);
+    expect(f.rig.object3D.position.y).toBeCloseTo(0);
+  } finally {
+    f.close();
+  }
+});
+test("fresh session retains a known manual stature and seated posture", () => {
+  const f = sceneFixture();
+  try {
+    f.driver.sample(100);
+    const height = document.querySelector(
+        '[aria-label="Standing eye height (m)"]',
+      ) as HTMLInputElement,
+      posture = document.querySelector(
+        '[aria-label="Avatar posture"]',
+      ) as HTMLSelectElement;
+    height.value = "1.8";
+    height.dispatchEvent(new Event("change"));
+    posture.value = "seated";
+    posture.dispatchEvent(new Event("change"));
+    f.driver.sample(150);
+    const old = f.mock.session;
+    f.mock.session = null;
+    old.dispatchEvent(new Event("end"));
+    f.mock.session = f.newSession();
+    f.mock.reference = new EventTarget();
+    f.mock.head = [0, 1.05, 0];
+    const fresh = f.driver.sample(200)!;
+    expect(fresh.bodyScale).toBeCloseTo(1.8 / 1.64);
+    expect(fresh.posture).toBe("seated");
+    expect(fresh.head!.position[1]).toBeCloseTo(1.05);
+  } finally {
+    f.close();
+  }
+});
+test("unresolved replacement with head loss holds world root and gates both solved and legacy hands until recovery", () => {
+  const f = sceneFixture();
+  try {
+    const before = f.driver.sample(100)!;
+    f.mock.reference = new EventTarget();
+    f.mock.head = null;
+    f.mock.right = [0.5, 1.2, 0];
+    const waiting = f.driver.sample(150)!;
+    expect(waiting).not.toBeNull();
+    expect(waiting.tracking).toEqual({
+      head: false,
+      left: false,
+      right: false,
+    });
+    expect(waiting.right).toBeNull();
+    expect(waiting.root).toEqual(before.root);
+    expect(waiting.locomotion.velocity).toEqual([0, 0, 0]);
+    expect(waiting.locomotion.teleport).toBe(false);
+    expect(
+      f.driver.transformHand({
+        wrist: { position: [0.5, 1.2, 0], rotation: [0, 0, 0, 1] },
+      }),
+    ).toBeNull();
+    expect(f.driver.legacyPose()!.position).toEqual({ x: 0, y: 1.64, z: 0 });
+    const reset = new Event("reset");
+    Object.defineProperty(reset, "transform", {
+      value: transform(0.3, 0, 0).transform,
+    });
+    f.mock.reference.dispatchEvent(reset);
+    expect(f.driver.sample(200)!.tracking.right).toBe(false);
+    f.mock.reference = new EventTarget();
+    f.mock.referenceRelation = transform(0.4, 0, 0);
+    f.mock.right = [0.9, 1.2, 0];
+    const stillWaiting = f.driver.sample(225)!;
+    expect(stillWaiting.tracking.right).toBe(false);
+    expect(stillWaiting.root).toEqual(before.root);
+    expect(stillWaiting.locomotion.teleport).toBe(false);
+    f.mock.head = [0.6, 1.64, 0];
+    const recovered = f.driver.sample(250)!;
+    expect(recovered.head!.position).toEqual(before.head!.position);
+    expect(recovered.right!.position[0]).toBeCloseTo(0.3);
+    expect(recovered.locomotion.velocity).toEqual([0, 0, 0]);
+    expect(recovered.locomotion.teleport).toBe(true);
+    expect(f.driver.sample(300)!.locomotion.teleport).toBe(false);
+  } finally {
+    f.close();
+  }
+});
+test("active XR before the first viewer pose returns an untracked input rather than desktop fallback", () => {
+  const f = sceneFixture();
+  try {
+    f.mock.head = null;
+    const input = f.driver.sample(100);
+    expect(input).not.toBeNull();
+    expect(input!.tracking).toEqual({ head: false, left: false, right: false });
+    expect(input!.right).toBeNull();
+    expect(
+      f.driver.transformHand({
+        wrist: { position: [0.3, 1.2, 0], rotation: [0, 0, 0, 1] },
+      }),
+    ).toBeNull();
+  } finally {
+    f.close();
+  }
+});
+test("legacy head compatibility keeps a known world pose when HMD tracking expires before reference loss", () => {
+  const f = sceneFixture();
+  try {
+    f.driver.sample(100);
+    f.mock.head = null;
+    f.driver.sample(400);
+    expect(f.driver.legacyPose()!.position).toEqual({ x: 0, y: 1.64, z: 0 });
+    f.mock.reference = new EventTarget();
+    f.driver.sample(450);
+    expect(f.driver.legacyPose()!.position).toEqual({ x: 0, y: 1.64, z: 0 });
+  } finally {
+    f.close();
+  }
+});
 function fixture() {
   const grip = {},
     wrist = {},

@@ -140,8 +140,16 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
   test.setTimeout(90000);
   const errors: string[] = [];
   const sentPoses: any[] = [];
+  const legacyPackets: any[] = [];
   page.on("websocket", (socket) =>
     socket.on("framesent", ({ payload }) => {
+      if (typeof payload === "string" && payload.startsWith("42")) {
+        const start = payload.indexOf("[");
+        if (start >= 0) {
+          const [name, data] = JSON.parse(payload.slice(start));
+          if (name === "position_update") legacyPackets.push(data);
+        }
+      }
       if (typeof payload !== "string" || !/^45\d+-/.test(payload)) return;
       const [name, data] = JSON.parse(payload.replace(/^45\d+-/, ""));
       if (name === "avatar_pose") sentPoses.push(data.pose);
@@ -220,6 +228,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     };
     const mock = (w.avatarXRMock = {
       head: [0, 1.1, 0],
+      headLost: false,
       left: [-0.32, 0.85, -0.25],
       right: [0.32, 0.85, -0.25],
       lost: false,
@@ -230,6 +239,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
       createReferenceSpace,
       poseYaw: 0,
       lostLeft: false,
+      referenceMap: null,
       original: {
         getSession: xr.getSession,
         getFrame: xr.getFrame,
@@ -269,9 +279,13 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
       session,
       getViewerPose: (r: any) => {
         if (r !== mock.reference) throw Error("wrong reference");
+        if (mock.headLost) return null;
         return pose(mock.head);
       },
-      getPose: (s: any) => pose(s.side === "ray" ? [99, 99, 99] : mock[s.side]),
+      getPose: (s: any) =>
+        s === mock.reference
+          ? mock.referenceMap
+          : pose(s.side === "ray" ? [99, 99, 99] : mock[s.side]),
       getJointPose: (s: any) => pose(mock[s.side]),
     };
     // Mirror the pinned renderer's poseTarget write so real gaze rays use the same HMD pose.
@@ -527,6 +541,143 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
   await expect
     .poll(async () => (await rig(observer, own.visitorId))!.scale)
     .toBeCloseTo(1, 3);
+  expect(
+    await page
+      .locator("#avatar-xr-origin")
+      .evaluate((o: any) => o.object3D.position.y),
+  ).toBeCloseTo(0.15, 6);
+  expect(
+    await page.evaluate(() => (window as any).avatarXRMock.head[1]),
+  ).toBeCloseTo(1.49, 6);
+  // Same reference type in a fresh session must not inherit the prior vertical reset coordinates.
+  await page.evaluate(() => {
+    const m = (window as any).avatarXRMock,
+      s = document.querySelector("a-scene") as any;
+    m.active = false;
+    m.frame.session.dispatchEvent(new Event("end"));
+    s.emit("exit-vr");
+  });
+  await page.evaluate(() => {
+    const m = (window as any).avatarXRMock,
+      s = document.querySelector("a-scene") as any,
+      old = m.frame.session,
+      next = new EventTarget() as any;
+    Object.defineProperty(
+      next,
+      "inputSources",
+      Object.getOwnPropertyDescriptor(old, "inputSources")!,
+    );
+    next.end = () => m.endCalls++;
+    m.session = next;
+    m.frame.session = next;
+    m.reference = m.createReferenceSpace();
+    m.head[1] = 1.64;
+    m.left[1] += 0.15;
+    m.right[1] += 0.15;
+    m.active = true;
+    s.emit("enter-vr");
+  });
+  await expect(
+    page.getByLabel("Avatar posture", { exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator("#avatar-xr-origin")
+        .evaluate((o: any) => o.object3D.position.y),
+    )
+    .toBeCloseTo(0, 6);
+  await page.waitForTimeout(200);
+  await expect
+    .poll(async () => (await rig(observer, own.visitorId))!.head[1])
+    .toBeCloseTo(1.64, 2);
+  expect((await rig(observer, own.visitorId))!.scale).toBeCloseTo(1, 3);
+  // HMD loss plus valid new-space grips must remain explicitly untracked in the owner stream.
+  const held = (await rig(observer, own.visitorId))!,
+    waitingPackets = sentPoses.length;
+  await page.evaluate(() => {
+    const m = (window as any).avatarXRMock;
+    m.reference = m.createReferenceSpace();
+    m.headLost = true;
+    for (const side of ["head", "left", "right"]) m[side][0] += 0.2;
+  });
+  await expect
+    .poll(() =>
+      sentPoses
+        .slice(waitingPackets)
+        .some(
+          (p) =>
+            !p.tracking.head &&
+            !p.tracking.left &&
+            !p.tracking.right &&
+            !p.teleport,
+        ),
+    )
+    .toBe(true);
+  await page.waitForTimeout(150);
+  expect(sentPoses.slice(waitingPackets).some((p) => p.teleport)).toBe(false);
+  expect(
+    distance((await rig(observer, own.visitorId))!.root, held.root),
+  ).toBeLessThan(0.015);
+  await expect(
+    page.getByLabel("Avatar posture", { exact: true }),
+  ).toBeVisible();
+  // This reset relates only to the unresolved space; it cannot establish a world mapping.
+  await page.evaluate(() => {
+    const m = (window as any).avatarXRMock,
+      e = new Event("reset");
+    Object.defineProperty(e, "transform", {
+      value: {
+        position: { x: 0.3, y: 0, z: 0 },
+        orientation: { x: 0, y: 0, z: 0, w: 1 },
+      },
+    });
+    m.reference.dispatchEvent(e);
+  });
+  await page.waitForTimeout(150);
+  expect(sentPoses.at(-1).tracking).toEqual({
+    head: false,
+    left: false,
+    right: false,
+  });
+  await page.evaluate(() => {
+    const m = (window as any).avatarXRMock;
+    m.reference = m.createReferenceSpace();
+    m.referenceMap = {
+      transform: {
+        position: { x: 0.4, y: 0, z: 0 },
+        orientation: { x: 0, y: 0, z: 0, w: 1 },
+      },
+    };
+    for (const side of ["head", "left", "right"]) m[side][0] += 0.4;
+  });
+  await page.waitForTimeout(150);
+  expect(sentPoses.at(-1).tracking).toEqual({
+    head: false,
+    left: false,
+    right: false,
+  });
+  await page.evaluate(() => {
+    const m = (window as any).avatarXRMock;
+    m.headLost = false;
+    m.referenceMap = null;
+  });
+  await expect
+    .poll(() =>
+      sentPoses
+        .slice(waitingPackets)
+        .some((p) => p.teleport && p.tracking.head && p.tracking.right),
+    )
+    .toBe(true);
+  await expect
+    .poll(async () =>
+      distance((await rig(observer, own.visitorId))!.head, held.head),
+    )
+    .toBeLessThan(0.015);
+  await page.waitForTimeout(150);
+  expect(
+    sentPoses.slice(waitingPackets).filter((p) => p.teleport),
+  ).toHaveLength(1);
   await observer.setViewportSize({ width: 1440, height: 900 });
   await observer.locator("#camera").evaluate((c: any) => {
     c.setAttribute("position", "-.7 1.6 2");
@@ -812,6 +963,66 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
       (el: any) => el === (window as any).avatarLegacyHandNode,
     ),
   ).toBe(true);
+  const legacyHead = await observer
+      .locator(`#camera-${own.visitorId}`)
+      .evaluate((c: any) => c.object3D.position.toArray()),
+    legacyWaiting = legacyPackets.length;
+  await page.evaluate(() => ((window as any).avatarXRMock.headLost = true));
+  await page.waitForTimeout(400);
+  expect(
+    distance(
+      await observer
+        .locator(`#camera-${own.visitorId}`)
+        .evaluate((c: any) => c.object3D.position.toArray()),
+      legacyHead,
+    ),
+  ).toBeLessThan(0.02);
+  await page.evaluate(() => {
+    const m = (window as any).avatarXRMock;
+    m.reference = m.createReferenceSpace();
+    m.headLost = true;
+    for (const side of ["head", "left", "right"]) m[side][0] += 0.2;
+  });
+  await expect
+    .poll(() =>
+      legacyPackets
+        .slice(legacyWaiting)
+        .some((p) => !p.handTracking && !p.leftHand && !p.rightHand),
+    )
+    .toBe(true);
+  const cleared = legacyPackets.findIndex(
+    (p, i) =>
+      i >= legacyWaiting && !p.handTracking && !p.leftHand && !p.rightHand,
+  );
+  await page.waitForTimeout(200);
+  expect(
+    legacyPackets
+      .slice(cleared)
+      .every(
+        (p) =>
+          !p.leftHand &&
+          !p.rightHand &&
+          distance([p.position.x, p.position.y, p.position.z], legacyHead) <
+            0.02,
+      ),
+  ).toBe(true);
+  await expect(legacyHand).toHaveCount(0);
+  expect(
+    distance(
+      await observer
+        .locator(`#camera-${own.visitorId}`)
+        .evaluate((c: any) => c.object3D.position.toArray()),
+      legacyHead,
+    ),
+  ).toBeLessThan(0.02);
+  await expect(
+    page.getByLabel("Avatar posture", { exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => ((window as any).avatarXRMock.headLost = false));
+  await expect(legacyHand).toHaveCount(1);
+  await expect
+    .poll(async () => distance(await palm(), await expected(page, "left")))
+    .toBeLessThan(0.02);
   await page.evaluate(() => {
     const s = document.querySelector("a-scene") as any,
       w = window as any;

@@ -8,17 +8,21 @@ export function calibrateAvatar({
   posture,
   previous,
   eyeHeight,
+  newSession = false,
 }: {
   viewer: { position: { y: number } } | null;
   floorMode: Calibration["referenceSpace"];
   posture: Calibration["mode"];
   previous?: Calibration;
   eyeHeight?: number;
+  newSession?: boolean;
 }): Calibration {
   const known = previous?.eyeHeight ?? AVATAR_EYE_HEIGHT;
   const measured = viewer?.position.y;
   const previousFloor =
-    previous?.referenceSpace === floorMode ? previous.floorOffset : 0;
+    !newSession && previous?.referenceSpace === floorMode
+      ? previous.floorOffset
+      : 0;
   const height = Number.isFinite(eyeHeight)
     ? eyeHeight!
     : posture === "standing" &&
@@ -30,7 +34,7 @@ export function calibrateAvatar({
   const floorOffset =
     floorMode === "local-floor"
       ? previousFloor
-      : previous?.referenceSpace === "local"
+      : !newSession && previous?.referenceSpace === "local"
         ? previous.floorOffset
         : Number.isFinite(measured)
           ? measured! - (posture === "seated" ? 1.1 : height)

@@ -230,6 +230,15 @@ test('user join is stored but waits for renderable position data', () => {
   ]);
 });
 
+test('a first avatar pose preceding the delayed join profile materializes and then updates that peer', () => {
+  const rendered = [];
+  const { socket } = startRealtime({ syncRoster: users => rendered.push(users) });
+  socket.trigger('avatar_pose', { userId:'other',position:'1 1.6 0',rotation:'0 0 0' });
+  assert.equal(rendered.length, 1);
+  socket.trigger('user_joined', { userId:'other',avatarId:'casual',displayName:'Arrived' });
+  assert.equal(rendered.at(-1)[0].avatarId, 'casual');
+});
+
 test('position packets feed the pose buffer and do not sync the roster', () => {
   const rendered = [];
   const { socket, realtime } = startRealtime({ syncRoster: (users) => rendered.push(users) });

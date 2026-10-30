@@ -49,6 +49,13 @@ test('teleport clamps every position axis to the room boundary', () => {
   assert.equal(camera.rotation, '10 20 30');
 });
 
+test('even a short teleport signals motion to reset planted feet', () => {
+  const camera = fakeCamera(), events = [];
+  camera.emit = (event) => events.push(event);
+  teleport(camera, { position: '.1 1.6 0', rotation: '0 0 0' }, boundary);
+  assert.deepEqual(events, ['avatar-teleport']);
+});
+
 test('preset control teleports to the selected preset and can be destroyed', () => {
   class FakeElement {
     constructor(tagName) {

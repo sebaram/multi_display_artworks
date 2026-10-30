@@ -15,6 +15,7 @@ type Entity = HTMLElement & {
   pause?: () => void;
   exitVR?: () => void;
   components?: any;
+  emit?: (event: string, detail?: unknown, bubbles?: boolean) => void;
 };
 type Services = {
   startRealtime?: (
@@ -517,6 +518,14 @@ export function mountRoom({
       camera.setAttribute("look-controls", "enabled: true");
   }
   scene.addEventListener("pointermove", mouseMove);
+  const movementFocus = (event: Event) => {
+    // A-Frame captures WASD only on body; a native canvas click focuses #main-content.
+    if (!bootstrap.roomControlsEnabled || !(event.target instanceof HTMLCanvasElement)) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active !== document.body && active.contains(scene)) active.blur();
+  };
+  scene.addEventListener('pointerup', movementFocus);
+  life.add(() => scene.removeEventListener('pointerup', movementFocus));
   window.addEventListener("pointerup", mouseUp);
   window.addEventListener("blur", mouseUp);
   life.add(() => {
@@ -859,6 +868,7 @@ export function mountRoom({
         look.yawObject.rotation.y = (rotation.y * Math.PI) / 180;
       if (look?.pitchObject)
         look.pitchObject.rotation.x = (rotation.x * Math.PI) / 180;
+        camera.emit?.('avatar-teleport', {}, false);
     },
     sound(enabled: boolean) {
       locallyMuted = !enabled;

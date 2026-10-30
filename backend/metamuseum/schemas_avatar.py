@@ -71,3 +71,38 @@ class AvatarProfileWrite(BaseModel):
 class AvatarCatalog(BaseModel):
     schemaVersion: Literal[2] = 2
     presets: list[dict]
+
+
+def validate_avatar_pose(value):
+    """Fixed core22 LE float32 boundary; return only a bounded canonical snapshot."""
+    import json
+    import math
+    import struct
+    from .avatar_catalog import RIG_VERSION
+    keys = {'version', 'rigVersion', 'sequence', 'sampleTime', 'bodyScale', 'tracking', 'teleport', 'floats'}
+    if not isinstance(value, dict) or set(value) - keys:
+        return None
+    blob = value.get('floats')
+    if not isinstance(blob, bytes) or len(blob) != 392:
+        return None
+    metadata = {k: v for k, v in value.items() if k != 'floats'}
+    try:
+        if len(json.dumps(metadata, allow_nan=False).encode()) + len(blob) > 4096:
+            return None
+    except (ValueError, TypeError, OverflowError):
+        return None
+    sequence, sample_time, scale = value.get('sequence'), value.get('sampleTime'), value.get('bodyScale', 1)
+    tracking = value.get('tracking')
+    if (value.get('version') != 2 or value.get('rigVersion') != RIG_VERSION
+            or type(sequence) is not int or not 0 <= sequence <= 9007199254740991
+            or type(sample_time) not in (float, int) or not 0 <= sample_time <= 1e15
+            or type(scale) not in (float, int) or not .5 <= scale <= 2
+            or type(value.get('teleport')) is not bool or not isinstance(tracking, dict)
+            or set(tracking) != {'head', 'left', 'right'} or any(type(v) is not bool for v in tracking.values())):
+        return None
+    numbers = struct.unpack('<98f', blob)
+    if (not all(math.isfinite(n) for n in numbers) or any(abs(n) > 1e5 for n in numbers[:3])
+            or any(abs(n) > 2 for n in numbers[7:10])
+            or any(abs(math.sqrt(sum(n*n for n in numbers[i:i+4])) - 1) > .01 for i in [3, *range(10, 98, 4)])):
+        return None
+    return {**metadata, 'bodyScale': scale, 'tracking': dict(tracking), 'floats': blob}

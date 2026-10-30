@@ -173,12 +173,14 @@ export function bootstrapRoomRealtime({
         handsChanged(user);
       });
       syncRoster();
+      consumers.onRoomState?.(data);
       socketClient.emit("voice.get_state", { room_id: roomId });
     },
     user_joined(data) {
       // user_joined never carries a pose (server only sends userId/displayName/
       // avatarId/color), so there is nothing to seed into the pose buffer here.
       state.applyJoin(data);
+      if (poseBuffer.userIds().includes(data?.userId)) syncRoster();
     },
     user_left(data) {
       state.applyLeave(data);
@@ -196,6 +198,12 @@ export function bootstrapRoomRealtime({
       // current, even on the packet that already triggers a resync for other reasons.
       const handChanged = handsChanged(data);
       if (isNew || handChanged) syncRoster();
+      consumers.onPacketReceived?.();
+    },
+    avatar_pose(data) {
+      state.applyUpdate(data);
+      const isNew = poseBuffer.record(data?.userId, data, Date.now());
+      if (isNew) syncRoster();
       consumers.onPacketReceived?.();
     },
     profile_updated(data) {

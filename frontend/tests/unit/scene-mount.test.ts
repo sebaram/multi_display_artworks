@@ -1,5 +1,15 @@
 import { it, expect, vi } from "vitest";
 import { mountRoom } from "../../src/scene/mountRoom";
+it('canvas pointer release returns a focused room ancestor to body without stealing form focus', () => {
+  const host=document.createElement('div');host.tabIndex=-1;document.body.append(host);
+  const container=document.createElement('div');host.append(container);
+  const instance=mountRoom({container,bootstrap:{walls:[],roomControlsEnabled:true} as any});
+  const canvas=document.createElement('canvas');instance.scene.append(canvas);host.focus();
+  canvas.dispatchEvent(new Event('pointerup',{bubbles:true}));expect(document.activeElement).toBe(document.body);
+  const input=document.createElement('input');host.append(input);input.focus();
+  input.dispatchEvent(new Event('pointerup',{bubbles:true}));expect(document.activeElement).toBe(input);
+  instance.dispose();host.remove();
+});
 it("removes the owned scene and callback on repeated dispose", () => {
   const container = document.createElement("div");
   document.body.append(container);

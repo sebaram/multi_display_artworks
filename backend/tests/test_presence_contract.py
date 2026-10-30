@@ -145,7 +145,7 @@ def test_all_legacy_events_and_public_state_routes_are_registered(settings):
     http = create_app(settings)
     combined = create_realtime_app(http)
     contract = json.loads((Path(__file__).parents[2] / 'contracts/socket-events.json').read_text())
-    assert set(http.state.sio.handlers['/']) == {item['event'] for item in contract['registered_handlers']} | set(contract['new_wall_runtime']['client_events'])
+    assert set(http.state.sio.handlers['/']) == {item['event'] for item in contract['registered_handlers']} | set(contract['new_wall_runtime']['client_events']) | {'avatar_pose'}
     # These device-only routes must work without database access.
     client = TestClient(combined)
     assert client.get('/gesture-mark/api/state').json() == {'touchpoints': [], 'gesture_result': ''}
@@ -240,3 +240,124 @@ async def test_tampered_visitor_capability_rejected(live_realtime):
     import socketio
     with pytest.raises(socketio.exceptions.ConnectionError):
         await peer(live_realtime, auth={'visitorCapability': 'forged'})
+
+
+def avatar_packet(sequence=0, x=0):
+    import struct
+    return dict(version=2, rigVersion='humanoid-v1', sequence=sequence, sampleTime=sequence * 50,
+                bodyScale=1, tracking=dict(head=True, left=False, right=False), teleport=False,
+                floats=struct.pack('<98f', x, 0, 0, 0, 0, 0, 1, 0, 0, 0, *([0, 0, 0, 1] * 22)))
+
+
+def test_avatar_pose_validation_and_bounded_latest_state():
+    import struct
+    from metamuseum.schemas_avatar import validate_avatar_pose
+    from metamuseum.realtime.presence import PresenceService
+    from metamuseum.avatar_catalog import avatar_catalog
+    packet = avatar_packet()
+    assert validate_avatar_pose(packet)['floats'] == packet['floats']
+    for invalid in [dict(packet, rigVersion='bad'), dict(packet, floats=b'0'), dict(packet, bodyScale=3),
+                    dict(packet, tracking={'head': 1}), dict(packet, sequence=True), dict(packet, sampleTime=float('nan')),
+                    dict(packet, floats=struct.pack('<98f', *([0]*98))), dict(packet, extra='x'*4096),
+                    dict(packet, sampleTime=10**1000), dict(packet, bodyScale=10**1000)]:
+        assert validate_avatar_pose(invalid) is None
+    presence = PresenceService()
+    look = avatar_catalog()['presets'][0]['defaultAppearance']
+    presence.join('r', 's', 'u', {'appearance': look}, '0 1.6 0', '0 0 0')
+    generation = presence.generation('r', 's')
+    assert presence.update_avatar_pose('r', 's', generation, packet, now=10)
+    assert not presence.update_avatar_pose('r', 's', generation, packet, now=10)
+    accepted = [presence.update_avatar_pose('r', 's', generation, avatar_packet(n+1), now=10) for n in range(20)]
+    assert sum(bool(x) for x in accepted) == 4  # burst capacity five including first
+    assert presence.update_avatar_pose('r', 's', generation, avatar_packet(30), now=11)
+    assert all(presence.update_avatar_pose('r','s',generation,avatar_packet(31+n),now=11+(n+1)*.051) for n in range(20))
+    assert not presence.update_avatar_pose('r', 's', 'stale', avatar_packet(31), now=11)
+    assert presence.public_room_state('r')[0]['avatarPose']['pose']['sequence'] == 50
+    presence.update_profile('r', 's', {'avatarId': 'robot'})
+    assert 'avatarPose' not in presence.public_room_state('r')[0]
+    assert not presence.update_avatar_pose('r','s',generation,avatar_packet(31),now=12)
+    presence.join('r','replacement','u',{'appearance':look},'0 1.6 0','0 0 0')
+    assert presence.generation('r','replacement') != generation
+    assert not presence.update_avatar_pose('r','s',generation,avatar_packet(31),now=13)
+    presence.leave_all('replacement'); assert not presence.public_rooms()
+
+
+def test_avatar_rate_budget_is_per_socket_across_rooms_and_repeated_join():
+    from metamuseum.realtime.presence import PresenceService
+    from metamuseum.avatar_catalog import avatar_catalog
+    presence=PresenceService(); look=avatar_catalog()['presets'][0]['defaultAppearance']; accepted=[]
+    for n in range(6):
+        room=str(n);presence.join(room,'same-socket','visitor',{'appearance':look},'0 1.6 0','0 0 0')
+        accepted.append(presence.update_avatar_pose(room,'same-socket',presence.generation(room,'same-socket'),avatar_packet(),now=10))
+    assert sum(bool(item) for item in accepted) == 5
+    presence.join('0','same-socket','visitor',{'appearance':look},'0 1.6 0','0 0 0')
+    assert not presence.update_avatar_pose('0','same-socket',presence.generation('0','same-socket'),avatar_packet(),now=10)
+    presence.leave_all('same-socket'); assert not presence.rates
+
+
+@pytest.mark.asyncio
+async def test_binary_avatar_concurrent_producers_snapshot_latejoin_and_reconnect(live_realtime):
+    """Delay real binary attachments to expose interleaving of concurrent emits."""
+    import struct
+    from metamuseum.avatar_catalog import avatar_catalog
+    server = live_realtime
+    realtime = server.app.state.realtime
+    send = realtime.sio.eio.send
+    async def delayed_attachment(sid, packet):
+        if isinstance(packet, bytes):
+            await asyncio.sleep(.01)
+        await send(sid, packet)
+    realtime.sio.eio.send = delayed_attachment
+    room = server.rooms[0]
+    look = avatar_catalog()['presets'][0]['defaultAppearance']
+    one,a = await peer(server); two,b = await peer(server); observer,c = await peer(server)
+    generations=[]
+    for client,events in [(one,a),(two,b),(observer,c)]:
+        await client.call('join_position_room', {'room_id':room,'profile':{'appearance':look}})
+        generations.append((await wait_event(events,'room_state'))['generation'])
+    async def publish(client,generation,x,sequence):
+        await client.call('avatar_pose',dict(room_id=room,generation=generation,pose=avatar_packet(sequence,x)))
+    await asyncio.gather(publish(one,generations[0],1,0),publish(two,generations[1],2,0),observer.call('request_room_state',{'room_id':room}))
+    # Each observer receives complete, unmixed typed attachments from both owners.
+    updates=[await wait_event(c,'avatar_pose'),await wait_event(c,'avatar_pose')]
+    assert {struct.unpack('<98f',event['pose']['floats'])[0] for event in updates} == {1,2}
+    assert {event['userId'] for event in updates} == {a.visitor['visitorId'],b.visitor['visitorId']}
+    late,d = await peer(server); await late.call('join_position_room',{'room_id':room})
+    state=await wait_event(d,'room_state')
+    poses=[user['avatarPose'] for user in state['users'] if 'avatarPose' in user]
+    assert {struct.unpack('<98f',p['pose']['floats'])[0] for p in poses} == {1,2}
+    replacement,re = await peer(server,visitor=a.visitor)
+    await replacement.call('join_position_room',{'room_id':room,'profile':{'appearance':look}})
+    new=(await wait_event(re,'room_state'))['generation']; assert new != generations[0]
+    await publish(one,generations[0],99,1)
+    await publish(replacement,new,3,0)
+    state=realtime.presence.public_room_state(room)
+    own=next(u for u in state if u['userId']==a.visitor['visitorId'])
+    assert struct.unpack('<98f',own['avatarPose']['pose']['floats'])[0] == 3
+
+
+@pytest.mark.asyncio
+async def test_binary_broadcast_encodes_once_and_retains_each_recipient_packet_batch(controlled_realtime):
+    realtime = controlled_realtime
+    from metamuseum.realtime.server import presence_room
+    first = await realtime.sio.manager.connect('one', '/')
+    second = await realtime.sio.manager.connect('two', '/')
+    await realtime.sio.enter_room(first,presence_room('r')); await realtime.sio.enter_room(second,presence_room('r'))
+    sent = []
+    async def capture(sid, data):
+        sent.append((sid,data)); await asyncio.sleep(0)
+    realtime.sio.eio.send = capture
+    original = realtime.sio.packet_class
+    encoded = 0
+    class CountPacket(original):
+        def encode(self):
+            nonlocal encoded
+            encoded += 1
+            return super().encode()
+    realtime.sio.packet_class = CountPacket
+    await realtime.broadcast('avatar_pose', {'pose':avatar_packet()},room_id='r')
+    assert encoded == 1
+    assert len(sent) == 4
+    for recipient in ['one','two']:
+        frames=[data for sid,data in sent if sid==recipient]
+        assert isinstance(frames[0],str) and frames[1] == avatar_packet()['floats']

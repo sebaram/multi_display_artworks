@@ -4,6 +4,8 @@ import { createAvatarInstance } from '../../src/avatar/resources';
 import { loadAvatarCatalog } from '../../src/avatar/catalog';
 import { createAvatarEntity } from '../../src/scene/legacy/avatar-renderer.js';
 import { createSceneRenderer } from '../../src/scene/legacy/rendering/scene.js';
+import { updateAvatarMotion } from '../../src/avatar/motion';
+import * as ik from '../../src/avatar/two-bone-ik';
 let THREE: any, preset: any;
 beforeAll(async () => {
   window.eval(readFileSync('public/vendor/aframe-1.8.0.min.js', 'utf8'));
@@ -24,6 +26,17 @@ beforeAll(async () => {
   });
 });
 const appearance = (top: string, hatId = 'none') => ({ ...preset.defaultAppearance, colors: { ...preset.defaultAppearance.colors, top }, hatId });
+
+test('hidden owner solves once while additional real skinned observers only apply final rotations and uniform scale', async () => {
+  const scene=new THREE.Scene(), owner=await createAvatarInstance({scene,preset});
+  const peers=await Promise.all([createAvatarInstance({scene,preset}),createAvatarInstance({scene,preset}),createAvatarInstance({scene,preset})]);
+  const solve=vi.spyOn(ik,'solveTwoBone');owner.setDetail('hidden');
+  const pose=updateAvatarMotion(owner,{version:2,sampleTime:10,bodyScale:1.2,root:{position:[0,0,0],orientation:[0,0,0,1]},head:{position:[0,1.92,0],orientation:[0,0,0,1]},left:null,right:null,tracking:{head:true,left:false,right:false},locomotion:{velocity:[0,0,0],grounded:true,teleport:false}},.016,{height:0},'hidden');
+  expect(solve).toHaveBeenCalledTimes(2);
+  for(const peer of peers){peer.applyPose(pose);expect(peer.root.scale.x).toBe(1.2);expect(peer.root.getObjectByName('leftLowerLeg').position.y).toBeCloseTo(-.42);expect(peer.root.getObjectByName('Body').geometry).toBe(owner.root.getObjectByName('Body').geometry);}
+  expect(solve).toHaveBeenCalledTimes(2);expect(owner.root.visible).toBe(false);expect(pose.boneRotations.length).toBe(88);
+  solve.mockRestore();owner.dispose();peers.forEach(peer=>peer.dispose());
+});
 
 test('friendly and calm switch distinct face geometry on one visitor only', async () => {
   const scene = new THREE.Scene();

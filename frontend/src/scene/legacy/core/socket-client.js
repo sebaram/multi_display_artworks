@@ -3,6 +3,16 @@ export function createSocketClient(ioFactory, handlers) {
   let socket = null;
 
   return {
+    on(eventName, handler) {
+      const entry = [eventName, handler];
+      registeredHandlers.push(entry);
+      socket?.on(eventName, handler);
+      return () => {
+        socket?.off(eventName, handler);
+        const index = registeredHandlers.indexOf(entry);
+        if (index >= 0) registeredHandlers.splice(index, 1);
+      };
+    },
     connect(url, options = {}) {
       if (socket) return;
 
@@ -15,6 +25,11 @@ export function createSocketClient(ioFactory, handlers) {
     emit(eventName, payload) {
       if (!socket?.connected) return false;
       socket.emit(eventName, payload);
+      return true;
+    },
+    emitVolatile(eventName, payload) {
+      if (!socket?.connected || socket.io?.engine?.transport?.writable === false) return false;
+      (socket.volatile || socket).emit(eventName, payload);
       return true;
     },
     request(eventName, payload, callback) {

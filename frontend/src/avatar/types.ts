@@ -28,14 +28,14 @@ export interface AvatarCatalog { schemaVersion: 2; presets: AvatarPreset[] }
 export type TrackingStatus = { head: boolean; left: boolean; right: boolean };
 /** Device-local sensor targets. Never sent as the final avatar pose. */
 export interface AvatarInputV2 {
-  version: 2; sampleTime: number; root: Transform; head: Transform | null;
+  version: 2; sampleTime: number; root: Transform; bodyScale?: number; head: Transform | null;
   left: Transform | null; right: Transform | null; tracking: TrackingStatus;
   locomotion: { velocity: Vec3; grounded: boolean; teleport: boolean };
 }
 /** Owner-generated complete snapshot; receivers interpolate only, without IK. */
 export interface AvatarPoseV2 {
   version: 2; rigVersion: string; sequence: number; sampleTime: number;
-  root: Transform; hipsOffset: Vec3;
+  root: Transform; hipsOffset: Vec3; bodyScale?: number;
   /** Exactly 4 * coreBones.length floats, xyzw in catalog order. */
   boneRotations: Float32Array; tracking: TrackingStatus; teleport: boolean;
 }
@@ -45,6 +45,7 @@ export interface Calibration {
 }
 export interface AvatarInstance {
   root: any;
+  preset: AvatarPreset;
   /** Shared immutable animation clips; mixer and action state belong to this instance. */
   animations: readonly any[];
   mixer: any;

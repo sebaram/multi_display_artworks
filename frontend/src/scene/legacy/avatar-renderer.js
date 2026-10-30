@@ -77,7 +77,7 @@ function createHumanoidAvatar(profile, document) {
   const wrapper = document.createElement('a-entity');
   wrapper.setAttribute('class', 'remote-avatar');
   const controller = new AbortController();
-  let instance, pendingAppearance = profile.appearance, bodyPose;
+  let instance, pendingAppearance = profile.appearance, bodyPose, humanoidPose;
   const preset = AVATAR_CATALOG[profile.appearance?.presetId || profile.avatarId];
   wrapper.canApplyProfile = next => AVATAR_CATALOG[next.appearance?.presetId || next.avatarId]?.rigVersion === preset.rigVersion;
   wrapper.applyAppearance = next => { pendingAppearance = next; if (instance) instance.applyAppearance(next || preset.defaultAppearance); };
@@ -85,10 +85,12 @@ function createHumanoidAvatar(profile, document) {
   // attached to scene coordinates so camera pitch/roll cannot tilt the body.
   wrapper.setBodyTransform = pose => {
     bodyPose = pose;
+    if (humanoidPose) return;
     if (!instance) return;
     instance.root.position.set(pose.position.x, Math.max(0, pose.position.y - 1.65), pose.position.z);
     instance.root.rotation.set(0, pose.rotation.y * Math.PI / 180, 0);
   };
+  wrapper.applyAvatarPose = pose => { humanoidPose = pose; instance?.applyPose(pose); };
   wrapper.disposeAvatar = () => { controller.abort(); instance?.dispose(); };
   wrapper.avatarReady = import('../../avatar/resources').then(async ({ createAvatarInstance }) => {
     if (controller.signal.aborted) return;
@@ -97,7 +99,8 @@ function createHumanoidAvatar(profile, document) {
     // A profile may change while the shared GLB request is still pending.
     instance.applyAppearance(pendingAppearance || preset.defaultAppearance);
     wrapper.avatarInstance = instance;
-    if (bodyPose) wrapper.setBodyTransform(bodyPose);
+    if (humanoidPose) instance.applyPose(humanoidPose);
+    else if (bodyPose) wrapper.setBodyTransform(bodyPose);
     return instance;
   }).catch(error => {
     if (controller.signal.aborted || error.name === 'AbortError') return;

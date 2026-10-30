@@ -102,6 +102,7 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
     });
     const instance: AvatarInstance = {
       root,
+      preset,
       animations: resource.animations(),
       mixer,
       applyAppearance(next) {

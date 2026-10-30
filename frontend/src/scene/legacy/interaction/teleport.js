@@ -19,6 +19,7 @@ export function teleport(camera, preset, boundary) {
   ].join(' ');
   camera.setAttribute('position', position);
   camera.setAttribute('rotation', preset.rotation);
+  camera.emit?.('avatar-teleport', {}, false);
   return true;
 }
 

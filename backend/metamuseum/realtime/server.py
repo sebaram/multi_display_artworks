@@ -1,10 +1,13 @@
 """One Socket.IO lifecycle for public visitors and legacy device clients."""
 import asyncio
+import json
 import secrets
+import time
 from functools import wraps
 from http.cookies import SimpleCookie, CookieError
 
 import socketio
+from socketio import packet
 from fastapi import HTTPException
 from mongoengine import ValidationError
 from starlette.concurrency import run_in_threadpool
@@ -12,6 +15,49 @@ from starlette.concurrency import run_in_threadpool
 from ..auth import VisitorIdentity, admin_from_session, decode_session_cookie, resolve_visitor
 from ..models import Room
 from .presence import PresenceService
+
+
+class PacketManager(socketio.AsyncManager):
+    """Queue each entire Socket.IO message, instead of separate attachment tasks."""
+    async def emit(self, event, data, namespace, room=None, skip_sid=None, callback=None, to=None, **kwargs):
+        if namespace not in self.rooms:
+            return
+        args = list(data) if isinstance(data, tuple) else [data] if data is not None else []
+        skipped = skip_sid if isinstance(skip_sid, list) else [skip_sid]
+        tasks = []
+        encoded = self.server.packet_class(packet.EVENT, namespace=namespace, data=[event]+args).encode() if not callback else None
+        for sid, eio_sid in self.get_participants(namespace, to or room):
+            if sid in skipped:
+                continue
+            if callback:
+                ack = self._generate_ack_id(sid, callback)
+                message = self.server.packet_class(packet.EVENT, namespace=namespace, data=[event]+args, id=ack)
+                tasks.append(self.server._send_packet(eio_sid, message))
+            else:
+                tasks.append(self.server._send_encoded_packet(eio_sid, encoded))
+        if tasks:
+            await asyncio.gather(*tasks)
+
+
+class PacketServer(socketio.AsyncServer):
+    def __init__(self, **kwargs):
+        super().__init__(client_manager=PacketManager(), **kwargs)
+        self._packet_locks = {}
+
+    async def _send_packet(self, eio_sid, message):
+        await self._send_encoded_packet(eio_sid, message.encode())
+
+    async def _send_encoded_packet(self, eio_sid, encoded):
+        # Binary header + attachments must stay contiguous with snapshots, ACKs and ordinary events.
+        async with self._packet_locks.setdefault(eio_sid, asyncio.Lock()):
+            for part in encoded if isinstance(encoded, list) else [encoded]:
+                await self.eio.send(eio_sid, part)
+
+    async def _handle_eio_disconnect(self, eio_sid, reason):
+        try:
+            await super()._handle_eio_disconnect(eio_sid, reason)
+        finally:
+            self._packet_locks.pop(eio_sid, None)
 
 
 def payload(data):
@@ -39,7 +85,7 @@ def _room_exists(room):
 class Realtime:
     def __init__(self, http_app):
         self.settings = http_app.state.settings
-        self.sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=self.settings.allowed_origins)
+        self.sio = PacketServer(async_mode='asgi', cors_allowed_origins=self.settings.allowed_origins)
         self.presence = PresenceService()
         self.visitors = {}
         self.admin_sessions = {}
@@ -136,6 +182,7 @@ class Realtime:
         self.visitors.clear()
         self.admin_sessions.clear()
         self.presence.rooms.clear()
+        self.presence.rates.clear()
         for room in self.ar.rooms.values():
             room['phones'].clear()
             room['vision_pros'].clear()
@@ -226,7 +273,7 @@ class Realtime:
                 await sio.leave_room(displaced, presence_room(room))
                 await sio.emit('voice.displaced', {'room_id': room}, to=displaced)
                 await self.voice.left(room, identity.visitor_id, sid)
-            await sio.emit('room_state', {'users': existing, 'room_id': room}, to=sid)
+            await sio.emit('room_state', {'users': existing, 'room_id': room, 'generation': self.presence.generation(room, sid), 'serverTime': time.time()*1000}, to=sid)
             await self.wall_interactions.joined(sid, room)
             if not self.get_room_visitor(sid, room) or self.stopping:
                 return
@@ -253,6 +300,23 @@ class Realtime:
             if event:
                 await self.broadcast('position_update', event, room_id=room, skip_sid=sid)
 
+        @self.on('avatar_pose')
+        async def avatar_pose(sid, data):
+            data = payload(data)
+            if set(data) != {'room_id', 'generation', 'pose'} or not isinstance(data.get('pose'), dict):
+                return
+            try:
+                metadata = {**data, 'pose': {k: v for k, v in data['pose'].items() if k != 'floats'}}
+                if len(json.dumps(metadata, allow_nan=False).encode()) + len(data['pose'].get('floats', b'')) > 4096:
+                    return
+            except (TypeError, ValueError, OverflowError):
+                return
+            room = room_id(data)
+            if self.get_room_visitor(sid, room):
+                event = self.presence.update_avatar_pose(room, sid, data.get('generation'), data.get('pose'))
+                if event:
+                    await self.broadcast('avatar_pose', event, room_id=room, skip_sid=sid)
+
         @self.on('profile_update')
         async def profile(sid, data):
             data = payload(data)
@@ -265,7 +329,7 @@ class Realtime:
         async def state(sid, data):
             room = room_id(data)
             if self.get_room_visitor(sid, room):
-                await sio.emit('room_state', {'users': self.presence.public_room_state(room, exclude_sid=sid), 'room_id': room}, to=sid)
+                await sio.emit('room_state', {'users': self.presence.public_room_state(room, exclude_sid=sid), 'room_id': room, 'generation': self.presence.generation(room, sid), 'serverTime': time.time()*1000}, to=sid)
 
         @self.on('expression')
         async def expression(sid, data):

@@ -38,6 +38,9 @@ export function applyRigPose(root: any, preset: AvatarPreset, pose: AvatarPoseV2
   if (!numbers.every(Number.isFinite)) throw Error('Non-finite avatar pose');
   root.position.fromArray(pose.root.position);
   root.quaternion.fromArray(pose.root.orientation).normalize();
+  const scale = pose.bodyScale ?? 1;
+  if (!Number.isFinite(scale) || scale < .5 || scale > 2) throw Error('Invalid avatar scale');
+  root.scale.setScalar(scale);
   preset.coreBones.forEach((name, i) => root.getObjectByName(preset.rigMap[name]).quaternion.fromArray(pose.boneRotations, i * 4).normalize());
   const hips = root.getObjectByName(preset.rigMap.hips);
   hips.position.fromArray(preset.restPose.hips.position);

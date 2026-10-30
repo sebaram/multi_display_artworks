@@ -121,3 +121,15 @@ test('destroy detaches handlers and a later connect creates a clean socket', () 
   assert.equal(fake.calls.length, 2);
   assert.equal(connects, 2);
 });
+
+test('dynamic pose subscriptions reuse the socket and are detachable; congested live packets are dropped', () => {
+  const fake = createFactory(), client = createSocketClient(fake.factory, {});
+  client.connect('https://museum.test'); const socket = fake.sockets[0]; socket.connected = true;
+  let received = 0; const off = client.on('avatar_pose', () => received++);
+  socket.trigger('avatar_pose', {}); off(); socket.trigger('avatar_pose', {});
+  assert.equal(received, 1); assert.equal(fake.calls.length, 1);
+  socket.io = { engine: { transport: { writable: false } } };
+  assert.equal(client.emitVolatile('avatar_pose', {}), false); assert.equal(socket.emitted.length, 0);
+  socket.io.engine.transport.writable = true;
+  assert.equal(client.emitVolatile('avatar_pose', {}), true); assert.equal(socket.emitted.length, 1);
+});

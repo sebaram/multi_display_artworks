@@ -27,6 +27,11 @@ import { loadAvatarCatalog } from '../avatar/catalog';
 import { normalizeAppearance, resolveSavedProfile } from '../avatar/appearance';
 import { mountAvatarEditor, type SavedAvatar } from '../features/avatar/AvatarEditor';
 import { mountAvatarXRPanel } from '../features/avatar/xr-panel';
+import { createAvatarInstance } from '../avatar/resources';
+import { updateAvatarMotion } from '../avatar/motion';
+import { AvatarPoseBuffer, sub, mul } from '../avatar/pose';
+import { createAvatarPoseTransport } from '../avatar/transport';
+import type { AvatarInstance, AvatarPoseV2, Vec3, Quat } from '../avatar/types';
 import type { RoomScene } from "../api/types";
 export async function startRealtime(
   scene: any,
@@ -168,6 +173,7 @@ export async function startRealtime(
     apply: async appearance => { panel.applyProfile(await saveAppearance({ ...panel.profile, appearance })); },
   }));
   let debug: any;
+  const avatarBuffer = new AvatarPoseBuffer();
   const realtime = bootstrapRoomRealtime({
     bootstrapData: data,
     visitorSession: visitor,
@@ -176,6 +182,7 @@ export async function startRealtime(
     socketAuth: data.isAdmin ? { csrfToken: socketCsrf } : {},
     profileController: panel,
     consumers: {
+      onRoomState: (data: any) => { avatarBuffer.clear(); avatarBuffer.synchronizeClock(data?.serverTime, Date.now()); },
       onConnect: (client: any) => onWallEvent?.("connect", { client }),
       syncRoster: renderer.syncRoster,
       onPacketReceived: () => debug?.recordReceive(),
@@ -185,6 +192,7 @@ export async function startRealtime(
         effects.init(data.roomId, next);
       },
       handleSocketEvent(event: string, payload: any) {
+        if (event === 'user_left') avatarBuffer.forget(payload?.userId);
         if (event === "expression") expressions.handleSocketEvent(payload);
         voice.handleSocketEvent(event, payload);
         effects.handleSocketEvent(event, payload);
@@ -194,6 +202,65 @@ export async function startRealtime(
   });
   client = realtime.socketClient;
   life.add(realtime.destroy);
+  const avatarTransport = createAvatarPoseTransport(client, data.roomId);
+  life.add(avatarTransport.dispose);
+  life.add(avatarTransport.subscribe(delivery => {
+    avatarBuffer.record(delivery.userId, delivery.pose, delivery.generation, delivery.serverTime, Date.now());
+  }));
+  life.add(client.on('profile_updated', (profile: any) => {
+    if (catalog.presets.find(p => p.id === profile.avatarId)?.kind !== 'humanoid') avatarBuffer.forget(profile.userId);
+  }));
+  let owner: AvatarInstance | undefined, loadingOwner = false, nextOwnerAttempt = 0, previousPosition: Vec3 | undefined;
+  let previousFrame = 0, sentAt = 0, sentPose: AvatarPoseV2 | undefined, ownerProfile = '';
+  let requestedTeleport = false, outgoingTeleport = false;
+  const ownCamera = scene.querySelector('#camera');
+  const resetMotion = () => { requestedTeleport = true; };
+  ownCamera?.addEventListener('avatar-teleport', resetMotion);
+  life.add(() => ownCamera?.removeEventListener('avatar-teleport', resetMotion));
+  const ownerAbort = new AbortController();
+  life.add(() => { ownerAbort.abort(); owner?.dispose(); });
+  const ground = data.roomControlsEnabled && !data.isArMarker && !data.isArCompanion && data.boundary ? { height: data.boundary.min_y } : null;
+  function avatarFrame(time: number) {
+    const poses = new Map();
+    avatarBuffer.userIds().forEach(id => { const p = avatarBuffer.poseAt(id, time); if (p) poses.set(id, p); });
+    renderer.applyAvatarPoses(poses);
+    const profile = panel.profile, preset = catalog.presets.find(p => p.id === (profile.appearance?.presetId || profile.avatarId));
+    if (preset?.kind !== 'humanoid') { owner?.dispose(); owner = undefined; previousPosition = undefined; sentPose = undefined; return; }
+    if (!owner) {
+      if (!loadingOwner && time >= nextOwnerAttempt) {
+        loadingOwner = true;
+        createAvatarInstance({ scene: scene.object3D, preset, appearance: profile.appearance, signal: ownerAbort.signal })
+          .then(instance => { if (life.disposed) { instance.dispose(); return; } owner = instance; instance.setDetail('hidden'); })
+          .catch(error => { nextOwnerAttempt = time + 5000; if (!ownerAbort.signal.aborted) console.warn('Owner avatar motion unavailable:', error); })
+          .finally(() => { loadingOwner = false; });
+      }
+      return;
+    }
+    const profileKey = JSON.stringify(profile.appearance);
+    if (profileKey !== ownerProfile) { owner.applyAppearance(profile.appearance || preset.defaultAppearance!); ownerProfile = profileKey; sentPose = undefined; }
+    const camera = scene.querySelector('#camera'); if (!camera?.object3D) return;
+    const THREE = (window as any).AFRAME.THREE;
+    camera.object3D.updateWorldMatrix(true, false);
+    const headPosition = camera.object3D.getWorldPosition(new THREE.Vector3()).toArray() as Vec3;
+    const orientation = camera.object3D.getWorldQuaternion(new THREE.Quaternion()).toArray() as Quat;
+    const delta = previousFrame ? Math.min(.1, Math.max(.001, (time-previousFrame)/1000)) : .016;
+    const displacement = previousPosition ? sub(headPosition, previousPosition) : [0,0,0] as Vec3;
+    const teleport = requestedTeleport || !previousPosition || Math.hypot(displacement[0],displacement[2]) > .75;
+    const velocity = teleport ? [0,0,0] as Vec3 : mul(displacement, 1/delta); velocity[1] = 0;
+    const pose = updateAvatarMotion(owner, { version: 2, sampleTime: performance.now(),
+      root: { position: [headPosition[0], ground?.height ?? headPosition[1]-1.64, headPosition[2]], orientation: [0,0,0,1] },
+      head: {position: headPosition, orientation}, left: null, right: null, tracking: {head:true,left:false,right:false},
+      locomotion: {velocity,grounded:!!ground,teleport},
+    }, delta, ground, 'full');
+    outgoingTeleport ||= teleport;
+    pose.teleport = outgoingTeleport;
+    previousPosition = headPosition; previousFrame = time;
+    requestedTeleport = false;
+    const previousValues = sentPose && [...sentPose.root.position,...sentPose.root.orientation,...sentPose.hipsOffset,...sentPose.boneRotations];
+    const changed = !previousValues || pose.teleport || [...pose.root.position,...pose.root.orientation,...pose.hipsOffset,...pose.boneRotations]
+      .some((v,i) => Math.abs(v-previousValues[i]) > .002);
+    if (time-sentAt >= 50 && (changed || time-sentAt >= 1000)) { avatarTransport.publish(pose); sentAt = time; sentPose = pose; outgoingTeleport = false; }
+  }
   const buffer = realtime.poseBuffer;
   const share = mountShare({
     document,
@@ -222,13 +289,22 @@ export async function startRealtime(
     applyPoses: renderer.applyPoses,
     now: Date.now,
     console,
+    onFrame: avatarFrame,
   });
   loop.start();
   life.add(loop.destroy);
   const hands = mountHandTracking({
     document,
     navigator,
-    socketClient: client,
+    socketClient: {
+      ...client,
+      emit(event: string, payload: any) {
+        // One stream carries humanoid head compatibility data; keep v1 for legacy avatars/XR hands.
+        if (event === 'position_update' && owner && catalog.presets.find(p => p.id === panel.profile.avatarId)?.kind === 'humanoid'
+          && !payload.leftHand && !payload.rightHand) return true;
+        return client.emit(event, payload);
+      },
+    },
     roomId: data.roomId,
     setInterval: window.setInterval.bind(window),
     clearInterval: window.clearInterval.bind(window),

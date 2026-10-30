@@ -62,6 +62,10 @@ function updateProfile(camera, user, createAvatarEntity) {
 
   const nameTag = camera.querySelector('.display-name');
   if (nameTag) {
+    camera.humanoidLabel = AVATAR_CATALOG[avatarId]?.kind === 'humanoid';
+    nameTag.setAttribute('position', camera.humanoidLabel ? '0 .32 0' : '0 0 0');
+    nameTag.setAttribute('width', camera.humanoidLabel ? '2.5' : '5');
+    if (!camera.humanoidLabel) nameTag.object3D?.rotation?.set?.(0, Math.PI, 0);
     nameTag.setAttribute('value', user.displayName || user.userId);
     nameTag.setAttribute('color', color);
   }
@@ -106,7 +110,7 @@ function createRemoteCamera(document, scene, user) {
 
 const DEG_TO_RAD = Math.PI / 180;
 
-function writeTransform(camera, pose) {
+function writeTransform(camera, pose, scene) {
   camera.querySelector('.remote-avatar')?.setBodyTransform?.(pose);
   if (camera.object3D?.position?.set && camera.object3D?.rotation?.set) {
     camera.object3D.position.set(pose.position.x, pose.position.y, pose.position.z);
@@ -120,6 +124,17 @@ function writeTransform(camera, pose) {
       pose.rotation.z * DEG_TO_RAD,
       'YXZ',
     );
+    if (camera.humanoidLabel && camera.object3D.quaternion?.clone) {
+      const label = camera.querySelector('.display-name')?.object3D;
+      const inverseHead = camera.object3D.quaternion.clone().invert();
+      if (label) {
+        label.position.set(0, .32, 0).applyQuaternion(inverseHead);
+        if (scene.camera?.getWorldQuaternion) {
+          scene.camera.getWorldQuaternion(label.quaternion);
+          label.quaternion.premultiply(inverseHead);
+        }
+      }
+    }
     return;
   }
   camera.setAttribute('position', pose.position);
@@ -161,13 +176,19 @@ export function createSceneRenderer({ document, scene, selfId, createAvatarEntit
     poses.forEach((pose, userId) => {
       if (userId === selfId || !pose) return;
       const camera = document.getElementById(`camera-${userId}`);
-      if (camera) writeTransform(camera, pose);
+      if (camera) writeTransform(camera, pose, scene);
     });
   }
 
   return {
     syncRoster,
     applyPoses,
+    applyAvatarPoses(poses) {
+      poses.forEach((pose, userId) => {
+        if (userId === selfId || !pose) return;
+        document.getElementById(`camera-${userId}`)?.querySelector('.remote-avatar')?.applyAvatarPose?.(pose);
+      });
+    },
     destroy() {
       destroyed = true;
       syncRoster([]);

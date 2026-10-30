@@ -8,6 +8,7 @@ export function createRenderLoop({
   applyPoses,
   now,
   console,
+  onFrame,
 }) {
   let running = false;
 
@@ -31,6 +32,7 @@ export function createRenderLoop({
       });
 
       applyPoses(poses);
+      onFrame?.(renderTime);
     } catch (error) {
       // Keep a bad pose from interrupting A-Frame's own render loop.
       console.error('Remote pose rendering failed:', error);

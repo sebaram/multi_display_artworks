@@ -109,6 +109,7 @@ export function mountRoom({
     renderer: "colorManagement: true; antialias: true",
     background: "color: #1a2028",
     "xr-mode-ui": "enabled: false",
+    webxr: "referenceSpaceType: local-floor; requiredFeatures: local-floor; optionalFeatures: bounded-floor, hand-tracking",
     cursor: "rayOrigin: mouse",
     raycaster: "objects: .artwork-source, .artwork-pick-target, .wall-surface; interval: 50",
   });
@@ -148,7 +149,9 @@ export function mountRoom({
       "boundary-clamp",
       `minX:${bootstrap.boundary.min_x};maxX:${bootstrap.boundary.max_x};minY:${bootstrap.boundary.min_y};maxY:${bootstrap.boundary.max_y};minZ:${bootstrap.boundary.min_z};maxZ:${bootstrap.boundary.max_z}`,
     );
-  scene.append(camera);
+  const xrOrigin = entity('a-entity', { id: 'avatar-xr-origin' });
+  xrOrigin.append(camera);
+  scene.append(xrOrigin);
   const elementNodes = new Map<
       string,
       { node: Entity; wall: WallDTO; data: ElementDTO; source?: ReturnType<typeof createArtworkSource>; lastVisible: number; imageLimit?: number }

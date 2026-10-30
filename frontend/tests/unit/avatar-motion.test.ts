@@ -142,3 +142,29 @@ test("losing a bent tracked arm relaxes elbow and wrist progressively", () => {
       ),
     ).toBeLessThan(0.3);
 });
+
+test("head loss relaxes orientation and seated hips without snapping to standing", () => {
+  const o = owner(),
+    i = input();
+  i.posture = "seated";
+  i.head!.position[1] = 1.05;
+  i.head!.orientation = [Math.sin(0.3), 0, 0, Math.cos(0.3)];
+  const tracked = updateAvatarMotion(o, i, 0.016, { height: 0 }, "full");
+  i.head = null;
+  i.tracking.head = false;
+  let lost = updateAvatarMotion(o, i, 0.016, { height: 0 }, "full");
+  expect(Math.abs(lost.hipsOffset[1] - tracked.hipsOffset[1])).toBeLessThan(
+    0.08,
+  );
+  expect(
+    Math.abs(lost.boneRotations[20] - tracked.boneRotations[20]),
+  ).toBeLessThan(0.08);
+  for (let n = 0; n < 25; n++)
+    lost = updateAvatarMotion(o, i, 0.016, { height: 0 }, "full");
+  expect(Math.abs(lost.boneRotations[20])).toBeLessThan(0.02);
+  expect(lost.hipsOffset[1]).toBeCloseTo(-0.54, 2);
+  expect(jointWorldTransforms(lost, preset).leftFoot.position[1]).toBeCloseTo(
+    0.08,
+    2,
+  );
+});

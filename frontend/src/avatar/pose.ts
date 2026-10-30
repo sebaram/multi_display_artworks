@@ -114,6 +114,33 @@ export function identityPose(): AvatarPoseV2 {
     teleport: false,
   };
 }
+export function avatarPoseChanged(
+  a: AvatarPoseV2 | undefined,
+  b: AvatarPoseV2,
+) {
+  if (
+    !a ||
+    b.teleport ||
+    a.rigVersion !== b.rigVersion ||
+    a.bodyScale !== b.bodyScale ||
+    a.tracking.head !== b.tracking.head ||
+    a.tracking.left !== b.tracking.left ||
+    a.tracking.right !== b.tracking.right
+  )
+    return true;
+  const old = [
+    ...a.root.position,
+    ...a.root.orientation,
+    ...a.hipsOffset,
+    ...a.boneRotations,
+  ];
+  return [
+    ...b.root.position,
+    ...b.root.orientation,
+    ...b.hipsOffset,
+    ...b.boneRotations,
+  ].some((v, i) => Math.abs(v - old[i]) > 0.002);
+}
 export function interpolateAvatarPose(
   a: AvatarPoseV2,
   b: AvatarPoseV2,

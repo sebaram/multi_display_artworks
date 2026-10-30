@@ -16,30 +16,45 @@ function point(position) {
 }
 
 function createHandEntity(document, handData, side) {
-  if (!handData) return null;
-
-  const hand = document.createElement('a-entity');
-  hand.setAttribute('class', `hand-${side}`);
-
-  const palm = document.createElement('a-box');
-  palm.setAttribute('color', '#00ff88');
-  palm.setAttribute('width', '0.08');
-  palm.setAttribute('height', '0.1');
-  palm.setAttribute('depth', '0.02');
-  if (handData.wrist?.position) palm.setAttribute('position', point(handData.wrist.position));
-  hand.appendChild(palm);
-
-  ['thumbTip', 'indexTip', 'middleTip'].forEach((jointName) => {
-    const joint = handData[jointName];
-    if (!joint?.position) return;
-    const finger = document.createElement('a-sphere');
-    finger.setAttribute('color', '#00ff88');
-    finger.setAttribute('radius', '0.02');
-    finger.setAttribute('position', point(joint.position));
-    hand.appendChild(finger);
-  });
-
+  const hand = document.createElement("a-entity");
+  hand.setAttribute("class", `hand-${side}`);
+  hand.joints = {};
+  for (const name of ["wrist", "thumbTip", "indexTip", "middleTip"]) {
+    const joint = document.createElement(
+      name === "wrist" ? "a-box" : "a-sphere",
+    );
+    joint.setAttribute("color", "#00ff88");
+    if (name === "wrist") {
+      joint.setAttribute("width", ".08");
+      joint.setAttribute("height", ".1");
+      joint.setAttribute("depth", ".02");
+    } else joint.setAttribute("radius", ".02");
+    hand.joints[name] = joint;
+    hand.appendChild(joint);
+  }
+  updateHandEntity(hand, handData);
   return hand;
+}
+function updateHandEntity(hand, data) {
+  for (const [name, node] of Object.entries(hand.joints)) {
+    const joint = data[name];
+    node.setAttribute("visible", !!joint?.position);
+    if (joint?.position) node.setAttribute("position", point(joint.position));
+    if (joint?.rotation && node.object3D?.quaternion)
+      node.object3D.quaternion.fromArray(joint.rotation).normalize();
+  }
+}
+function anchorWorldHands(camera) {
+  if (!camera.object3D?.updateWorldMatrix) return;
+  camera.object3D.updateWorldMatrix(true, false);
+  for (const side of ["left", "right"]) {
+    const object = camera.querySelector(`.hand-${side}`)?.object3D;
+    if (!object) continue;
+    // Raw legacy joints are already world positions; cancel their compatibility head parent.
+    object.matrixAutoUpdate = false;
+    object.matrix.copy(camera.object3D.matrixWorld).invert();
+    object.matrixWorldNeedsUpdate = true;
+  }
 }
 
 function updateProfile(camera, user, createAvatarEntity) {
@@ -78,19 +93,29 @@ export function handKey(user) {
 }
 
 function updateHands(document, camera, user) {
-  const key = handKey(user);
-  if (camera.getAttribute('data-hand-key') === key) return;
-  camera.setAttribute('data-hand-key', key);
+  const key =
+    AVATAR_CATALOG[user.avatarId]?.kind === "humanoid" ? "off" : handKey(user);
+  if (camera.getAttribute("data-hand-key") === key) return;
+  camera.setAttribute("data-hand-key", key);
 
-  ['left', 'right'].forEach((side) => {
+  ["left", "right"].forEach((side) => {
     const id = `hand-${side}-${user.userId}`;
-    removeElement(document.getElementById(id));
-    const handData = key === 'off' ? null : user[side === 'left' ? 'leftHand' : 'rightHand'];
+    const existing = document.getElementById(id);
+    const handData =
+      key === "off" ? null : user[side === "left" ? "leftHand" : "rightHand"];
+    if (!handData) {
+      removeElement(existing);
+      return;
+    }
+    if (existing) {
+      updateHandEntity(existing, handData);
+      return;
+    }
     const hand = createHandEntity(document, handData, side);
-    if (!hand) return;
-    hand.setAttribute('id', id);
+    hand.setAttribute("id", id);
     camera.appendChild(hand);
   });
+  anchorWorldHands(camera);
 }
 
 function createRemoteCamera(document, scene, user) {
@@ -135,6 +160,7 @@ function writeTransform(camera, pose, scene) {
         }
       }
     }
+    anchorWorldHands(camera);
     return;
   }
   camera.setAttribute('position', pose.position);

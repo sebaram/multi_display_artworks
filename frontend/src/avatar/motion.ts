@@ -25,6 +25,7 @@ type MotionState = {
   yaw: number;
   phase: number;
   sequence: number;
+  upperBody?: { head: Quat; chest: Quat; hips: Vec3 };
   feet: Partial<Record<"left" | "right", Foot>>;
   arms: Partial<
     Record<"left" | "right", { upper: Quat; lower: Quat; hand: Quat }>
@@ -115,6 +116,7 @@ export function updateAvatarMotion(
     pose.boneRotations.set(q, preset.coreBones.indexOf(name as any) * 4);
   const walking =
     !!ground &&
+    input.posture !== "seated" &&
     input.locomotion.grounded &&
     (speed > 0.04 || Math.abs(turn) > 0.001);
   if (walking)
@@ -125,17 +127,6 @@ export function updateAvatarMotion(
             (Math.abs(turn) / Math.max(dt, 0.001)) * 0.3)) %
       1;
   if (input.head && input.tracking.head) {
-    // Head input is an eye/HMD transform, .08m above the head bone's origin.
-    const eyeRest = preset.coreBones
-      .slice(0, 6)
-      .reduce((y, n) => y + preset.restPose[n].position[1], 0.08);
-    if (ground)
-      pose.hipsOffset[1] = clamp(
-        (input.head.position[1] - pose.root.position[1]) / pose.bodyScale -
-          eyeRest,
-        -0.3,
-        0.12,
-      );
     const chestYaw = clamp(wrap(headYaw - state.yaw) * 0.2, -0.2, 0.2);
     set("upperChest", axisAngle([0, 1, 0], chestYaw));
     const relative = product(
@@ -154,7 +145,44 @@ export function updateAvatarMotion(
         axisAngle([0, 0, 1], roll),
       ),
     );
+    if (ground || input.posture) {
+      // The eye anchor rotates with the head; matching bone origin alone detaches tilted HMDs.
+      const head = jointWorldTransforms(pose, preset).head;
+      const eye = add(
+        head.position,
+        mul(rotate(head.orientation, [0, 0.08, 0]), pose.bodyScale),
+      );
+      const offset = mul(
+        rotate(inverse(pose.root.orientation), sub(input.head.position, eye)),
+        1 / pose.bodyScale,
+      );
+      pose.hipsOffset = [
+        clamp(offset[0], -0.25, 0.25),
+        clamp(offset[1], input.posture === "seated" ? -1.2 : -0.65, 0.12),
+        clamp(offset[2], -0.25, 0.25),
+      ];
+    }
   }
+  if ((!input.head || !input.tracking.head) && state.upperBody) {
+    const last = state.upperBody,
+      t = Math.min(1, dt * 9);
+    set("head", slerp(last.head, [0, 0, 0, 1], t));
+    set("upperChest", slerp(last.chest, [0, 0, 0, 1], t));
+    const rest: Vec3 = [0, input.posture === "seated" ? -0.54 : 0, 0];
+    pose.hipsOffset = add(last.hips, mul(sub(rest, last.hips), t));
+  }
+  const rotation = (name: string) =>
+    Array.from(
+      pose.boneRotations.slice(
+        preset.coreBones.indexOf(name as any) * 4,
+        preset.coreBones.indexOf(name as any) * 4 + 4,
+      ),
+    ) as Quat;
+  state.upperBody = {
+    head: rotation("head"),
+    chest: rotation("upperChest"),
+    hips: [...pose.hipsOffset],
+  };
   if (walking) pose.hipsOffset[1] -= 0.045;
   for (const side of ["left", "right"] as const) {
     const sign = side === "left" ? -1 : 1,
@@ -225,7 +253,8 @@ export function updateAvatarMotion(
       rotate(pose.root.orientation, [
         sign * 0.1 * pose.bodyScale,
         0.08 * pose.bodyScale,
-        0,
+        // Estimated seated feet extend forward; no chair/physical leg tracking is inferred.
+        input.posture === "seated" ? -0.35 * pose.bodyScale : 0,
       ]),
     );
     nominal[1] = ground.height + 0.08 * pose.bodyScale;

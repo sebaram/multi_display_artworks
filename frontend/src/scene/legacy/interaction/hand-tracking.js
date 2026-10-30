@@ -39,19 +39,10 @@ export function collectHandPoses(frame, referenceSpace, sources) {
   return { leftHand, rightHand };
 }
 
-async function requestTrackingSpace(session) {
-  for (const type of ["local-floor", "local"]) {
-    try {
-      return await session.requestReferenceSpace(type);
-    } catch {
-      // Try the less capable local space before giving up.
-    }
-  }
-  return null;
-}
-
+/** A-Frame owns the session and animation loop. This consumer only samples its active frame. */
 export function mountHandTracking({
   document,
+  scene,
   navigator,
   socketClient,
   roomId,
@@ -61,142 +52,126 @@ export function mountHandTracking({
   onHandRaiseDetected,
   posePublisher,
   now,
+  shouldPublish = () => true,
+  transformHand = (hand) => hand,
+  cameraPose,
 }) {
-  let enabled = false;
-  let destroyed = false;
-  let session = null;
-  let referenceSpace = null;
-  let button = null;
-  let lastHandSend = 0;
-  let handsPresent = false;
+  let destroyed = false,
+    session = null,
+    referenceSpace = null,
+    button = null;
+  let lastHandSend = -Infinity,
+    handsPresent = false;
   const raised = { left: false, right: false };
-
-  function publish(leftHand = null, rightHand = null, handTracking = enabled) {
+  function publish(leftHand = null, rightHand = null, handTracking = false) {
+    if (!shouldPublish()) return;
     const camera = document.getElementById("camera");
     if (!camera) return;
-    const position = camera.getAttribute("position");
-    const rotation = camera.getAttribute("rotation");
+    const worldPose = cameraPose?.();
+    const position = worldPose?.position ?? camera.getAttribute("position"),
+      rotation = worldPose?.rotation ?? camera.getAttribute("rotation");
     const hasHands = leftHand !== null || rightHand !== null;
-    // A frame that CHANGES the hand state — hands appearing or hands disappearing —
-    // bypasses the pose publisher in both directions, so "my hands are gone" is
-    // never withheld behind the heartbeat/epsilon gate. Only a frame that repeats
-    // the current (no-hands) state goes through the publisher's ordinary gating.
-    const handStateChanged = hasHands !== handsPresent;
+    const changed = hasHands !== handsPresent;
     handsPresent = hasHands;
     if (
       !hasHands &&
-      !handStateChanged &&
+      !changed &&
       !posePublisher.shouldSend({ position, rotation }, now())
     )
       return;
-
-    const sent = socketClient.emit("position_update", {
-      room_id: roomId,
-      position,
-      rotation,
-      leftHand,
-      rightHand,
-      handTracking,
-    });
-    // The publisher commits sentAt/sentPosition/sentRotation optimistically before
-    // the send happens. If the socket was actually disconnected, undo that so the
-    // next real attempt isn't suppressed against a packet that never left.
-    if (sent === false) posePublisher.reset();
+    if (
+      socketClient.emit("position_update", {
+        room_id: roomId,
+        position,
+        rotation,
+        leftHand,
+        rightHand,
+        handTracking,
+      }) === false
+    )
+      posePublisher.reset();
   }
-
-  function detectRaisedHands(frame, hands) {
-    const viewerY =
-      frame.getViewerPose?.(referenceSpace)?.transform?.position?.y;
-    if (!Number.isFinite(viewerY)) return;
-    for (const side of ["left", "right"]) {
-      const wristY = hands[`${side}Hand`]?.wrist?.position?.[1];
-      const isRaised = Number.isFinite(wristY) && wristY > viewerY + 0.15;
-      if (isRaised && !raised[side]) onHandRaiseDetected?.(side);
-      raised[side] = isRaised;
+  function ended() {
+    session?.removeEventListener?.("end", ended);
+    session = null;
+    referenceSpace = null;
+    raised.left = false;
+    raised.right = false;
+    publish();
+    if (button) button.style.background = "#666";
+  }
+  function tick(time) {
+    if (destroyed) return;
+    const manager = scene?.renderer?.xr,
+      current = manager?.getSession?.();
+    if (current !== session) {
+      if (session) ended();
+      session = current;
+      session?.addEventListener?.("end", ended);
+      lastHandSend = -Infinity;
     }
-  }
-
-  function trackHands(time, frame) {
-    if (!enabled || !session) return;
-    if (time - lastHandSend >= 100) {
-      lastHandSend = time;
-      const hands = collectHandPoses(
+    if (!session || time - lastHandSend < MIN_SEND_INTERVAL_MS) return;
+    lastHandSend = time;
+    const frame = manager.getFrame?.();
+    referenceSpace = manager.getReferenceSpace?.();
+    if (!frame || !referenceSpace) return;
+    try {
+      const raw = collectHandPoses(
         frame,
         referenceSpace,
         session.inputSources ?? [],
       );
-      if (hands.leftHand || hands.rightHand) {
-        publish(hands.leftHand, hands.rightHand, true);
-        detectRaisedHands(frame, hands);
-      } else {
-        raised.left = false;
-        raised.right = false;
-        publish(null, null, false);
+      const viewerY =
+        frame.getViewerPose?.(referenceSpace)?.transform?.position?.y;
+      for (const side of ["left", "right"]) {
+        const wristY = raw[`${side}Hand`]?.wrist?.position?.[1];
+        const up =
+          Number.isFinite(viewerY) &&
+          Number.isFinite(wristY) &&
+          wristY > viewerY + 0.15;
+        if (up && !raised[side]) onHandRaiseDetected?.(side);
+        raised[side] = up;
       }
-    }
-    session.requestAnimationFrame(trackHands);
-  }
-
-  async function enable() {
-    if (!navigator.xr) return false;
-    try {
-      session = await navigator.xr.requestSession("immersive-vr", {
-        optionalFeatures: ["hand-tracking", "local-floor"],
-      });
-      if(destroyed){await session.end?.();session=null;return false}
-      referenceSpace = await requestTrackingSpace(session);
-      if (
-        !referenceSpace ||
-        typeof session.requestAnimationFrame !== "function"
-      ) {
-        await session.end?.();
-        session = null;
-        return false;
-      }
-      session.addEventListener("end", () => {
-        enabled = false;
-        session = null;
-        referenceSpace = null;
-        if (button) button.style.background = "#666";
-      });
-      enabled = true;
-      if (button) button.style.background = "#4CAF50";
-      session.requestAnimationFrame(trackHands);
-      return true;
+      const left = raw.leftHand && transformHand(raw.leftHand),
+        right = raw.rightHand && transformHand(raw.rightHand);
+      publish(left, right, !!(left || right));
     } catch (error) {
-      console.error("Hand tracking error:", error);
-      return false;
+      console.error("Hand tracking frame unavailable:", error);
+      publish();
     }
   }
-
-  async function addButtonWhenSupported() {
-    if (destroyed || !navigator.xr) return;
+  async function addButton() {
+    if (!navigator.xr) return;
     try {
-      if (!(await navigator.xr.isSessionSupported("immersive-vr"))) return;
+      if (!(await navigator.xr.isSessionSupported("immersive-vr")) || destroyed)
+        return;
     } catch {
       return;
     }
-    if (destroyed) return;
     button = document.createElement("button");
     button.id = "hand-tracking-btn";
-    button.textContent = "🤚 Hand Tracking";
+    button.textContent = "🤚 Enter VR / Hands";
     button.style.cssText =
-      "position:fixed;bottom:20px;right:20px;padding:10px 20px;background:#666;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;z-index:9999;";
-    button.addEventListener("click", enable);
+      "position:fixed;bottom:20px;right:20px;padding:10px 20px;background:#666;color:white;border:none;border-radius:8px;z-index:9999;";
+    button.addEventListener("click", () => {
+      if (!session)
+        Promise.resolve(scene?.enterVR?.()).catch((error) =>
+          console.error("VR entry failed:", error),
+        );
+    });
     document.body.appendChild(button);
   }
-
-  const positionTimer = setInterval(() => {
-    if (!enabled) publish(null, null, false);
+  const timer = setInterval(() => {
+    if (!scene?.renderer?.xr?.getSession?.()) publish();
   }, MIN_SEND_INTERVAL_MS);
-  void addButtonWhenSupported();
-
+  void addButton();
   return {
+    tick,
     destroy() {
-      enabled = false;
       destroyed = true;
-      session?.end?.();
-      clearInterval(positionTimer);
+      session?.removeEventListener?.("end", ended);
+      session = null;
+      clearInterval(timer);
       button?.remove();
     },
   };

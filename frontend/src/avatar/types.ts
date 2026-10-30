@@ -29,6 +29,8 @@ export type TrackingStatus = { head: boolean; left: boolean; right: boolean };
 /** Device-local sensor targets. Never sent as the final avatar pose. */
 export interface AvatarInputV2 {
   version: 2; sampleTime: number; root: Transform; bodyScale?: number; head: Transform | null;
+  /** Local solver hint; only solved joints/bodyScale are transmitted. */
+  posture?: 'standing' | 'seated';
   left: Transform | null; right: Transform | null; tracking: TrackingStatus;
   locomotion: { velocity: Vec3; grounded: boolean; teleport: boolean };
 }

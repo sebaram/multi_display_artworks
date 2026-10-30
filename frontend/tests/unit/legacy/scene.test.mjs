@@ -167,7 +167,7 @@ test('applyPoses prefers object3D and converts rotation to radians', () => {
   assert.equal(camera.getAttribute('position'), null);
 });
 
-test('unchanged hand payloads do not rebuild hand entities', () => {
+test('changing hand payloads update existing meshes without rebuilding hand entities', () => {
   const scene = new FakeElement('a-scene');
   const document = createDocument(scene);
   const renderer = createSceneRenderer({
@@ -186,7 +186,8 @@ test('unchanged hand payloads do not rebuild hand entities', () => {
   assert.equal(document.getElementById('hand-left-other'), firstHand);
 
   renderer.syncRoster([{ ...user, leftHand: { wrist: { position: [0, 2, 0] } } }]);
-  assert.notEqual(document.getElementById('hand-left-other'), firstHand);
+  assert.equal(document.getElementById('hand-left-other'), firstHand);
+  assert.equal(firstHand.children[0].getAttribute('position'), '0 2 0');
 });
 
 test('appearance updates reuse a humanoid instance and roster removal releases its separate body root', () => {

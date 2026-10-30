@@ -44,116 +44,95 @@ test('XRJointSpace data is read through XRFrame.getJointPose', () => {
   assert.deepEqual(calls, [[wrist, referenceSpace], [thumbTip, referenceSpace]]);
 });
 
-test('hand tracking publishes only real joint poses from the WebXR animation frame', async () => {
-  const camera = {
-    getAttribute(name) {
-      return name === 'position' ? '1 2 3' : '0 90 0';
-    },
-  };
-  let click;
-  let xrFrameCallback;
-  const wrist = {};
-  const referenceSpace = {};
+test("borrows renderer current frame/reference space, clears end state and never owns session/RAF", () => {
+  const referenceSpace = {},
+    wrist = {},
+    handlers = new Map(),
+    emitted = [],
+    raised = [];
+  let requested = 0,
+    ended = 0,
+    raf = 0,
+    clock = 1000;
   const session = {
-    inputSources: [{ handedness: 'left', hand: new Map([['wrist', wrist]]) }],
-    addEventListener() {},
-    requestReferenceSpace: async () => referenceSpace,
-    requestAnimationFrame(callback) {
-      xrFrameCallback = callback;
+    inputSources: [{ handedness: "left", hand: new Map([["wrist", wrist]]) }],
+    addEventListener: (e, f) => handlers.set(e, f),
+    removeEventListener: (e) => handlers.delete(e),
+    end() {
+      ended++;
+    },
+    requestAnimationFrame() {
+      raf++;
     },
   };
-  const emitted = [];
-  const raised = [];
-  // now() is only consulted by the publisher's own gating path: the very first
-  // no-hand publish below (call 1), which has nothing "sent" yet to compare
-  // against. The hand-carrying frame (call 2) and the hands-lost transition that
-  // follows it (call 3) both bypass the publisher entirely — a real hand-state
-  // change is never withheld behind its heartbeat/epsilon gate — so now() is never
-  // consulted again after call 1.
-  let nowCalls = 0;
-  const now = () => { nowCalls += 1; return nowCalls === 1 ? 1000 : 3000; };
-  mountHandTracking({
-    document: {
-      body: { appendChild() {} },
-      createElement() {
-        return {
-          style: {},
-          addEventListener(type, listener) {
-            if (type === 'click') click = listener;
-          },
-          remove() {},
-        };
+  let currentSession = session;
+  let frame = {
+    getJointPose: () => ({
+      transform: {
+        position: { x: 4, y: 5, z: 6 },
+        orientation: { x: 0, y: 0, z: 0, w: 1 },
       },
-      getElementById(id) { return id === 'camera' ? camera : null; },
+    }),
+    getViewerPose: () => ({ transform: { position: { y: 4.7 } } }),
+  };
+  const scene = {
+    renderer: {
+      xr: {
+        getSession: () => currentSession,
+        getFrame: () => frame,
+        getReferenceSpace: () => referenceSpace,
+      },
+    },
+  };
+  const camera = {
+    getAttribute: (name) => (name === "position" ? "1 2 3" : "0 90 0"),
+  };
+  const controller = mountHandTracking({
+    scene,
+    document: {
+      getElementById: () => camera,
+      body: { appendChild() {} },
+      createElement: () => ({ style: {}, addEventListener() {}, remove() {} }),
     },
     navigator: {
       xr: {
         isSessionSupported: async () => true,
-        requestSession: async () => session,
+        requestSession() {
+          requested++;
+        },
       },
     },
     socketClient: { emit: (...args) => emitted.push(args) },
-    roomId: 'room-a',
-    setInterval() { return 17; },
+    roomId: "room-a",
+    setInterval() {
+      return 17;
+    },
     clearInterval() {},
-    requestAnimationFrame() {
-      throw new Error('window animation frames cannot provide XRFrame');
-    },
-    now,
-    console: { error() {} },
-    onHandRaiseDetected: (side) => raised.push(side),
+    console,
+    now: () => clock,
     posePublisher: createPosePublisher(),
+    onHandRaiseDetected: (s) => raised.push(s),
+    cameraPose: () => ({
+      position: { x: 10, y: 5, z: 20 },
+      rotation: { x: 0, y: 90, z: 0 },
+    }),
   });
-  await Promise.resolve();
-  await Promise.resolve();
-
-  await click();
-  assert.equal(typeof xrFrameCallback, 'function');
-  assert.deepEqual(emitted, []);
-
-  xrFrameCallback(1000, { getJointPose: () => null });
-  assert.equal(emitted.length, 1);
-  assert.deepEqual(emitted[0][1], {
-    room_id: 'room-a',
-    position: '1 2 3',
-    rotation: '0 90 0',
-    leftHand: null,
-    rightHand: null,
-    handTracking: false,
-  });
-
-  xrFrameCallback(1100, {
-    getViewerPose(space) {
-      assert.equal(space, referenceSpace);
-      return { transform: { position: { y: 4.7 } } };
-    },
-    getJointPose(jointSpace, space) {
-      assert.equal(jointSpace, wrist);
-      assert.equal(space, referenceSpace);
-      return {
-        transform: {
-          position: { x: 4, y: 5, z: 6 },
-          orientation: { x: 0, y: 0, z: 0, w: 1 },
-        },
-      };
-    },
-  });
-  assert.equal(emitted.length, 2);
-  assert.deepEqual(emitted[1][1].leftHand.wrist.position, [4, 5, 6]);
-  assert.equal(emitted[1][1].handTracking, true);
-  assert.deepEqual(raised, ['left']);
-
-  xrFrameCallback(1200, { getJointPose: () => null });
-  assert.equal(emitted.length, 3);
-  assert.deepEqual(emitted[2][1], {
-    room_id: 'room-a',
-    position: '1 2 3',
-    rotation: '0 90 0',
-    leftHand: null,
-    rightHand: null,
-    handTracking: false,
-  });
-  assert.equal(nowCalls, 1); // the hands-lost transition bypassed the publisher's clock check
+  controller.tick(clock);
+  assert.deepEqual(emitted[0][1].leftHand.wrist.position, [4, 5, 6]);
+  assert.deepEqual(emitted[0][1].position, { x: 10, y: 5, z: 20 });
+  assert.deepEqual(raised, ["left"]);
+  clock += 100;
+  frame = { getJointPose: () => null };
+  controller.tick(clock);
+  assert.equal(emitted.at(-1)[1].leftHand, null);
+  assert.equal(emitted.at(-1)[1].handTracking, false);
+  currentSession = null;
+  handlers.get("end")();
+  controller.destroy();
+  assert.equal(requested, 0);
+  assert.equal(ended, 0);
+  assert.equal(raf, 0);
+  assert.equal(handlers.size, 0);
 });
 
 test('hand tracking publisher sends camera pose through the injected socket client', () => {

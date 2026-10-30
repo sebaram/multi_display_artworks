@@ -10,6 +10,7 @@ function renderBubble({
   position,
   setTimeout,
 }) {
+  target.querySelector('.remote-avatar')?.showAvatarExpression?.(emoji, globalThis.performance.now());
   let bubble = target.querySelector(".expression-bubble");
   if (!bubble) {
     bubble = document.createElement("a-text");

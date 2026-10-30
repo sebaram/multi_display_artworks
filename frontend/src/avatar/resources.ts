@@ -11,12 +11,18 @@ function materials(root: any): Set<any> {
 }
 function disposeSource(root: any) {
   const geometries = new Set<any>(), textures = new Set<any>();
-  root.traverse((node: any) => { if (node.geometry) geometries.add(node.geometry); if (node.isSkinnedMesh) node.skeleton.dispose(); });
+  disposeSkeletons(root);
+  root.traverse((node: any) => { if (node.geometry) geometries.add(node.geometry); });
   for (const material of materials(root)) {
     for (const value of Object.values(material) as any[]) if (value?.isTexture) textures.add(value);
     material.dispose();
   }
   geometries.forEach(g => g.dispose()); textures.forEach(t => t.dispose());
+}
+function disposeSkeletons(root: any) {
+  const skeletons = new Set<any>();
+  root?.traverse((node: any) => { if (node.isSkinnedMesh) skeletons.add(node.skeleton); });
+  skeletons.forEach(skeleton => skeleton.dispose());
 }
 function acquire(THREE: any, preset: AvatarPreset) {
   let entries = cache.get(THREE);
@@ -81,7 +87,7 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
     signal?.removeEventListener('abort', dispose);
     root?.removeFromParent();
     if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(root); }
-    root?.traverse((node: any) => { if (node.isSkinnedMesh) node.skeleton.dispose(); });
+    disposeSkeletons(root);
     ownMaterials.forEach(material => material.dispose());
     resource.release();
   };
@@ -100,6 +106,12 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
       };
       node.material = Array.isArray(node.material) ? node.material.map(cloneMaterial) : cloneMaterial(node.material);
     });
+    let detail = 'full', savedFace = 'friendly', expressionFace = '', expressionUntil = 0;
+    const face = (calm: boolean) => {
+      root.getObjectByName('FaceFriendly').visible = detail === 'full' && !calm;
+      root.getObjectByName('FaceCalm').visible = detail === 'full' && calm;
+    };
+    root.getObjectByName('BodyLow').visible = false;
     const instance: AvatarInstance = {
       root,
       preset,
@@ -115,13 +127,25 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
         const hat = next?.hatId === 'cap';
         root.getObjectByName('Cap').visible = hat;
         root.getObjectByName('HairShort').visible = next?.hairId === 'short' && !hat;
-        root.getObjectByName('GlassesRound').visible = next?.glassesId === 'round';
-        root.getObjectByName('FaceFriendly').visible = next?.faceId !== 'calm';
-        root.getObjectByName('FaceCalm').visible = next?.faceId === 'calm';
+        root.getObjectByName('GlassesRound').userData.wanted = next?.glassesId === 'round';
+        root.getObjectByName('GlassesRound').visible = detail === 'full' && next?.glassesId === 'round';
+        savedFace = next?.faceId || 'friendly';
+        face(savedFace === 'calm');
       },
       applyPose(pose) { if (!disposed) applyRigPose(root, preset, pose); },
-      // shortcut: low shares the base mesh until distance/visibility LOD in Task 5.
-      setDetail(detail) { if (!disposed) root.visible = detail !== 'hidden'; },
+      // Blink is display-only on the caller's monotonic clock, not sensed or networked.
+      updateExpression(time) { if (!disposed && detail === 'full') face(time % 4000 < 140 || (time < expressionUntil ? expressionFace : savedFace) === 'calm'); },
+      showExpression(expression, time) { expressionFace = expression === '😐' ? 'calm' : 'friendly'; expressionUntil = time + 3000; },
+      setDetail(next) {
+        if (disposed) return;
+        root.visible = next !== 'hidden';
+        if (detail === next) return;
+        detail = next;
+        root.getObjectByName('Body').visible = next === 'full';
+        root.getObjectByName('BodyLow').visible = next === 'low';
+        root.getObjectByName('GlassesRound').visible = next === 'full' && !!root.getObjectByName('GlassesRound').userData.wanted;
+        face(savedFace === 'calm');
+      },
       dispose,
     };
     instance.applyAppearance(appearance ?? preset.defaultAppearance!);

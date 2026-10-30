@@ -30,6 +30,34 @@ beforeAll(async () => {
 });
 const appearance = (top: string, hatId = 'none') => ({ ...preset.defaultAppearance, colors: { ...preset.defaultAppearance.colors, top }, hatId });
 
+test('low detail has fewer real triangles, shared resources and latest hidden appearance restoration', async () => {
+  const scene = new THREE.Scene(), a = await createAvatarInstance({scene,preset}), b = await createAvatarInstance({scene,preset});
+  const full = a.root.getObjectByName('Body'), low = a.root.getObjectByName('BodyLow');
+  expect(low?.isSkinnedMesh).toBe(true);
+  expect(low.geometry.index.count).toBeLessThan(full.geometry.index.count / 2);
+  expect(low.geometry).toBe(b.root.getObjectByName('BodyLow').geometry);
+  expect(low.skeleton).toBe(full.skeleton);
+  a.setDetail('low');expect(full.visible).toBe(false);expect(low.visible).toBe(true);
+  a.setDetail('hidden');a.applyAppearance({...appearance('#123456','cap'),faceId:'calm'});
+  a.setDetail('full');expect(full.visible).toBe(true);expect(low.visible).toBe(false);
+  expect(a.root.getObjectByName('Cap').visible).toBe(true);
+  expect(a.root.getObjectByName('FaceCalm').visible).toBe(true);
+  expect(b.root.getObjectByName('Cap').visible).toBe(false);
+  const released=vi.fn();low.geometry.addEventListener('dispose',released);
+  a.dispose();expect(released).not.toHaveBeenCalled();b.dispose();expect(released).toHaveBeenCalledTimes(1);
+});
+
+test('blink and manual response are display-only and return to latest saved face', async () => {
+  const a=await createAvatarInstance({scene:new THREE.Scene(),preset});
+  a.applyAppearance({...appearance('#123456'),faceId:'friendly'});
+  a.updateExpression(4000);expect(a.root.getObjectByName('FaceCalm').visible).toBe(true);
+  a.updateExpression(4200);expect(a.root.getObjectByName('FaceFriendly').visible).toBe(true);
+  a.showExpression('😐',4200);a.updateExpression(4300);expect(a.root.getObjectByName('FaceCalm').visible).toBe(true);
+  a.applyAppearance({...appearance('#123456'),faceId:'calm'});
+  a.updateExpression(8000);expect(a.root.getObjectByName('FaceCalm').visible).toBe(true);
+  a.dispose();
+});
+
 test('hidden owner solves once while additional real skinned observers only apply final rotations and uniform scale', async () => {
   const scene=new THREE.Scene(), owner=await createAvatarInstance({scene,preset});
   const peers=await Promise.all([createAvatarInstance({scene,preset}),createAvatarInstance({scene,preset}),createAvatarInstance({scene,preset})]);

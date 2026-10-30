@@ -54,9 +54,10 @@ for name in ['Body','Attachments']:
     doc['materials'].append(dict(name=name, pbrMetallicRoughness=dict(baseColorTexture=dict(index=0), metallicFactor=0, roughnessFactor=.85)))
 
 class Mesh:
-    def __init__(self): self.p=[];self.uv=[];self.j=[];self.w=[];self.tri=[];self.regions={}
+    def __init__(self): self.p=[];self.uv=[];self.j=[];self.w=[];self.tri=[];self.regions={};self.surfaces=[]
     def rings(self, center, rings, slot, bone, other=None, segments=10, region=None):
         """Tapered closed ring surface, smoothly weighted along the joint segment."""
+        self.surfaces.append((center,rings,slot,bone,other))
         start=len(self.p)//3
         if region: self.regions[region] = dict(start=start, count=len(rings)*segments)
         for row,(dy,rx,rz) in enumerate(rings):
@@ -106,6 +107,11 @@ for name, calm in [('FaceFriendly',False), ('FaceCalm',True)]:
         y=-.045 if calm else -.052+((i-4)/4)**2*.025
         face.rings([x,y,-.12],[(-.003,0,0),(0,.007,.008),(.003,0,0)],4,0,segments=6)
     triangles+=face.emit(name,1)
+low=Mesh()
+for surface in body.surfaces: low.rings(*surface,segments=4)
+low_triangles=low.emit('BodyLow',0,True)
+doc['nodes'][0]['children'].append(len(doc['nodes']))
+doc['nodes'].append(dict(name='BodyLow',mesh=len(doc['meshes'])-1,skin=0))
 inverses=[]
 for name,_,_ in CORE_RIG:
     x,y,z=global_pos[name];inverses.extend([1,0,0,0,0,1,0,0,0,0,1,0,-x,-y,-z,1])
@@ -125,5 +131,5 @@ encoded=json.dumps(doc,separators=(',',':')).encode();encoded+=b' '*((-len(encod
 glb=struct.pack('<III',0x46546C67,2,12+8+len(encoded)+8+len(binary))+struct.pack('<II',len(encoded),0x4E4F534A)+encoded+struct.pack('<II',len(binary),0x004E4942)+binary
 (OUT/'common-humanoid.glb').write_bytes(glb)
 (OUT/'catalog.fixture.json').write_text(json.dumps(avatar_catalog(),indent=2)+'\n',encoding='utf8')
-(OUT/'asset-inspection.json').write_text(json.dumps(dict(triangles=triangles,bones=22,bodyMaterials=1,accessoryMaterials=1,textureSize=1,meters=True,up='+Y',forward='-Z',animations=['idle','walk'],generator='tools/avatars/generate_humanoid.py'),indent=2)+'\n',encoding='utf8')
+(OUT/'asset-inspection.json').write_text(json.dumps(dict(triangles=triangles,lowBodyTriangles=low_triangles,fullBodyTriangles=len(body.tri)//3,residentTriangles=triangles+low_triangles,bones=22,bodyMaterials=1,accessoryMaterials=1,textureSize=1,meters=True,up='+Y',forward='-Z',animations=['idle','walk'],generator='tools/avatars/generate_humanoid.py'),indent=2)+'\n',encoding='utf8')
 print(f'Generated {len(glb)} bytes, {triangles} triangles, 22 bones, 1 body + 1 accessory material')

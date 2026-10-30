@@ -29,6 +29,7 @@ import { mountAvatarEditor, type SavedAvatar } from '../features/avatar/AvatarEd
 import { mountAvatarXRPanel } from '../features/avatar/xr-panel';
 import { createAvatarInstance } from '../avatar/resources';
 import { updateAvatarMotion } from '../avatar/motion';
+import { createRemoteAvatarDisplay } from '../avatar/display';
 import { AvatarPoseBuffer, avatarPoseChanged, sub, mul } from '../avatar/pose';
 import { mountAvatarXRInput } from '../avatar/xr-scene';
 import { createAvatarPoseTransport } from '../avatar/transport';
@@ -120,6 +121,11 @@ export async function startRealtime(
   };
   document.getElementById("room-toolbar")?.append(expressionButton);
   life.add(() => expressionButton.remove());
+  const manualExpression = document.createElement('button');
+  manualExpression.textContent = '표정 😊';
+  manualExpression.onclick = () => expressions.showLocalExpression('😊');
+  document.getElementById('room-toolbar')?.append(manualExpression);
+  life.add(() => manualExpression.remove());
   const voice = createVoiceChat({
     document,
     navigator,
@@ -175,6 +181,9 @@ export async function startRealtime(
   }));
   let debug: any;
   const avatarBuffer = new AvatarPoseBuffer();
+  const avatarDisplay = createRemoteAvatarDisplay({scene, buffer:avatarBuffer, targets:renderer.avatars, THREE:(window as any).AFRAME.THREE});
+  scene.avatarPerformance = avatarDisplay.stats;
+  life.add(() => { avatarDisplay.dispose(); delete scene.avatarPerformance; });
   const realtime = bootstrapRoomRealtime({
     bootstrapData: data,
     visitorSession: visitor,
@@ -234,12 +243,8 @@ export async function startRealtime(
     requestedTeleport = false;
     const xrSample = xrInput.sample(performance.now(), explicitTeleport);
     hands.tick(time);
-    const poses = new Map();
-    avatarBuffer.userIds().forEach((id) => {
-      const p = avatarBuffer.poseAt(id, time);
-      if (p) poses.set(id, p);
-    });
-    renderer.applyAvatarPoses(poses);
+    avatarDisplay.frame(time);
+    avatarDisplay.stats.ownerMs = 0;
     const profile = panel.profile,
       preset = catalog.presets.find(
         (p) => p.id === (profile.appearance?.presetId || profile.avatarId),
@@ -315,6 +320,7 @@ export async function startRealtime(
     owner.root
       .getObjectByName(preset.rigMap.head)
       .scale.setScalar(xrInput.active ? 0.00001 : 1);
+    const motionStart = performance.now();
     const pose = updateAvatarMotion(
       owner,
       xrSample ?? {
@@ -338,6 +344,7 @@ export async function startRealtime(
       ground,
       "full",
     );
+    avatarDisplay.stats.ownerMs = performance.now() - motionStart;
     outgoingTeleport ||= xrSample?.locomotion.teleport ?? teleport;
     pose.teleport = outgoingTeleport;
     previousPosition = headPosition;

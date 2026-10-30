@@ -53,6 +53,8 @@ export interface AvatarInstance {
   mixer: any;
   applyAppearance(appearance: AvatarAppearanceV2): void;
   applyPose(pose: AvatarPoseV2): void;
+  updateExpression(time: number): void;
+  showExpression(expression: string, time: number): void;
   setDetail(detail: 'full' | 'low' | 'hidden'): void;
   dispose(): void;
 }

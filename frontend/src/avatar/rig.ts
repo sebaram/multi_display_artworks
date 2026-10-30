@@ -13,12 +13,18 @@ export function cloneRig(source: any, THREE: any) {
     for (let i = 0; i < a.children.length; i++) pair(a.children[i], b.children[i]);
   }
   pair(source, clone);
+  const skeletons = new Map<any, any>();
   clone.traverse((node: any) => {
     if (!node.isSkinnedMesh) return;
     const original = originals.get(node);
-    node.skeleton = original.skeleton.clone();
+    let skeleton = skeletons.get(original.skeleton);
+    if (!skeleton) {
+      skeleton = original.skeleton.clone();
+      skeleton.bones = original.skeleton.bones.map((bone: any) => copies.get(bone));
+      skeletons.set(original.skeleton, skeleton);
+    }
+    node.skeleton = skeleton;
     node.bindMatrix.copy(original.bindMatrix);
-    node.skeleton.bones = original.skeleton.bones.map((bone: any) => copies.get(bone));
     node.bind(node.skeleton, node.bindMatrix);
   });
   return clone;

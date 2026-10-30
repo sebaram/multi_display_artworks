@@ -77,7 +77,7 @@ function createHumanoidAvatar(profile, document) {
   const wrapper = document.createElement('a-entity');
   wrapper.setAttribute('class', 'remote-avatar');
   const controller = new AbortController();
-  let instance, pendingAppearance = profile.appearance, bodyPose, humanoidPose;
+  let instance, pendingAppearance = profile.appearance, bodyPose, humanoidPose, detail = 'full', expression;
   const preset = AVATAR_CATALOG[profile.appearance?.presetId || profile.avatarId];
   wrapper.canApplyProfile = next => AVATAR_CATALOG[next.appearance?.presetId || next.avatarId]?.rigVersion === preset.rigVersion;
   wrapper.applyAppearance = next => { pendingAppearance = next; if (instance) instance.applyAppearance(next || preset.defaultAppearance); };
@@ -91,6 +91,16 @@ function createHumanoidAvatar(profile, document) {
     instance.root.rotation.set(0, pose.rotation.y * Math.PI / 180, 0);
   };
   wrapper.applyAvatarPose = pose => { humanoidPose = pose; instance?.applyPose(pose); };
+  wrapper.applyAvatarRoot = pose => {
+    humanoidPose = pose;
+    if (!instance) return;
+    instance.root.position.fromArray(pose.root.position);
+    instance.root.quaternion.fromArray(pose.root.orientation);
+    instance.root.scale.setScalar(pose.bodyScale ?? 1);
+  };
+  wrapper.setAvatarDetail = next => { detail = next; instance?.setDetail(next); };
+  wrapper.updateAvatarExpression = time => instance?.updateExpression(time);
+  wrapper.showAvatarExpression = (value, time) => { expression = [value,time]; instance?.showExpression(value,time); };
   wrapper.disposeAvatar = () => { controller.abort(); instance?.dispose(); };
   wrapper.avatarReady = import('../../avatar/resources').then(async ({ createAvatarInstance }) => {
     if (controller.signal.aborted) return;
@@ -101,6 +111,8 @@ function createHumanoidAvatar(profile, document) {
     wrapper.avatarInstance = instance;
     if (humanoidPose) instance.applyPose(humanoidPose);
     else if (bodyPose) wrapper.setBodyTransform(bodyPose);
+    instance.setDetail(detail);
+    if (expression) instance.showExpression(...expression);
     return instance;
   }).catch(error => {
     if (controller.signal.aborted || error.name === 'AbortError') return;

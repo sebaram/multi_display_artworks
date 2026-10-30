@@ -169,6 +169,9 @@ function writeTransform(camera, pose, scene) {
 
 export function createSceneRenderer({ document, scene, selfId, createAvatarEntity }) {
   const renderedIds = new Set();
+  const avatars = new Map();
+  // Retain ownership after React detaches the scene from document during SPA teardown.
+  const cameras = new Map();
   let latestUsers = [], destroyed = false;
   if (document.defaultView?.AFRAME) {
     import('../../../avatar/catalog').then(({ loadAvatarCatalog }) => loadAvatarCatalog())
@@ -187,14 +190,18 @@ export function createSceneRenderer({ document, scene, selfId, createAvatarEntit
 
       const camera = document.getElementById(cameraId) ?? createRemoteCamera(document, scene, user);
       renderedIds.add(cameraId);
+      cameras.set(cameraId, camera);
       updateProfile(camera, user, createAvatarEntity);
+      avatars.set(user.userId, camera.querySelector('.remote-avatar'));
       updateHands(document, camera, user);
     });
 
     for (const cameraId of renderedIds) {
       if (activeIds.has(cameraId)) continue;
-      removeElement(document.getElementById(cameraId));
+      removeElement(cameras.get(cameraId));
+      cameras.delete(cameraId);
       renderedIds.delete(cameraId);
+      avatars.delete(cameraId.slice('camera-'.length));
     }
   }
 
@@ -208,6 +215,7 @@ export function createSceneRenderer({ document, scene, selfId, createAvatarEntit
 
   return {
     syncRoster,
+    avatars: () => avatars,
     applyPoses,
     applyAvatarPoses(poses) {
       poses.forEach((pose, userId) => {

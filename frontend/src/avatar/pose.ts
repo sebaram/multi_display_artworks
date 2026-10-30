@@ -145,12 +145,13 @@ export function interpolateAvatarPose(
   a: AvatarPoseV2,
   b: AvatarPoseV2,
   t: number,
+  joints = true,
 ): AvatarPoseV2 {
   if (b.teleport || a.rigVersion !== b.rigVersion) return b;
   t = clamp(t, 0, 1);
   const lerp = (u: Vec3, v: Vec3) => add(u, mul(sub(v, u), t));
-  const boneRotations = new Float32Array(88);
-  for (let i = 0; i < 88; i += 4)
+  const boneRotations = joints ? new Float32Array(88) : b.boneRotations;
+  for (let i = 0; joints && i < 88; i += 4)
     boneRotations.set(
       slerp(
         Array.from(a.boneRotations.slice(i, i + 4)) as Quat,
@@ -240,7 +241,7 @@ export class AvatarPoseBuffer {
     if (Number.isFinite(serverTime))
       this.serverOffset = receivedAt - serverTime;
   }
-  poseAt(id: string, time: number) {
+  poseAt(id: string, time: number, joints = true) {
     const samples = this.users.get(id)?.samples;
     if (!samples?.length) return null;
     const target = time - 100;
@@ -251,6 +252,7 @@ export class AvatarPoseBuffer {
       samples[i - 1].pose,
       samples[i].pose,
       (target - samples[i - 1].at) / (samples[i].at - samples[i - 1].at),
+      joints,
     );
   }
   userIds() {

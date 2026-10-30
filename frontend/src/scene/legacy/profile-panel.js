@@ -23,11 +23,13 @@ export function mountProfilePanel({
   catalog,
   onSave,
   onNewVisitor = () => {},
+  onCustomize,
   document,
 }) {
   let currentProfile = { ...profile };
   let dialog = null;
   let editor = null;
+  let saving = false;
 
   const container = document.createElement('div');
   setStyles(container, 'pointer-events:auto;');
@@ -42,6 +44,8 @@ export function mountProfilePanel({
   summary.setAttribute('aria-label', 'Visitor profile');
   setStyles(summary, [
     'display:flex',
+    'flex-wrap:wrap',
+    'max-width:calc(100vw - 32px)',
     'align-items:center',
     'gap:9px',
     'margin-top:6px',
@@ -64,6 +68,11 @@ export function mountProfilePanel({
   setStyles(errorMessage, 'margin:8px 0 0;color:#ffb4ab;');
   const retryButton = createButton(document, 'Retry');
   summary.append(swatch, summaryText, editButton, newVisitorButton);
+  if (onCustomize) {
+    const customize = createButton(document, 'Customize');
+    customize.addEventListener('click', onCustomize);
+    summary.append(customize);
+  }
 
   function updateProfile(nextProfile) {
     currentProfile = { ...nextProfile };
@@ -95,6 +104,7 @@ export function mountProfilePanel({
   }
 
   function closeEditor() {
+    if (saving) return;
     if (typeof dialog.close === 'function') dialog.close();
     else {
       dialog.open = false;
@@ -169,14 +179,24 @@ export function mountProfilePanel({
 
     function saveDraft(event) {
       event?.preventDefault();
+      if (saving) return;
       if (typeof form.reportValidity === 'function' && !form.reportValidity()) return;
       const draft = {
         displayName: nameInput.value,
         avatarId: avatarSelect.value,
         color: colorInput.value,
       };
-      updateProfile(onSave(draft) ?? draft);
-      closeEditor();
+      const finish = saved => { saving = false; updateProfile(saved ?? draft); closeEditor(); };
+      const failure = error => { errorMessage.textContent = `Unable to save. ${error.message}`; form.append(errorMessage); };
+      try {
+        const result = onSave(draft);
+        if (result?.then) {
+          saving = true;
+          saveButton.disabled = true;
+          cancelButton.disabled = true;
+          result.then(finish, failure).finally(() => { saving = false; saveButton.disabled = false; cancelButton.disabled = false; });
+        } else finish(result);
+      } catch (error) { failure(error); }
     }
 
     cancelButton.addEventListener('click', closeEditor);

@@ -99,7 +99,13 @@ function createHumanoidAvatar(profile, document) {
     wrapper.avatarInstance = instance;
     if (bodyPose) wrapper.setBodyTransform(bodyPose);
     return instance;
-  }).catch(error => { if (error.name !== 'AbortError') wrapper.emit?.('avatar-error', { message: error.message }); });
+  }).catch(error => {
+    if (controller.signal.aborted || error.name === 'AbortError') return;
+    wrapper.setAttribute('data-avatar-fallback', 'true');
+    addPrimitive(wrapper, document, 'a-sphere', { radius: '.16', color: profile.color || '#4CAF50', position: '0 -.25 0' });
+    addPrimitive(wrapper, document, 'a-text', { value: 'Avatar unavailable', align: 'center', width: '1.5', position: '0 -.5 0', rotation: '0 180 0' });
+    wrapper.emit?.('avatar-error', { message: error.message });
+  });
   return wrapper;
 }
 

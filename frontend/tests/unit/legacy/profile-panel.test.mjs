@@ -103,6 +103,35 @@ const initialProfile = {
   color: '#123456',
 };
 
+test('async Save keeps the dialog open and blocks Escape until persistence succeeds', async () => {
+  const document = createDocument();
+  let finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  mountProfilePanel({ profile: initialProfile, catalog: AVATAR_CATALOG, document, onSave: () => pending });
+  click(findByText(document.body, 'Visitor')); click(findByText(document.body, 'Edit'));
+  const dialog = find(document.body, element => element.tagName === 'dialog');
+  click(findByText(document.body, 'Save'));
+  assert.equal(dialog.open, true);
+  dialog.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.equal(dialog.open, true);
+  finish({ ...initialProfile, displayName: 'Saved Guest' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(dialog.open, false);
+  assert.match(descendants(document.body).map(element => element.textContent).join(' '), /Saved Guest/);
+});
+
+test('failed async Save keeps the current profile and the editor draft', async () => {
+  const document = createDocument();
+  mountProfilePanel({ profile: initialProfile, catalog: AVATAR_CATALOG, document,
+    onSave: async () => { throw Error('save conflict'); } });
+  click(findByText(document.body, 'Visitor')); click(findByText(document.body, 'Edit'));
+  const dialog = find(document.body, element => element.tagName === 'dialog');
+  click(findByText(document.body, 'Save'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(dialog.open, true);
+  assert.match(descendants(document.body).map(element => element.textContent).join(' '), /Unable to save.*save conflict/);
+});
+
 test('profile panel requires its document dependency even when a browser global exists', () => {
   const originalDocument = globalThis.document;
   globalThis.document = createDocument();

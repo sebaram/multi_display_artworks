@@ -46,6 +46,8 @@ export function bootstrapRoomProfile({
   document,
   persistVisitorSession = () => {},
   onNewVisitor = () => {},
+  persistAppearance,
+  onCustomize,
 }) {
   const { roomId } = bootstrapData;
   const catalog = allowedCatalog(bootstrapData.avatarCatalog);
@@ -55,26 +57,38 @@ export function bootstrapRoomProfile({
   };
   let currentProfile = currentSession.profile;
   let socketClient = null;
+  let destroyed = false;
+
+  function applyProfile(draft) {
+    if (destroyed) return currentProfile;
+    currentProfile = normalizeProfile(draft);
+    currentSession = { ...currentSession, profile: currentProfile };
+    persistVisitorSession(currentSession);
+    panel.updateProfile(currentProfile);
+    socketClient?.emit('profile_update', { room_id: roomId, profile: currentProfile });
+    return currentProfile;
+  }
 
   const panel = mountProfilePanel({
     profile: currentProfile,
     catalog,
     document,
     onSave(draft) {
-      currentProfile = normalizeProfile(draft);
-      currentSession = { ...currentSession, profile: currentProfile };
-      persistVisitorSession(currentSession);
-      socketClient?.emit("profile_update", {
-        room_id: roomId,
-        profile: currentProfile,
-      });
-      return currentProfile;
+      // Old Edit changes keep humanoid parts only when the selected preset stays the same.
+      if (draft.avatarId === currentProfile.appearance?.presetId) {
+        draft = { ...draft, appearance: { ...currentProfile.appearance,
+          colors: { ...currentProfile.appearance.colors, top: draft.color } } };
+      }
+      if (persistAppearance) return persistAppearance(draft).then(applyProfile);
+      return applyProfile(draft);
     },
     onNewVisitor,
+    onCustomize,
   });
 
   return {
     visitorId: visitorSession.visitorId,
+    applyProfile,
     roomId,
     get profile() {
       return { ...currentProfile };
@@ -95,7 +109,7 @@ export function bootstrapRoomProfile({
     clearConnectionError: panel.clearConnectionError,
     showConnectionError: panel.showConnectionError,
     updateProfile: panel.updateProfile,
-    destroy: panel.destroy,
+    destroy() { destroyed = true; panel.destroy(); },
   };
 }
 

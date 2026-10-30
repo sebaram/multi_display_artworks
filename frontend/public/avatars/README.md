@@ -19,3 +19,6 @@ The shared 1px white texture contains no external data. All source meshes
 are original tapered ring surfaces. Idle/walk clips are included as a starting
 point; owner-side motion/IK arrives in later tasks. `asset-inspection.json`
 records generated budgets. Normals are calculated by the runtime loader adapter.
+
+Friendly and calm faces use distinct original head-local eye, eyebrow and mouth
+geometry, selected per instance while sharing the source geometry and palette.

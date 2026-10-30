@@ -24,6 +24,18 @@ beforeAll(async () => {
   });
 });
 const appearance = (top: string, hatId = 'none') => ({ ...preset.defaultAppearance, colors: { ...preset.defaultAppearance.colors, top }, hatId });
+
+test('friendly and calm switch distinct face geometry on one visitor only', async () => {
+  const scene = new THREE.Scene();
+  const a = await createAvatarInstance({ scene, preset });
+  const b = await createAvatarInstance({ scene, preset });
+  expect(a.root.getObjectByName('FaceFriendly')).toBeDefined();
+  a.applyAppearance({ ...appearance('#FF0000'), faceId: 'calm' });
+  expect(a.root.getObjectByName('FaceFriendly').visible).toBe(false);
+  expect(a.root.getObjectByName('FaceCalm').visible).toBe(true);
+  expect(b.root.getObjectByName('FaceFriendly').visible).toBe(true);
+  a.dispose(); b.dispose();
+});
 test('real skinned humanoid clones isolate joints, palette and head attachments while sharing geometry/textures until last release', async () => {
   const scene = new THREE.Scene();
   const a = await createAvatarInstance({ scene, preset, appearance: appearance('#FF0000', 'cap') });
@@ -167,6 +179,19 @@ test('a caller asset URL never replaces the catalog URL and failed loads can be 
   const instance = await createAvatarInstance({ scene, preset: { ...preset, assetUrl: 'https://attacker.invalid/model.glb' }, appearance: appearance('#123456') });
   expect(loader.mock.calls[0][0]).toBe('/avatars/common-humanoid.glb');
   instance.dispose();
+});
+
+test('a remote model load failure renders a visible fallback in the visitor wrapper', async () => {
+  const loader = THREE.GLTFLoader.prototype.loadAsync;
+  loader.mockRejectedValueOnce(Error('offline'));
+  const wrapper = createAvatarEntity({ avatarId: 'casual' }, {
+    createElement: () => new AvatarElement(),
+    querySelector: () => ({ object3D: new THREE.Scene() }),
+  });
+  await wrapper.avatarReady;
+  expect(wrapper.getAttribute('data-avatar-fallback')).toBe('true');
+  expect(wrapper.children.length).toBeGreaterThan(0);
+  wrapper.disposeAvatar();
 });
 test('pose uses frozen parent-relative bone order and rest hips offset without re-solving IK', async () => {
   const a = await createAvatarInstance({ scene: new THREE.Scene(), preset, appearance: appearance('#123456') });

@@ -9,6 +9,7 @@ from mongoengine import (BooleanField, DateTimeField, DictField, FloatField, Int
 from pydantic import ConfigDict, ValidationError as DTOValidationError, create_model
 
 from .. import models as m
+from ..avatar_catalog import avatar_catalog
 
 RESOURCES = {
     'rooms': m.Room, 'walls': m.Wall, 'images': m.Image, 'splats': m.GaussianSplat,
@@ -302,6 +303,6 @@ def scene(room, *, admin=False, ar=None, preset=None, debug=None):
         minimap.append({**{k: w.get(k) for k in ('id', 'name', 'position', 'rotation', 'width', 'height', 'surface_type')}, 'elements': elements})
     return dict(room=dict(id=str(room.pk), name=room.name, description=room.description), roomId=str(room.pk),
                 boundary=boundary(room), presets=presets, spawn_preset=selected, walls=wall_list, wallList=minimap,
-                visitorCapabilityUrl='/visitor-capability', avatarCatalog=['shiba', 'robot', 'rigged-simple', 'none'],
+                visitorCapabilityUrl='/visitor-capability', avatarCatalog=[p['id'] for p in avatar_catalog()['presets']],
                 isAdmin=admin, roomControlsEnabled=ar not in {'marker', 'companion'}, syncDebugEnabled=debug == 'sync',
                 isArMarker=ar == 'marker', isArCompanion=ar == 'companion')

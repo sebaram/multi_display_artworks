@@ -16,6 +16,7 @@ class PresenceService:
             "displayName": user["displayName"],
             "avatarId": user["avatarId"],
             "color": user["color"],
+            **({'appearance': user['appearance']} if 'appearance' in user else {}),
             "position": user["position"],
             "rotation": user["rotation"],
             "leftHand": user["leftHand"],
@@ -68,6 +69,7 @@ class PresenceService:
             return None
 
         normalized_profile = normalize_profile(profile)
+        user.pop('appearance', None)
         user.update(normalized_profile)
         return {
             "userId": user["userId"],

@@ -39,9 +39,9 @@ for name, parent, offset in CORE_RIG:
     doc['nodes'].append(dict(name=name, translation=offset, children=children))
 # One connected skeleton, one skinned body, head-local original accessories.
 doc['nodes'].append(dict(name='Body', mesh=0, skin=0))
-doc['nodes'].append(dict(name='HeadAnchor', translation=[0, .08, 0], children=[25,26,27]))
+doc['nodes'].append(dict(name='HeadAnchor', translation=[0, .08, 0], children=[25,26,27,28,29]))
 doc['nodes'][indices['head']+1]['children'].append(24)
-for name, mesh in [('HairShort',1), ('Cap',2), ('GlassesRound',3)]:
+for name, mesh in [('HairShort',1), ('Cap',2), ('GlassesRound',3), ('FaceFriendly',4), ('FaceCalm',5)]:
     doc['nodes'].append(dict(name=name, mesh=mesh))
 
 # Single white embedded 1px map; palettes are instance uniforms, all source maps shared.
@@ -88,14 +88,24 @@ for side in ['left','right']:
     body.rings(global_pos[side+'LowerLeg'],[(-.41,0,0),(-.40,.055,.06),(-.20,.065,.07),(0,.072,.075),(.01,0,0)],2,foot,shin)
     center=global_pos[side+'Foot'].copy();center[2]-=.055
     body.rings(center,[(-.06,0,0),(-.05,.07,.13),(.02,.07,.13),(.04,0,0)],2,foot)
-    eye=global_pos['head'].copy();eye[0]+=(-.05 if side=='left' else .05);eye[1]+=.11;eye[2]-=.12
-    body.rings(eye,[(-.022,0,0),(-.017,.017,.012),(.017,.017,.012),(.022,0,0)],4,indices['head'],segments=8)
 triangles=body.emit('Body',0,True)
 hair=Mesh();hair.rings([0,0,0],[(.03,.148,.134),(.14,.14,.13),(.18,0,0)],3,0,segments=12);triangles+=hair.emit('HairShort',1)
 cap=Mesh();cap.rings([0,0,0],[(.07,.154,.14),(.17,.145,.13),(.20,0,0)],1,0,segments=12);cap.rings([0,.065,-.08],[(0,0,0),(.005,.16,.16),(.02,.16,.16),(.025,0,0)],1,0,segments=12);triangles+=cap.emit('Cap',1)
 glasses=Mesh()
 for x in [-.05,.05]: glasses.rings([x,.035,-.136],[(-.025,0,0),(-.02,.035,.008),(.02,.035,.008),(.025,0,0)],4,0,segments=8)
 triangles+=glasses.emit('GlassesRound',1)
+for name, calm in [('FaceFriendly',False), ('FaceCalm',True)]:
+    face=Mesh()
+    for x in [-.05,.05]:
+        height=.005 if calm else .017
+        face.rings([x,.03,-.132],[(-height,0,0),(-height,.019,.008),(height,.019,.008),(height,0,0)],4,0,segments=8)
+        for i in range(5):
+            face.rings([x+(i-2)*.01,.07+(0 if calm else abs(i-2)*-.003),-.126],[(-.003,0,0),(0,.007,.008),(.003,0,0)],3,0,segments=6)
+    for i in range(9):
+        x=(i-4)*.009
+        y=-.045 if calm else -.052+((i-4)/4)**2*.025
+        face.rings([x,y,-.12],[(-.003,0,0),(0,.007,.008),(.003,0,0)],4,0,segments=6)
+    triangles+=face.emit(name,1)
 inverses=[]
 for name,_,_ in CORE_RIG:
     x,y,z=global_pos[name];inverses.extend([1,0,0,0,0,1,0,0,0,0,1,0,-x,-y,-z,1])

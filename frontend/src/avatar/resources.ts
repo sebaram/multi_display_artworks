@@ -115,6 +115,8 @@ export async function createAvatarInstance({ scene, preset: requested, appearanc
         root.getObjectByName('Cap').visible = hat;
         root.getObjectByName('HairShort').visible = next?.hairId === 'short' && !hat;
         root.getObjectByName('GlassesRound').visible = next?.glassesId === 'round';
+        root.getObjectByName('FaceFriendly').visible = next?.faceId !== 'calm';
+        root.getObjectByName('FaceCalm').visible = next?.faceId === 'calm';
       },
       applyPose(pose) { if (!disposed) applyRigPose(root, preset, pose); },
       // shortcut: low shares the base mesh until distance/visibility LOD in Task 5.

@@ -230,7 +230,7 @@ class Realtime:
             await self.wall_interactions.joined(sid, room)
             if not self.get_room_visitor(sid, room) or self.stopping:
                 return
-            await self.broadcast('user_joined', {key: public[key] for key in ['userId', 'displayName', 'avatarId', 'color']} | {'room_id': room}, room_id=room, skip_sid=sid)
+            await self.broadcast('user_joined', {key: public[key] for key in ['userId', 'displayName', 'avatarId', 'color', 'appearance'] if key in public} | {'room_id': room}, room_id=room, skip_sid=sid)
             if displaced:
                 await self.broadcast('position_update', public | {'room_id': room}, room_id=room, skip_sid=sid)
 

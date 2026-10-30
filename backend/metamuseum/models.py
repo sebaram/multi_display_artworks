@@ -4,6 +4,16 @@ from bson import ObjectId
 from mongoengine import (Document, ObjectIdField, StringField, BooleanField, IntField, FloatField, ValidationError,
                          ListField, DateTimeField, ReferenceField, DictField)
 
+class AvatarProfile(Document):
+    ownerKey = StringField(required=True, unique=True)
+    appearance = DictField(required=True)
+    revision = IntField(required=True, min_value=1)
+    updatedAt = DateTimeField(required=True)
+    expiresAt = DateTimeField()
+    meta = {'collection': 'avatar_profiles', 'indexes': [
+        {'fields': ['expiresAt'], 'expireAfterSeconds': 0}], 'allow_inheritance': False}
+
+
 class User(Document):
     """Application user with email-based authentication."""
     email = StringField(required=True, unique=True)

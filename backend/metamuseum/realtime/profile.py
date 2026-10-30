@@ -2,9 +2,11 @@
 
 import re
 from collections.abc import Mapping
+from ..avatar_catalog import avatar_catalog
+from ..schemas_avatar import normalize_appearance
 
 
-AVATAR_IDS = frozenset({"shiba", "robot", "rigged-simple", "none"})
+AVATAR_IDS = frozenset(p['id'] for p in avatar_catalog()['presets'])
 DEFAULT_PROFILE = {
     "displayName": "Visitor",
     "avatarId": "shiba",
@@ -23,8 +25,13 @@ def normalize_profile(data: Mapping | None) -> dict:
     name = str(profile_get("displayName", "")).strip()
     avatar_id = profile_get("avatarId")
     color = str(profile_get("color", "")).upper()
-    return {
+    result = {
         "displayName": name if _NAME.fullmatch(name) else DEFAULT_PROFILE["displayName"],
         "avatarId": avatar_id if isinstance(avatar_id, str) and avatar_id in AVATAR_IDS else DEFAULT_PROFILE["avatarId"],
         "color": color if _COLOR.fullmatch(color) else DEFAULT_PROFILE["color"],
     }
+    appearance = profile_get('appearance')
+    if isinstance(appearance, dict):
+        appearance = normalize_appearance(appearance)
+        result.update(appearance=appearance, avatarId=appearance['presetId'], color=appearance['colors']['top'])
+    return result

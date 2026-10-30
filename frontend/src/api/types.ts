@@ -1,4 +1,10 @@
 import type { components } from "./openapi";
+import type { AvatarAppearanceV2 } from '../avatar/types';
+export interface SavedAvatar {
+  appearance: AvatarAppearanceV2 | null;
+  revision: number;
+  ownerScopeToken: string;
+}
 export type DocumentDTO = components["schemas"]["DocumentDTO"] & {
   name?: string;
   description?: string;

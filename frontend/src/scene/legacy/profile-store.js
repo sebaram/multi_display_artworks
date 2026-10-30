@@ -1,4 +1,5 @@
 import { AVATAR_CATALOG } from './avatar-catalog.js';
+import { normalizeAppearance } from '../../avatar/appearance-core.js';
 
 const DEFAULT_PROFILE = Object.freeze({
   displayName: 'Visitor',
@@ -17,7 +18,7 @@ export function normalizeProfile(draft) {
   const avatarId = draft?.avatarId;
   const color = String(draft?.color ?? '').toUpperCase();
 
-  return {
+  const profile = {
     displayName: NAME_PATTERN.test(displayName)
       ? displayName
       : DEFAULT_PROFILE.displayName,
@@ -26,6 +27,13 @@ export function normalizeProfile(draft) {
       : DEFAULT_PROFILE.avatarId,
     color: COLOR_PATTERN.test(color) ? color : DEFAULT_PROFILE.color,
   };
+  if (draft?.appearance && AVATAR_CATALOG.casual) {
+    const appearance = normalizeAppearance(draft.appearance, { presets: Object.entries(AVATAR_CATALOG).map(([id, p]) => ({ id, ...p })) });
+    profile.appearance = appearance;
+    profile.avatarId = appearance.presetId;
+    profile.color = appearance.colors.top;
+  }
+  return profile;
 }
 
 export function isValidProfile(profile) {

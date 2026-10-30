@@ -11,7 +11,7 @@ def test_room_scene_excludes_secrets(client):
     assert scene['spawn_preset']['is_default']
     assert client.get(f"/api/v1/rooms/{rooms[0]['id']}/scene").json()['roomControlsEnabled']
     assert scene['walls'][0]['elements']
-    assert set(scene['avatarCatalog']) == {'shiba', 'robot', 'rigged-simple', 'none'}
+    assert set(scene['avatarCatalog']) == {'shiba', 'robot', 'rigged-simple', 'none', 'casual', 'sporty', 'explorer', 'humanoid-robot'}
     serialized = json.dumps(scene)
     for word in ['password', 'api_key', 'aframe_list', '<a-']:
         assert word not in serialized

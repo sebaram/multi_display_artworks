@@ -22,7 +22,11 @@ import { createRoomEffects } from "./room-effects.js";
 import { mountShare } from "./legacy/ui/share.js";
 import { mountSyncDebug } from "./legacy/ui/sync-debug.js";
 import qrcode from "qrcode-generator";
-import { refreshCsrf } from "../api/client";
+import { api, write, refreshCsrf } from "../api/client";
+import { loadAvatarCatalog } from '../avatar/catalog';
+import { normalizeAppearance } from '../avatar/appearance';
+import { mountAvatarEditor, type SavedAvatar } from '../features/avatar/AvatarEditor';
+import { mountAvatarXRPanel } from '../features/avatar/xr-panel';
 import type { RoomScene } from "../api/types";
 export async function startRealtime(
   scene: any,
@@ -31,6 +35,8 @@ export async function startRealtime(
   signal?: AbortSignal,
 ) {
   const socketCsrf = await refreshCsrf();
+  const catalog = await loadAvatarCatalog();
+  let saved = await api<SavedAvatar>('/api/v1/me/avatar');
   if (signal?.aborted) return { dispose() {} };
   const life = createLifetime(),
     timeouts = new Set<number>();
@@ -68,6 +74,19 @@ export async function startRealtime(
   signal?.addEventListener("abort", life.dispose, { once: true });
   life.add(() => signal?.removeEventListener("abort", life.dispose));
   let visitor = owned.visitorSession;
+  if (saved.appearance) visitor.profile = { ...visitor.profile, appearance: saved.appearance,
+    avatarId: saved.appearance.presetId, color: saved.appearance.colors.top };
+  updateVisitorSession({ storage: sessionStorage, visitorSession: visitor });
+  let closeEditor: (() => void) | undefined;
+  life.add(() => closeEditor?.());
+  async function saveAppearance(draft: any, scope = saved) {
+    const appearance = normalizeAppearance(draft.appearance ?? draft, catalog);
+    await refreshCsrf();
+    saved = await write('/api/v1/me/avatar', 'PUT', {
+      appearance, expectedRevision: scope.revision, ownerScopeToken: scope.ownerScopeToken,
+    });
+    return { ...draft, appearance: saved.appearance, avatarId: appearance.presetId, color: appearance.colors.top };
+  }
   const publisher = createPosePublisher();
   const renderer = createSceneRenderer({
     document,
@@ -117,6 +136,20 @@ export async function startRealtime(
     bootstrapData: data,
     visitorSession: visitor,
     document,
+    persistAppearance: saveAppearance,
+    onCustomize: () => {
+      if (closeEditor) return;
+      let scope = saved;
+      closeEditor = mountAvatarEditor({
+        catalog, initial: normalizeAppearance(panel.profile.appearance ?? panel.profile, catalog),
+        onApply: async appearance => { panel.applyProfile(await saveAppearance({ ...panel.profile, appearance }, scope)); },
+        onReload: async () => {
+          scope = saved = await api<SavedAvatar>('/api/v1/me/avatar');
+          return normalizeAppearance(scope.appearance ?? panel.profile, catalog);
+        },
+        onClose: () => { closeEditor = undefined; },
+      });
+    },
     persistVisitorSession: (nextVisitor: any = visitor) => {
       visitor = nextVisitor;
       updateVisitorSession({
@@ -130,6 +163,10 @@ export async function startRealtime(
     },
   });
   life.add(panel.destroy);
+  life.add(mountAvatarXRPanel({ scene, catalog,
+    current: () => normalizeAppearance(panel.profile.appearance ?? panel.profile, catalog),
+    apply: async appearance => { panel.applyProfile(await saveAppearance({ ...panel.profile, appearance })); },
+  }));
   let debug: any;
   const realtime = bootstrapRoomRealtime({
     bootstrapData: data,

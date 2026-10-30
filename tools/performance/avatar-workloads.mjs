@@ -74,7 +74,9 @@ export async function producers(spec) {
       socket.on('connect',()=>socket.emit('join_position_room',{room_id:spec.roomId,profile,position:{x:p.x,y:1.64,z:p.z},rotation:{x:0,y:180,z:0}}));socket.connect();
     });
     socket.io.engine.on('packet',packet=>{if(packet.type==='message')bytesIn+=typeof packet.data==='string'?Buffer.byteLength(packet.data):packet.data?.byteLength||0;});
-    socket.io.engine.transport.ws.on('close',(code,reason)=>transportClosures.push({id:client.visitorId,code,reason:String(reason),at:Date.now()}));
+    // Engine.IO clears transport.ws on close. Retain the actual owned handle and its event.
+    client.engine=socket.io.engine;client.transport=socket.io.engine.transport;client.webSocket=client.transport.ws;client.closeObserved=false;
+    client.webSocket.on('close',(code,reason)=>{client.closeObserved=true;transportClosures.push({id:client.visitorId,code,reason:String(reason),at:Date.now()});});
     socket.io.engine.on('packetCreate',packet=>{if(packet.type==='message'){
       bytesOut+=typeof packet.data==='string'?Buffer.byteLength(packet.data):packet.data?.byteLength||0;
       if(typeof packet.data==='string'&&packet.data.includes('["avatar_pose",')){const [,value]=JSON.parse(packet.data.slice(packet.data.indexOf('[')));actualSent++;if(mode==='fanout'||mode==='soak')sentKeys.add(`${client.visitorId}:${value.pose.sequence}`);}
@@ -87,14 +89,19 @@ export async function producers(spec) {
   });
   tick();interval=setInterval(tick,50);
   return {clients, reset(){received=sent=actualSent=receivedCohort=bytesIn=bytesOut=0;latestArrivalAgeMs=null;latencies.length=0;seen.clear();sentKeys.clear();lag.reset();elu=performance.eventLoopUtilization();}, snapshot(){return {received,sent,actualSent,receivedCohort,bytesIn,bytesOut,latencies,latestArrivalAgeMs,connected:clients.filter(c=>c.socket.connected).length,disconnects,transportClosures,eventLoop:performance.eventLoopUtilization(elu),lagMs:{mean:lag.mean/1e6,p95:lag.percentile(95)/1e6,p99:lag.percentile(99)/1e6,max:lag.max/1e6},receivedPerSender:Object.fromEntries(seen)};}, async close(){
-    clearInterval(interval);lag.disable();const started=Date.now();
-    const states=await Promise.all(clients.map(async c=>{const engine=c.socket.io.engine,transport=engine?.transport,ws=transport?.ws;let closeEvent=ws?.readyState===3;
-      const closed=new Promise(resolve=>{if(closeEvent||!ws)return resolve();let timer=setTimeout(resolve,5000);ws.once('close',()=>{closeEvent=true;clearTimeout(timer);resolve();});});
-      c.socket.disconnect();await closed;const forced=!!ws&&ws.readyState!==3;
-      if(forced){await new Promise(resolve=>{const timer=setTimeout(resolve,5000);ws.once('close',()=>{closeEvent=true;clearTimeout(timer);resolve();});ws.terminate();});}
-      return {id:c.visitorId,engine:engine?.readyState,transport:transport?.readyState,webSocket:ws?.readyState,closeEvent,forced};}));
-    return {elapsedMs:Date.now()-started,allClosed:states.every(s=>s.engine==='closed'&&s.webSocket===3&&s.closeEvent),states};
+    clearInterval(interval);lag.disable();return closeClients(clients);
   }};
+}
+export async function closeClients(clients) {
+  const started=Date.now();
+  const states=await Promise.all(clients.map(async c=>{
+    const {engine,transport,webSocket:ws}=c,closedBeforeRequested=ws?.readyState===3;
+    const closed=new Promise(resolve=>{if(closedBeforeRequested||!ws)return resolve();const timer=setTimeout(resolve,5000);ws.once('close',()=>{clearTimeout(timer);resolve();});});
+    c.socket.disconnect();await closed;const forced=!!ws&&ws.readyState!==3;
+    if(forced)await new Promise(resolve=>{const timer=setTimeout(resolve,5000);ws.once('close',()=>{clearTimeout(timer);resolve();});ws.terminate();});
+    return {id:c.visitorId,engine:engine?.readyState,transport:transport?.readyState,webSocket:ws?.readyState,closeEvent:c.closeObserved,closedBeforeRequested,forced};
+  }));
+  return {elapsedMs:Date.now()-started,allClosed:states.every(s=>s.engine==='closed'&&s.webSocket===3&&s.closeEvent),states};
 }
 const cli='C:/Program Files/nodejs/node_modules/npm/bin/npx-cli.js';
 export async function browserCode(source,name='active-avatar.js') {
@@ -183,12 +190,13 @@ if(mode==='selfcheck') {
         writeFileSync(resolve(out,'monitor-targets.json'),JSON.stringify({case:spec.id,phase:'render',browser_root_pid:browserPid,server_pids:[Number(process.env.AVATAR_SERVER_PID)],generator_pid:process.pid}));
         bots.reset();const start=Date.now()/1000,cpu=process.cpuUsage(),memory=process.memoryUsage();
         const row=await browserCode(`async(page)=>{return (${measure})(page,${JSON.stringify(spec)});}`);
-        const used=process.cpuUsage(cpu),end=Date.now()/1000;row.source=source;row.id=spec.id;row.botNetworkWindow={start,end,...bots.snapshot()};row.node={cpuCorePct:(used.user+used.system)/1e6/(end-start)*100,memoryBefore:memory,memoryAfter:process.memoryUsage()};
+        const used=process.cpuUsage(cpu),end=Date.now()/1000;row.source=source;row.id=spec.id;row.botNetworkWindow={start,end,...structuredClone(bots.snapshot())};row.node={cpuCorePct:(used.user+used.system)/1e6/(end-start)*100,memoryBefore:memory,memoryAfter:process.memoryUsage()};
+        row.connectionQuality={connectedAtEnclosingEnd:row.botNetworkWindow.connected,expected:spec.n,beforeTimedWindow:row.botNetworkWindow.disconnects.filter(d=>d.at<row.started_at*1000),duringTimedWindow:row.botNetworkWindow.disconnects.filter(d=>d.at>=row.started_at*1000&&d.at<=row.ended_at*1000),afterTimedWindow:row.botNetworkWindow.disconnects.filter(d=>d.at>row.ended_at*1000)};
         row.system_samples=systemWindow(row.started_at,row.ended_at);row.gpu_process_memory=await gpuSnapshot(row.processes_after.map(p=>p.id));
         if(['dry','active'].includes(mode))writeFileSync(resolve(out,mode==='active'?'active-joints-diagnostic.json':'dry-render.json'),JSON.stringify(row,null,2));else appendFileSync(raw,JSON.stringify(row)+'\n');
         console.log('END',spec.id,row.status,'fps',row.fps,'poseP95',row.poseP95,'ownerP95',row.ownerP95);
         if(row.status!=='ok')throw Error(JSON.stringify({errors:row.errors,failures:row.failures,readiness:row.readiness}));
-      }finally{await browserCode('async(page)=>{await page.goto("about:blank");return {closedObserver:true};}');const cleanup=await bots.close();appendFileSync(resolve(out,'transport-cleanup.jsonl'),JSON.stringify({id:spec.id,...cleanup})+'\n');assert.ok(cleanup.allClosed,'Producer WebSockets did not close.');await waitForQuiescence(spec.roomId,spec.id);}
+      }finally{await browserCode('async(page)=>{await page.goto("about:blank");return {closedObserver:true};}');const cleanup=await bots.close();appendFileSync(resolve(out,'transport-cleanup.jsonl'),JSON.stringify({id:spec.id,...cleanup,disconnectsAfterCleanup:structuredClone(bots.snapshot().disconnects),transportClosuresAfterCleanup:structuredClone(bots.snapshot().transportClosures)})+'\n');assert.ok(cleanup.allClosed,'Producer WebSockets did not close.');await waitForQuiescence(spec.roomId,spec.id);}
     }
   }else throw Error('Use selfcheck, dry, render, or fanout.');
 }

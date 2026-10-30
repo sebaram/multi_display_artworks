@@ -3,6 +3,7 @@ import asyncio
 import json
 import secrets
 import time
+from dataclasses import dataclass, field
 from functools import wraps
 from http.cookies import SimpleCookie, CookieError
 
@@ -26,10 +27,15 @@ class PacketManager(socketio.AsyncManager):
         skipped = skip_sid if isinstance(skip_sid, list) else [skip_sid]
         tasks = []
         encoded = self.server.packet_class(packet.EVENT, namespace=namespace, data=[event]+args).encode() if not callback else None
+        pose_batch = (_PoseBatch(tuple(encoded if isinstance(encoded, list) else [encoded]),
+                                 data.get('generation'), data['pose']['teleport'])
+                      if event == 'avatar_pose' and not callback else None)
         for sid, eio_sid in self.get_participants(namespace, to or room):
-            if sid in skipped:
+            if sid in skipped or not self.is_connected(sid, namespace):
                 continue
-            if callback:
+            if pose_batch is not None:
+                self.server.queue_avatar_pose(eio_sid, sid, namespace, (data['room_id'], data['userId']), pose_batch)
+            elif callback:
                 ack = self._generate_ack_id(sid, callback)
                 message = self.server.packet_class(packet.EVENT, namespace=namespace, data=[event]+args, id=ack)
                 tasks.append(self.server._send_packet(eio_sid, message))
@@ -39,21 +45,143 @@ class PacketManager(socketio.AsyncManager):
             await asyncio.gather(*tasks)
 
 
+@dataclass
+class _PoseBatch:
+    encoded: tuple
+    generation: str | None
+    teleport: bool
+    sticky_encoded: tuple | None = None
+
+    def packets(self, teleport, packet_class):
+        if not teleport or self.teleport:
+            return self.encoded
+        if self.sticky_encoded is None:
+            # Decode a private copy only for this rare variant; the shared base and
+            # authoritative latest presence stay untouched. All slow peers reuse it.
+            message = packet_class(encoded_packet=self.encoded[0])
+            for attachment in self.encoded[1:]:
+                message.add_attachment(attachment)
+            message.data[1]['pose']['teleport'] = True
+            self.sticky_encoded = tuple(message.encode())
+        return self.sticky_encoded
+
+
+@dataclass
+class _PendingPose:
+    batch: _PoseBatch
+    teleport: bool
+
+
+@dataclass
+class _PoseTarget:
+    sid: str
+    namespace: str
+    pending: dict = field(default_factory=dict)
+    wake: asyncio.Event = field(default_factory=asyncio.Event)
+    task: asyncio.Task | None = None
+
+
 class PacketServer(socketio.AsyncServer):
     def __init__(self, **kwargs):
         super().__init__(client_manager=PacketManager(), **kwargs)
         self._packet_locks = {}
+        self._pose_targets = {}
+        self._pose_stopping = False
+
+    def queue_avatar_pose(self, eio_sid, sid, namespace, source, batch):
+        if self._pose_stopping:
+            return
+        target = self._pose_targets.get(eio_sid)
+        if target is None:
+            target = self._pose_targets[eio_sid] = _PoseTarget(sid, namespace)
+            target.task = asyncio.create_task(self._drain_avatar_poses(eio_sid, target))
+        # Replacing an existing dict key preserves its turn among other sources.
+        previous = target.pending.get(source)
+        teleport = batch.teleport or bool(previous and previous.batch.generation == batch.generation and previous.teleport)
+        target.pending[source] = _PendingPose(batch, teleport)
+        target.wake.set()
+
+    async def _drain_avatar_poses(self, eio_sid, target):
+        try:
+            while self._pose_targets.get(eio_sid) is target:
+                await target.wake.wait()
+                while target.pending and self._pose_targets.get(eio_sid) is target:
+                    socket = self.eio.sockets.get(eio_sid)
+                    if (socket is None or socket.closed or socket.closing
+                            or not self.manager.is_connected(target.sid, target.namespace)):
+                        return
+                    # Engine.IO poll acknowledges queued packets before its physical send.
+                    # Allow one queued pose batch plus that current transport batch, never
+                    # an unbounded pose queue. Reliable controls retain their existing path.
+                    await socket.queue.join()
+                    async with self._packet_locks.setdefault(eio_sid, asyncio.Lock()):
+                        if (self._pose_targets.get(eio_sid) is not target or socket.closed or socket.closing
+                                or not self.manager.is_connected(target.sid, target.namespace)):
+                            return
+                        if not socket.queue.empty() or not target.pending:
+                            continue
+                        source = next(iter(target.pending))
+                        pending = target.pending.pop(source)
+                        encoded = pending.batch.packets(pending.teleport, self.packet_class)
+                        for part in encoded:
+                            if self._pose_targets.get(eio_sid) is not target:
+                                break
+                            await self.eio.send(eio_sid, part)
+                    await asyncio.sleep(0)
+                target.wake.clear()
+        except Exception:
+            self.logger.exception('Avatar pose writer failed for %s', eio_sid)
+        finally:
+            target.pending.clear()
+            if self._pose_targets.get(eio_sid) is target:
+                self._pose_targets.pop(eio_sid)
+
+    def purge_avatar_source(self, room, user):
+        for target in self._pose_targets.values():
+            target.pending.pop((room, user), None)
+
+    def purge_avatar_target_room(self, sid, room):
+        eio_sid = self.manager.eio_sid_from_sid(sid, '/')
+        target = self._pose_targets.get(eio_sid)
+        if target:
+            for source in list(target.pending):
+                if source[0] == room:
+                    target.pending.pop(source)
+
+    async def _stop_avatar_target(self, eio_sid):
+        target = self._pose_targets.pop(eio_sid, None)
+        if target:
+            target.pending.clear()
+            # Ping timeout can call disconnect from inside this very writer.
+            if target.task is not asyncio.current_task():
+                target.task.cancel()
+                await asyncio.gather(target.task, return_exceptions=True)
+
+    async def stop_avatar_relays(self):
+        self._pose_stopping = True
+        for eio_sid in list(self._pose_targets):
+            await self._stop_avatar_target(eio_sid)
+
+    async def shutdown(self):
+        await self.stop_avatar_relays()
+        await super().shutdown()
 
     async def _send_packet(self, eio_sid, message):
         await self._send_encoded_packet(eio_sid, message.encode())
 
     async def _send_encoded_packet(self, eio_sid, encoded):
         # Binary header + attachments must stay contiguous with snapshots, ACKs and ordinary events.
+        socket = self.eio.sockets.get(eio_sid)
+        if socket is None or socket.closed or socket.closing:
+            return
         async with self._packet_locks.setdefault(eio_sid, asyncio.Lock()):
+            if socket.closed or socket.closing:
+                return
             for part in encoded if isinstance(encoded, list) else [encoded]:
                 await self.eio.send(eio_sid, part)
 
     async def _handle_eio_disconnect(self, eio_sid, reason):
+        await self._stop_avatar_target(eio_sid)
         try:
             await super()._handle_eio_disconnect(eio_sid, reason)
         finally:
@@ -169,6 +297,7 @@ class Realtime:
         """Drain handlers before Mongo closes; cancel overdue async work boundedly."""
         self.stopping = True
         self.pending_joins.clear()
+        await self.sio.stop_avatar_relays()
         await self.wall_interactions.stop()
         tasks = (self.handler_tasks | self.database_tasks) - {asyncio.current_task()}
         if tasks:
@@ -200,6 +329,7 @@ class Realtime:
             await self.wall_interactions.design_announced(event, data)
 
     async def _left(self, event, sid):
+        self.sio.purge_avatar_source(event['room_id'], event['userId'])
         self.wall_interactions.left(sid, event['room_id'])
         await self.voice.left(event['room_id'], event['userId'], sid)
         await self.broadcast('user_left', event, room_id=event['room_id'])
@@ -244,11 +374,15 @@ class Realtime:
 
         @self.on('disconnect')
         async def disconnect(sid, reason=None):
+            await sio._stop_avatar_target(sio.manager.eio_sid_from_sid(sid, '/'))
             self.visitors.pop(sid, None)
             self.admin_sessions.pop(sid, None)
             self.pending_joins.pop(sid, None)
             self.ar.disconnect(sid)
-            for event in self.presence.leave_all(sid):
+            events = self.presence.leave_all(sid)
+            for event in events:
+                sio.purge_avatar_source(event['room_id'], event['userId'])
+            for event in events:
                 await self._left(event, sid)
 
         @self.on('join_position_room')
@@ -265,10 +399,13 @@ class Realtime:
                 current = self.finish_join(sid, 'presence', room, token)
             if not exists or not current or sid not in self.visitors or self.stopping:
                 return
+            self.sio.purge_avatar_source(room, identity.visitor_id)
+            self.sio.purge_avatar_target_room(sid, room)
             public, existing, displaced = self.presence.join(room, sid, identity.visitor_id,
                 data.get('profile'), data.get('position', '0 1.6 0'), data.get('rotation', '0 0 0'))
             await sio.enter_room(sid, presence_room(room))
             if displaced:
+                self.sio.purge_avatar_target_room(displaced, room)
                 self.wall_interactions.left(displaced, room)
                 await sio.leave_room(displaced, presence_room(room))
                 await sio.emit('voice.displaced', {'room_id': room}, to=displaced)
@@ -287,6 +424,7 @@ class Realtime:
             if not room:
                 return
             self.finish_join(sid, 'presence', room)
+            self.sio.purge_avatar_target_room(sid, room)
             event = self.presence.leave(room, sid)
             await sio.leave_room(sid, presence_room(room))
             if event:
@@ -323,6 +461,7 @@ class Realtime:
             room = room_id(data)
             event = self.presence.update_profile(room, sid, data.get('profile'))
             if event:
+                self.sio.purge_avatar_source(room, event['userId'])
                 await self.broadcast('profile_updated', event, room_id=room, skip_sid=sid)
 
         @self.on('request_room_state')

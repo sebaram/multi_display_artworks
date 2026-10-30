@@ -339,7 +339,10 @@ async def test_binary_avatar_concurrent_producers_snapshot_latejoin_and_reconnec
 @pytest.mark.asyncio
 async def test_binary_broadcast_encodes_once_and_retains_each_recipient_packet_batch(controlled_realtime):
     realtime = controlled_realtime
+    from engineio.async_socket import AsyncSocket
     from metamuseum.realtime.server import presence_room
+    for name in ['one', 'two']:
+        realtime.sio.eio.sockets[name] = AsyncSocket(realtime.sio.eio, name)
     first = await realtime.sio.manager.connect('one', '/')
     second = await realtime.sio.manager.connect('two', '/')
     await realtime.sio.enter_room(first,presence_room('r')); await realtime.sio.enter_room(second,presence_room('r'))
@@ -355,9 +358,14 @@ async def test_binary_broadcast_encodes_once_and_retains_each_recipient_packet_b
             encoded += 1
             return super().encode()
     realtime.sio.packet_class = CountPacket
-    await realtime.broadcast('avatar_pose', {'pose':avatar_packet()},room_id='r')
-    assert encoded == 1
-    assert len(sent) == 4
-    for recipient in ['one','two']:
-        frames=[data for sid,data in sent if sid==recipient]
-        assert isinstance(frames[0],str) and frames[1] == avatar_packet()['floats']
+    try:
+        await realtime.broadcast('avatar_pose', {'room_id':'r','userId':'owner','pose':avatar_packet()},room_id='r')
+        async with asyncio.timeout(.5):
+            while len(sent) < 4:
+                await asyncio.sleep(0)
+        assert encoded == 1
+        for recipient in ['one','two']:
+            frames=[data for sid,data in sent if sid==recipient]
+            assert isinstance(frames[0],str) and frames[1] == avatar_packet()['floats']
+    finally:
+        await realtime.sio.shutdown()

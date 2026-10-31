@@ -253,8 +253,7 @@ class Layout(BaseModel):
 def context(room_id):
     room = gallery.get('rooms', room_id)
     walls = gallery.walls(room)
-    elements = [item for wall in walls for model in (m.Image, m.GaussianSplat, m.GLTFmodel, m.Webpage)
-                for item in model.objects(wall=wall)]
+    elements = [item for wall in walls for item in gallery.wall_elements(wall)]
     return room, walls, elements
 
 
@@ -281,9 +280,11 @@ def validate_layout(proposal, room_id, *, upstream=False):
 
 def prompt_context(room_id, instruction):
     room, walls, elements = context(room_id)
+    owning_wall = {str(ref.pk if hasattr(ref, 'pk') else ref.id): wall.name
+                   for wall in walls for field in gallery.ELEMENTS.values() for ref in wall._data.get(field, [])}
     return json.dumps({'room': room.name, 'instruction': instruction,
         'walls': [dict(name=w.name, width=w.width, height=w.height, surface_type=w.surface_type) for w in walls],
-        'elements': [dict(id=str(e.pk), name=e.name, type=e.wall_element_type, wall_name=e.wall.name,
+        'elements': [dict(id=str(e.pk), name=e.name, type=e.wall_element_type, wall_name=owning_wall[str(e.pk)],
                           description=e.description) for e in elements]}, ensure_ascii=False)
 
 

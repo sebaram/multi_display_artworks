@@ -184,6 +184,48 @@ it("saves one returned document without remounting or losing another preview", a
   fireEvent.click(screen.getByRole("button", { name: /a image/ }));
   expect(screen.getByLabelText("가로 X")).toHaveValue(1.2);
 });
+it.each(["stale-wall", null])(
+  "keeps the displayed wall after an inspector save returns wall %s",
+  async (rawWall) => {
+    mount();
+    await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
+    fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+    fireEvent.change(screen.getByLabelText("작품 이름"), {
+      target: { value: "Edited artwork" },
+    });
+    fireEvent.change(screen.getByLabelText("가로 X"), {
+      target: { value: "1.2" },
+    });
+    expect(mocks.update).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: "a", wall: "w", position_x: 1.2 }),
+    ]);
+    mocks.write.mockResolvedValue({
+      ...element("a"),
+      wall: rawWall,
+      name: "Saved artwork",
+      position_x: 1.25,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "작품 변경 저장" }));
+    await screen.findByText("저장했습니다.");
+    expect(mocks.write.mock.calls[0][2]).not.toHaveProperty("wall");
+    expect(mocks.update).toHaveBeenLastCalledWith([
+      expect.objectContaining({
+        id: "a",
+        wall: "w",
+        name: "Saved artwork",
+        position_x: 1.25,
+      }),
+    ]);
+    fireEvent.change(screen.getByLabelText("세로 Y"), {
+      target: { value: "2.3" },
+    });
+    expect(mocks.update).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: "a", wall: "w", position_y: 2.3 }),
+    ]);
+    expect(mocks.mount).toHaveBeenCalledTimes(1);
+  },
+);
 it("replaces and disposes an open YouTube player when live designs change", async () => {
   mount();
   await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));

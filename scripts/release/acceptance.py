@@ -248,6 +248,10 @@ class Socket:
 db=MongoClient(os.environ['MONGODB_URI'])[os.environ['MONGODB_DB']]
 http=HTTP()
 def signature(value):return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+def check_membership(parent, fields, children, label):
+    expected=[str(ref.id if hasattr(ref,'id') else ref) for field in fields for ref in parent.get(field,[])]
+    check([child['id'] for child in children]==expected,label)
 def owned():
     return {name:db[collection].find_one({'name':C['token']}) for name,collection in
             [('room','room'),('wall','wall'),('preset','wall_design_presets')]}
@@ -283,7 +287,12 @@ def readonly():
     rooms=http.request('GET','/api/v1/rooms');check(rooms,'original_room_missing')
     room=db.room.find_one();wall=db.wall.find_one()
     check(room and wall,'original_room_wall_missing')
-    http.request('GET','/room?room_id='+str(room['_id']));http.request('GET','/api/v1/rooms/'+str(room['_id'])+'/scene')
+    http.request('GET','/room?room_id='+str(room['_id']))
+    scene=http.request('GET','/api/v1/rooms/'+str(room['_id'])+'/scene')
+    check_membership(room,('walls',),scene['walls'],'room_parent_list_membership')
+    for visible in scene['walls']:
+        saved=db.wall.find_one({'_id':ObjectId(visible['id'])});check(saved,'listed_wall_missing')
+        check_membership(saved,('images','splats','gltfs','webpages'),visible['elements'],'wall_parent_list_membership')
     http.request('GET','/wall?wall_id='+str(wall['_id']));http.request('GET','/api/v1/walls/'+str(wall['_id']))
     paths=[]
     for collection,field,kind,model_class in [('image','image_url','image','Image'),('gaussian_splat','splat_url','gaussian_splat','GaussianSplat'),('g_l_t_fmodel','gltf_url','gltf','GLTFmodel')]:

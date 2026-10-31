@@ -29,7 +29,7 @@ isArCompanion: boolean
 roomControlsEnabled: boolean
 ```
 
-Wall DTO: flat existing editable model fields, `id` as string, `room` as ID, `elements: ElementDTO[]`, `design: AppliedWallDesign|null`. `images/splats/gltfs/webpages` retain ordered ID lists when present. Vector `position/rotation` remain strings in database/public DTO, scene adapter parses them.
+Wall DTO: flat existing editable model fields, `id` as string, `room` as ID, `elements: ElementDTO[]`, `design: AppliedWallDesign|null`. `images/splats/gltfs/webpages` define membership and order, including empty lists. A missing/stale child `wall` field does not drop a listed artwork; an unlisted forward-only child is not displayed. `Room.walls` follows the same rule. Vector `position/rotation` remain strings in database/public DTO, scene adapter parses them.
 
 Element DTO: `id`, actual `wall_element_type` (`image`, `gaussian_splat`, `gltf`, `webpage`), `wall` ID and existing flat fields including position/position_x/y/scale/rotation and type-specific media source. Public DTO never contains user password/provider api_key. LocationPreset retains its existing `to_dict()` representation.
 

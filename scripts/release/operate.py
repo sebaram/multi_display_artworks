@@ -212,6 +212,16 @@ def probe_candidate_database(candidate):
              "--env-file", str(ENV_FILE), "--entrypoint", "python", candidate, "-c", code])
 
 
+def import_candidate_presets(container):
+    code = ("from metamuseum.config import Settings\n"
+            "from metamuseum.db import connect_database, disconnect_database\n"
+            "from metamuseum.services.wall_designs import import_defaults\n"
+            "settings=Settings(); connect_database(settings)\n"
+            "try:\n assert import_defaults(settings)==44\n"
+            "finally:\n disconnect_database()\n")
+    command(["docker", "exec", container, "python", "-c", code])
+
+
 def preflight(expected_image, candidate, candidate_sha, *, allow_missing_wall_media=False):
     require(IMAGE_ID.fullmatch(expected_image) is not None and IMAGE_ID.fullmatch(candidate) is not None,
             "Both production and candidate must use immutable sha256 image IDs")
@@ -539,6 +549,7 @@ def deploy(args):
         command(compose(attempt / "compose.private.json") + ["up", "-d", "--no-build", "--pull", "never", "--no-deps", "app"])
         require(inspect("container", CONTAINER)["Image"] == manifest["candidate_image"], "Running image differs from approved candidate")
         wait_health(args.private_port)
+        import_candidate_presets(CONTAINER)
         require_port_free(51736)
         held = {"release_dir": str(directory), "original_container_id": app["Id"], "production_image": app["Image"],
                 "candidate_image": manifest["candidate_image"], "candidate_sha": manifest["candidate_sha"],

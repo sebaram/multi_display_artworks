@@ -258,6 +258,11 @@ def clean():
 
 def readonly():
     http.request('GET','/health');http.request('GET','/')
+    if C.get('require_defaults'):
+        source=json.loads(Path('/app/web/wall-presets/manifest.json').read_text())['presets']
+        expected={item['source_key'] for item in source}
+        available={item['source_key'] for item in http.request('GET','/api/v1/wall-presets') if item['read_only']}
+        check(len(expected)==44 and expected<=available,'default_catalog_missing')
     csrf=http.request('GET','/api/v1/auth/csrf')['csrf_token']
     check(bool(http.cookie),'session_cookie_missing')
     check(http.request('GET','/api/v1/auth/session')=={'authenticated':False,'is_admin':False},'anonymous_session')
@@ -500,13 +505,14 @@ print(json.dumps({'count':count,'sha256':h.hexdigest()}))
         require({m["Destination"]:Path(m["Source"]).resolve() for m in app["Mounts"]}==
                 {destination:(DATA/name).resolve() for name,destination in MEDIA.items()},"Private hold live media mounts differ")
         # This worker mode has no account insertion, login, preset import or mutation.
-        result=worker(CONTAINER,"read",{"origin":"http://127.0.0.1:"+str(held["private_port"]),"stage_write":False})
+        result=worker(CONTAINER,"read",{"origin":"http://127.0.0.1:"+str(held["private_port"]),"stage_write":False,"require_defaults":True})
         require(live_before==json.loads(command(["docker","exec","-i",CONTAINER,"python","-"],data=user_script.encode())),
                 "Live account digests changed during read-only acceptance")
         selectors=result.pop("selectors")
         report.update(reads=result,media=[media_read("127.0.0.1",held["private_port"],path) for path in selectors["media"]],
                       staging_evidence_sha256=stage["evidence_sha256"],auth_material_preserved=True,account_digest=live_before,
                       scope="live reads and anonymous visitors/clock; positive login, upload, playback and restart proven on isolated same-image staging")
+        report['default_presets_44_visible']=True
         checks.update(health=result["health"],staging_login_and_preserved_auth=result["auth_cookie_and_denials"],
                       live_room_wall_image_splat_gltf=result["gallery"],live_two_visitors_realtime=result["two_visitors_and_clock"],
                       staging_preset_upload_apply_restart=True,staging_shared_mp4_and_live_clock=result["two_visitors_and_clock"])

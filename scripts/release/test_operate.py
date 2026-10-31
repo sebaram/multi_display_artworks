@@ -43,6 +43,17 @@ class SafetyChecks(unittest.TestCase):
             with self.assertRaises(self.release.ReleaseError):
                 self.release.probe_candidate_database("sha256:candidate")
 
+    def test_cutover_imports_packaged_defaults_without_seed_or_reset(self):
+        calls = []
+        with patch.object(self.release, "command", side_effect=lambda args: calls.append(args) or b""):
+            self.release.import_candidate_presets("private-app")
+        args = calls[0]
+        self.assertEqual(args[:5], ["docker", "exec", "private-app", "python", "-c"])
+        self.assertIn("import_defaults", args[-1])
+        self.assertIn("44", args[-1])
+        self.assertNotIn("seed", args[-1])
+        self.assertNotIn("drop", args[-1])
+
     def test_staging_refuses_symlink_into_live_media(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as root:
             live = Path(root) / "data"

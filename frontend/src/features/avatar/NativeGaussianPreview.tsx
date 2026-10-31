@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { loadAFrame } from '../../scene/mountRoom';
 import { evaluateFlame, loadFlameModel } from '../../avatar/flame-runtime';
 import { gaussianEyePose } from '../../avatar/gaussian-eye-pose';
@@ -8,7 +8,13 @@ const BASE = '/api/v1/dev/gaussian-avatar/';
 export type NativeDisplayState = { subject: '306'; sourceRevision: string; pose: 'canonical'; yaw: number; pitch: number; jawDeltaDegrees: number; expression0Delta: number; orbitDegrees: number; zoom: number };
 
 /** Actual private subject-306 geometry, driven by the same recorded lab output. */
-export default function NativeGaussianPreview({ gaze, appliedState }: { gaze: RefObject<GazeSnapshot | null>; appliedState: RefObject<NativeDisplayState | null> }) {
+export default function NativeGaussianPreview({ gaze, appliedState, summary, targetLabel, targetColor }: {
+  gaze: RefObject<GazeSnapshot | null>; appliedState: RefObject<NativeDisplayState | null>;
+  summary: GazeSnapshot | null; targetLabel: string; targetColor: string;
+}) {
+  const eyeId = useId();
+  const selected = summary?.scores.find(score => score.id === summary.targetId);
+  const yaw = summary?.yaw ?? 0, pitch = summary?.pitch ?? 0;
   const host = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState('로컬 GaussianAvatars 모델을 불러오는 중…');
   const [error, setError] = useState(''), [jaw, setJaw] = useState(0), [expression, setExpression] = useState(0);
@@ -86,7 +92,33 @@ export default function NativeGaussianPreview({ gaze, appliedState }: { gaze: Re
   return <section className="gaze-panel gaze-scene" aria-label="Native GaussianAvatars preview">
     <h2>네이티브 GaussianAvatars</h2>
     <p className="gaze-help">공식 306 샘플의 학습된 Gaussian을 실제 FLAME 삼각형에 결합해 렌더링합니다. 위 실험과 같은 시선 출력을 눈 관절에 적용합니다. 정렬된 머리 자세를 사용하며 카메라 회전은 시선 계산에 영향을 주지 않습니다.</p>
-    <div ref={host} data-native-avatar-state="loading" style={{ minHeight: 420, overflow: 'hidden', borderRadius: 8, background: '#dce4e8' }} />
+    <div className="gaze-native-layout">
+      <aside className="gaze-native-reference" aria-label="아바타와 함께 보는 시선 도식">
+        <h3>눈 회전 도식</h3>
+        <svg className="gaze-native-eyes" viewBox="0 0 356 390" role="img" aria-label="Gaussian 아바타와 같은 시선 방향을 보여주는 눈 회전 도식">
+          <ellipse cx="178" cy="190" rx="129" ry="156" fill="#e3e9df" />
+          {[126, 230].map((x, index) => <g key={x}>
+            <defs><clipPath id={`${eyeId}-${index}`}><ellipse cx={x} cy="161" rx="37" ry="24" /></clipPath></defs>
+            <ellipse cx={x} cy="161" rx="37" ry="24" fill="white" stroke="#98aaa0" strokeWidth="2" />
+            <g clipPath={`url(#${eyeId}-${index})`}>
+              <circle cx={x - Math.sin(yaw) * 29} cy={161 - Math.sin(pitch) * 29} r="13" fill="#477274" />
+              <circle cx={x - Math.sin(yaw) * 29} cy={161 - Math.sin(pitch) * 29} r="6" fill="#173b3e" />
+            </g>
+          </g>)}
+          <path d="M178 182 l-11 44 h21 M151 266 Q178 276 205 266" fill="none" stroke="#a4b4a6" strokeWidth="3" />
+        </svg>
+        <div className="gaze-native-target" data-gaze-target={summary?.targetId ?? ''}>
+          <span className="gaze-help">현재 타겟</span>
+          <strong><span aria-hidden="true" style={{ color: targetColor }}>●</span> {targetLabel}</strong>
+          <dl><div><dt>거리</dt><dd>{selected ? `${selected.distance.toFixed(2)} m` : '—'}</dd></div>
+            <div><dt>중심 각도</dt><dd>{selected ? `${selected.angleDegrees.toFixed(1)}°` : '—'}</dd></div>
+            <div><dt>점수</dt><dd>{selected?.score.toFixed(3) ?? '—'}</dd></div></dl>
+        </div>
+        <div className="gaze-native-angles"><span>yaw <strong>{(yaw * 180 / Math.PI).toFixed(1)}°</strong></span>
+          <span>pitch <strong>{(pitch * 180 / Math.PI).toFixed(1)}°</strong></span></div>
+      </aside>
+      <div ref={host} className="gaze-native-canvas" data-native-avatar-state="loading" />
+    </div>
     <p role="status">{status}</p>{error && <p role="alert">{error}</p>}
     <div className="gaze-fields">
       <label>카메라 회전 · {orbit}°<input aria-label="Native camera orbit" type="range" min="-70" max="70" value={orbit} onChange={e => setOrbit(+e.target.value)} /></label>

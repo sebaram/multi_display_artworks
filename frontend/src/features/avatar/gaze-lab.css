@@ -16,12 +16,24 @@
 .gaze-readout { display: flex; gap: 10px 24px; flex-wrap: wrap; padding: 16px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 .gaze-readout strong { display: inline-block; min-width: 38px; margin-left: 4px; color: #185b60; }
 .gaze-help, .gaze-lab .gaze-help { font-size: 12px; line-height: 1.6; font-weight: 400; color: #6d7b73; margin: 10px 0; }
-.gaze-table-wrap { overflow-x: auto; }
-.gaze-score-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gaze-table-wrap { height: 214px; overflow: auto; scrollbar-gutter: stable; overflow-anchor: none; }
+.gaze-score-table { width: 100%; min-width: 380px; table-layout: fixed; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 .gaze-score-table caption { text-align: left; padding: 12px 0; font-weight: 600; color: #65776c; }
 .gaze-score-table th, .gaze-score-table td { text-align: left; padding: 9px 8px; border-bottom: 1px solid #e4e9e2; white-space: nowrap; }
 .gaze-score-table thead { color: #718075; }
 .gaze-score-table .is-selected { color: #185b60; background: #edf4ed; }
+.gaze-native-layout { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); gap: 22px; align-items: start; }
+.gaze-native-reference { background: #f5f7f3; border-radius: 8px; padding: 16px; min-width: 0; }
+.gaze-native-reference h3 { font-size: 15px; margin: 0; }
+.gaze-native-eyes { display: block; width: 100%; height: 300px; }
+.gaze-native-target { background: white; border: 1px solid #dde4d9; border-radius: 8px; padding: 12px; }
+.gaze-native-target > strong { display: block; font-size: 19px; color: #185b60; margin: 4px 0 12px; }
+.gaze-native-target dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gaze-native-target dt { color: #6d7b73; }
+.gaze-native-target dd { margin: 5px 0 0; white-space: nowrap; }
+.gaze-native-angles { display: flex; justify-content: space-between; gap: 12px; padding-top: 14px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gaze-native-angles strong { color: #185b60; }
+.gaze-native-canvas { min-width: 0; min-height: 420px; overflow: hidden; border-radius: 8px; background: #dce4e8; }
 .gaze-controls { border: 0; padding: 0; margin: 0; min-width: 0; }
 .gaze-controls label, .gaze-target label { font-size: 12px; }
 .gaze-controls input, .gaze-controls select, .gaze-target input { padding: 7px 9px; }
@@ -63,4 +75,6 @@
   .gaze-fields { gap: 10px; }
   .gaze-file { width: 100%; }
   .gaze-actions button { flex-grow: 1; }
+  .gaze-native-layout { grid-template-columns: minmax(0, 1fr); }
+  .gaze-native-eyes { height: 220px; }
 }

@@ -210,6 +210,7 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
     });
     setMessage(`${log.samples.length} 프레임의 로컬 기록을 내보냈습니다.`);
   };
+  const selectedTarget = scene.targets.find(target => target.id === summary?.targetId);
 
   return <main className="page gaze-lab">
     <Link to="/tools" className="gaze-back">← 도구</Link>
@@ -232,6 +233,7 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
         </div>
         <p className="gaze-help">선택은 10 Hz, 평활화와 도식은 렌더 프레임마다 계산합니다. 수치·표는 최대 10 Hz로 갱신됩니다. 눈 회전은 head-local 각도입니다.</p>
         <div className="gaze-table-wrap"><table className="gaze-score-table"><caption>시야각·거리·가시성 검사를 통과한 대상</caption>
+          <colgroup><col style={{ width: '34%' }} /><col style={{ width: '18%' }} /><col style={{ width: '28%' }} /><col style={{ width: '20%' }} /></colgroup>
           <thead><tr><th scope="col">대상</th><th scope="col">점수</th><th scope="col">시야 중심 각도</th><th scope="col">거리</th></tr></thead>
           <tbody>{summary?.scores.length ? summary.scores.map(score => <tr key={score.id} className={summary.targetId === score.id ? 'is-selected' : ''}>
             <th scope="row">{score.id}{summary.targetId === score.id ? ' · 선택' : ''}</th><td>{score.score.toFixed(3)}</td><td>{score.angleDegrees.toFixed(1)}°</td><td>{score.distance.toFixed(2)} m</td>
@@ -241,7 +243,8 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
       <aside className="gaze-panel" aria-labelledby="gaze-config-heading"><h2 id="gaze-config-heading">시선 설정</h2><GazeControls config={config} onChange={changeConfig} /></aside>
     </div>
     <div className="gaze-actions gaze-scene"><button type="button" onClick={() => setShowNative(!showNative)}>{showNative ? 'GaussianAvatars 닫기' : '로컬 GaussianAvatars 열기'}</button></div>
-    {showNative && <Suspense fallback={<p role="status">네이티브 렌더러 로딩 중…</p>}><NativeGaussianPreview gaze={nativeGaze} appliedState={nativeDisplay} /></Suspense>}
+    {showNative && <Suspense fallback={<p role="status">네이티브 렌더러 로딩 중…</p>}><NativeGaussianPreview gaze={nativeGaze} appliedState={nativeDisplay}
+      summary={summary} targetLabel={selectedTarget?.label ?? '정면'} targetColor={selectedTarget?.color ?? '#185b60'} /></Suspense>}
     <section className="gaze-panel gaze-scene" aria-labelledby="gaze-scene-heading">
       <div className="gaze-section-heading"><div><h2 id="gaze-scene-heading">장면 입력</h2><p className="gaze-help">마이크·카메라 입력 없이 수동 신호를 사용합니다. 움직임은 기준 각도 ±35°의 결정적 진동입니다.</p></div>
         <label>머리 yaw · {scene.headYaw}°<input aria-label="머리 yaw" type="range" min="-180" max="180" step="1" value={scene.headYaw} onChange={event => changeScene({ ...scene, headYaw: event.target.valueAsNumber })} /></label>

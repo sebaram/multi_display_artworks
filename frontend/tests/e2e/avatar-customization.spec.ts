@@ -3,6 +3,9 @@ import { ROOM, login, mutate } from './helpers';
 const route = `/room?room_id=${ROOM}`;
 async function enter(page: Page) {
   await page.goto(route);
+  return visitorReady(page);
+}
+async function visitorReady(page: Page) {
   await expect(page.getByRole('button', { name: 'Visitor', exact: true })).toBeVisible({ timeout: 20000 });
   return page.evaluate(() => JSON.parse(sessionStorage.getItem('metamuseum.tab-visitor.v1')!));
 }
@@ -53,6 +56,7 @@ test('two tabs save isolated looks, cancel stays private, late join and reconnec
     return instance.root.getObjectByName('Body').material.userData.avatarColors.top.value.getHexString();
   });
   expect(palette).toBe('ff0000');
+  await late.close();
   await customize(page);
   await color(page, 'top color', '#00ff00');
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -61,16 +65,33 @@ test('two tabs save isolated looks, cancel stays private, late join and reconnec
   await expect(other.locator(`#camera-${first.visitorId}`)).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await expect.poll(() => remoteLook(other, first.visitorId)).toMatchObject({ colors: { top: '#FF0000' } });
-  await page.reload(); await expect(page.getByRole('button', { name: 'Visitor', exact: true })).toBeVisible();
+  await other.close();
+});
+
+test('reload and New visitor restore the latest saved appearance while live tabs keep their own look', async ({ page, context }) => {
+  test.setTimeout(60000);
+  const first = await enter(page);
+  await customize(page);
+  await page.getByLabel('Avatar preset', { exact: true }).selectOption('casual');
+  await color(page, 'top color', '#ff0000');
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'My avatar' })).toHaveCount(0);
+  const other = await context.newPage(); await enter(other); await customize(other);
+  await other.getByLabel('Avatar preset', { exact: true }).selectOption('sporty');
+  await color(other, 'top color', '#0000ff');
+  await other.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(other.getByRole('dialog', { name: 'My avatar' })).toHaveCount(0);
+  expect((await profile(page)).appearance.colors.top).toBe('#FF0000');
+  await other.close();
+  await page.reload(); await visitorReady(page);
   await expect.poll(() => profile(page)).toMatchObject({ appearance: { colors: { top: '#0000FF' } } });
   const previousName = (await profile(page)).displayName;
   await page.getByRole('button', { name: 'Visitor', exact: true }).click();
   await Promise.all([page.waitForEvent('load'), page.getByRole('button', { name: 'New visitor', exact: true }).click()]);
-  await expect(page.getByRole('button', { name: 'Visitor', exact: true })).toBeVisible();
+  await visitorReady(page);
   await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem('metamuseum.tab-visitor.v1')!).visitorId)).not.toBe(first.visitorId);
   expect((await profile(page)).appearance.colors.top).toBe('#0000FF');
   expect(previousName).toBeTruthy();
-  await late.close(); await other.close();
 });
 
 test('stale tab Apply reports revision conflict, keeps draft and supports reload at mobile width', async ({ page, context }) => {

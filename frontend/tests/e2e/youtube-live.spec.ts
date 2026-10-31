@@ -225,12 +225,14 @@ test("live public YouTube iframe API playback availability", async ({
       await expect
         .poll(
           () =>
-            page.evaluate(() =>
-              (window as any).__livePlayers[0].getCurrentTime(),
-            ),
+            page.evaluate(() => {
+              const player = (window as any).__livePlayers[0];
+              // Clock correction can seek ahead while the video is still buffering.
+              return player.getPlayerState() === 1 && player.getCurrentTime() > 0.5;
+            }),
           { timeout: 15000 },
         )
-        .toBeGreaterThan(0.5);
+        .toBe(true);
       await page
         .locator(".youtube-panel")
         .getByRole("button", { name: "공유 일시정지", exact: true })

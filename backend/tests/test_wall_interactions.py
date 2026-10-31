@@ -370,12 +370,19 @@ async def test_cancelled_http_waiter_cannot_release_running_wall_mutation(contro
 
 @pytest.mark.asyncio
 async def test_apply_order_removal_and_shutdown_clear_runtime(controlled):
+    from metamuseum.realtime.server import presence_room
+    from metamuseum.realtime.wall_displays import channel
     rt = controlled
     emitted = []
-    async def emit(event, data, **kwargs): emitted.append((event, data))
+    async def emit(event, data, **kwargs): emitted.append((event, kwargs['room']))
     rt.sio.emit = emit
     await rt.broadcast('wall.design_applied', design(), room_id='room')
-    assert [event for event, _ in emitted] == ['wall.design_applied', 'wall.interaction_state']
+    assert emitted == [
+        ('wall.design_applied', presence_room('room')),
+        ('wall.design_applied', channel('wall')),
+        ('wall.interaction_state', presence_room('room')),
+        ('wall.interaction_state', channel('wall')),
+    ]
     old = rt.wall_interactions.state('wall')
     await rt.broadcast('wall.design_applied', design(revision=2), room_id='room')
     assert rt.wall_interactions.state('wall')['sequence'] > old['sequence']

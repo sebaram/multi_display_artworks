@@ -222,9 +222,19 @@ def import_candidate_presets(container):
     command(["docker", "exec", container, "python", "-c", code])
 
 
+def dump_uri(uri):
+    from urllib.parse import urlsplit, unquote_plus
+    parsed = urlsplit(uri)
+    # PyMongo accepts DEFAULT; the host's Go database tools require it omitted.
+    query = [item for item in parsed.query.split("&") if not
+             (unquote_plus(item.partition("=")[0]).lower() == "authmechanism" and
+              unquote_plus(item.partition("=")[2]).upper() == "DEFAULT")]
+    return parsed._replace(query="&".join(query)).geturl()
+
+
 def dump_mongo(env, output):
     result = subprocess.run(["docker", "exec", "-i", MONGO, "mongodump", "--config=/dev/stdin", "--archive", "--gzip", "--db", env["MONGODB_DB"]],
-                            input=json.dumps({"uri": env["MONGODB_URI"]}).encode(), stdout=output, stderr=subprocess.PIPE)
+                            input=json.dumps({"uri": dump_uri(env["MONGODB_URI"])}).encode(), stdout=output, stderr=subprocess.PIPE)
     if result.returncode:
         from urllib.parse import urlsplit, unquote, quote_plus
         uri = env["MONGODB_URI"]

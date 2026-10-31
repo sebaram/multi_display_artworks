@@ -65,6 +65,17 @@ class SafetyChecks(unittest.TestCase):
         self.assertNotIn("operator", message)
         self.assertIn("Mongo dump failed", message)
 
+    def test_dump_maps_default_auth_alias_without_changing_live_uri(self):
+        uri = "mongodb://user:p%40ss@mongo_container/metamuseum?authSource=admin&authMechanism=DEFAULT&retryWrites=false"
+        env = {"MONGODB_URI": uri, "MONGODB_DB": "metamuseum"}
+        with patch.object(self.release.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+            self.release.dump_mongo(env, None)
+        sent = json.loads(run.call_args.kwargs["input"])["uri"]
+        self.assertEqual(sent, uri.replace("&authMechanism=DEFAULT", ""))
+        self.assertEqual(env["MONGODB_URI"], uri)
+        explicit = uri.replace("DEFAULT", "SCRAM-SHA-256")
+        self.assertEqual(self.release.dump_uri(explicit), explicit)
+
     def test_staging_refuses_symlink_into_live_media(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as root:
             live = Path(root) / "data"

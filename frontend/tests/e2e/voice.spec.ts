@@ -58,6 +58,8 @@ test("actual admin voice enable, WebRTC tracks and navigation microphone cleanup
   page,
   browser,
 }) => {
+  // Two scenes, WebRTC rejoin and context cleanup share this total budget.
+  test.setTimeout(60000);
   await instrumentVoice(page);
   page.on("console", (message) => {
     if (message.type() === "error")

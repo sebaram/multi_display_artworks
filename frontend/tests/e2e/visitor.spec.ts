@@ -1,27 +1,36 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { ROOM } from "./helpers";
-const visitor = async (page: any) =>
-  page.evaluate(() =>
+async function visitorReady(page: Page) {
+  await expect(
+    page.getByRole("button", { name: "Visitor", exact: true }),
+  ).toBeVisible({ timeout: 20000 });
+  const visitor = await page.evaluate(() =>
     JSON.parse(sessionStorage.getItem("metamuseum.tab-visitor.v1") || "null"),
   );
+  expect(visitor?.visitorId).toBeTruthy();
+  expect(visitor?.capability).toBeTruthy();
+  return visitor;
+}
+
 test("visitor identity survives reload, separates tabs and user=new", async ({
   page,
   context,
 }) => {
   await page.goto(`/room?room_id=${ROOM}`);
-  await expect.poll(async () => (await visitor(page))?.visitorId).toBeTruthy();
-  const first = await visitor(page);
+  const first = await visitorReady(page);
   await page.reload();
-  await expect
-    .poll(async () => (await visitor(page))?.visitorId)
-    .toBe(first.visitorId);
+  expect(await visitorReady(page)).toMatchObject({
+    visitorId: first.visitorId,
+    capability: first.capability,
+  });
   const other = await context.newPage();
   await other.goto(`/room?room_id=${ROOM}`);
-  await expect.poll(async () => (await visitor(other))?.visitorId).toBeTruthy();
-  expect((await visitor(other)).visitorId).not.toBe(first.visitorId);
+  const second = await visitorReady(other);
+  expect(second.visitorId).not.toBe(first.visitorId);
+  expect(second.capability).not.toBe(first.capability);
   await page.goto(`/room?room_id=${ROOM}&user=new`);
-  await expect
-    .poll(async () => (await visitor(page))?.visitorId)
-    .not.toBe(first.visitorId);
+  const replacement = await visitorReady(page);
+  expect(replacement.visitorId).not.toBe(first.visitorId);
+  expect(replacement.capability).not.toBe(first.capability);
   await other.close();
 });

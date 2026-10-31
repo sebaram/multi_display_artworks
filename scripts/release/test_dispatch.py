@@ -15,6 +15,11 @@ REPO = "sebaram/multi_display_artworks"
 
 
 class DispatchTests(unittest.TestCase):
+    def test_staging_selects_distinct_available_ports_outside_production(self):
+        ports = dispatch.staging_ports()
+        self.assertEqual(len(set(ports)), 2)
+        self.assertTrue(all(1024 <= port <= 65535 and port not in (51736, 51739) for port in ports))
+
     def test_release_and_attempt_paths_stay_in_private_state(self):
         home = Path(tempfile.gettempdir()) / "operator"
         release, attempt = dispatch.release_paths(home, "v2-rc1", "cutover-20261031T120000Z-123")

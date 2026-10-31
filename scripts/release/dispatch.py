@@ -1,9 +1,11 @@
 """Manual Actions entry point; backups and private evidence never leave this host."""
 import argparse
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path
 import re
+import socket
 import subprocess
 import sys
 import urllib.parse
@@ -26,6 +28,21 @@ def require(condition, message):
 def validate_sha(value):
     require(re.fullmatch(r"[0-9a-f]{40}", value or ""), "Candidate SHA must be 40 lowercase hexadecimal characters")
     return value
+
+
+def staging_ports():
+    # Other host services already occupy the old staging defaults.
+    ports = []
+    with ExitStack() as stack:
+        for _ in range(4):
+            listener = stack.enter_context(socket.socket())
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+            if port not in (51736, 51739):
+                ports.append(port)
+            if len(ports) == 2:
+                return ports
+    raise DispatchError("Could not select two isolated staging ports")
 
 
 def release_paths(home, release_id, attempt_id=""):
@@ -159,9 +176,11 @@ def execute(args):
                 re.fullmatch(r"sha256:[0-9a-f]{64}", baseline.get("running_image_id", "")), "Verified legacy production source/image evidence is incomplete")
         old_sha = validate_sha(baseline.get("source_sha"))
         image = candidate_image(args.candidate_dir, sha, args.repository)
+        candidate_port, legacy_port = staging_ports()
         helper("operate.py", ["prepare", "--release-dir", directory, "--expected-production-image", baseline["running_image_id"],
                               "--candidate-image", image, "--candidate-sha", sha, "--production-sha", old_sha,
-                              "--production-sha-evidence", evidence, "--confirm-exclusive-app-writer"])
+                              "--production-sha-evidence", evidence, "--staging-port", candidate_port,
+                              "--rollback-port", legacy_port, "--confirm-exclusive-app-writer"])
     elif args.operation in ("accept-staging", "accept-private", "close-staging"):
         require(args.operator, "Acceptance requires the initiating operator identity")
         helper("acceptance.py", ["close-staging" if args.operation == "close-staging" else "private" if needs_attempt else "staging", "--attempt-dir" if needs_attempt else "--release-dir",

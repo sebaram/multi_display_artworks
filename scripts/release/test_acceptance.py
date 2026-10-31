@@ -158,7 +158,7 @@ class SocketFraming(unittest.TestCase):
             def request(self, *args, **kwargs): pass
             def getresponse(self): return Response()
             def close(self): pass
-        namespace = {"json": json, "C": {"origin": "http://127.0.0.1:5000"},
+        namespace = {"json": json, "re": release.re, "C": {"origin": "http://127.0.0.1:5000"},
                      "http_client": type("HTTPClient", (), {"HTTPConnection": lambda *a, **k: Connection()}),
                      "check": lambda value, label: self.assertTrue(value, label)}
         node = next(node for node in ast.parse(release.WORKER).body if isinstance(node, ast.ClassDef) and node.name == "HTTP")

@@ -173,7 +173,7 @@ def legacy_after_writes(resources, manifest, directory, selectors, owned_room):
 # This runs inside the immutable candidate image, using its installed dependencies.
 # No stdout contains records, cookies, capabilities, passwords or exception text.
 WORKER = r'''
-import hashlib,json,os,secrets,subprocess,tempfile,time
+import hashlib,json,os,re,secrets,subprocess,tempfile,time
 import http.client as http_client
 from http.cookies import SimpleCookie
 from pathlib import Path
@@ -202,7 +202,8 @@ class HTTP:
                     cookie=SimpleCookie();cookie.load(v)
                     check(all(m['secure'] and m['httponly'] and m['samesite'].lower()=='lax' for m in cookie.values()),'cookie_flags')
                     self.cookie='; '.join(k+'='+v.value for k,v in cookie.items())
-            check(r.status==status,'http_status')
+            route=re.sub(r'[a-f0-9]{24}','<id>',path.split('?',1)[0])
+            check(r.status==status,'http_status '+method+' '+route+' expected '+str(status)+' actual '+str(r.status))
             return json.loads(data) if 'application/json' in r.getheader('Content-Type','') and data else data
         finally:c.close()
     def login(self):

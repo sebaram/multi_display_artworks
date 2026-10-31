@@ -54,12 +54,12 @@ it('keeps the editor pending until Apply resolves and Cancel never applies a dra
   const view = render(createElement(AvatarEditor, { catalog, initial,
     onApply: async look => { applied.push(look); await pending; },
     onReload: async () => initial, onClose: () => { closed.push(true); } }));
-  fireEvent.change(screen.getByLabelText('top color'), { target: { value: '#abcdef' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  fireEvent.change(screen.getByLabelText('상의 색상'), { target: { value: '#abcdef' } });
+  fireEvent.click(screen.getByRole('button', { name: '취소' }));
   expect(applied).toHaveLength(0);
   expect(closed).toHaveLength(1);
-  fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
-  expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: '적용' }));
+  expect(screen.getByRole('button', { name: '취소' })).toBeDisabled();
   expect(closed).toHaveLength(1);
   finish();
   await waitFor(() => expect(closed).toHaveLength(2));

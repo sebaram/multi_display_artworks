@@ -155,12 +155,12 @@ it.each(["element"] as const)(
       onCustomize: undefined,
     });
     profiles.push(panel);
-    fireEvent.click(screen.getByRole("button", { name: "Visitor" }));
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    fireEvent.change(screen.getByLabelText("Display name"), {
+    fireEvent.click(screen.getByRole("button", { name: "방문자" }));
+    fireEvent.click(screen.getByRole("button", { name: "편집" }));
+    fireEvent.change(screen.getByLabelText("표시 이름"), {
       target: { value: "Renamed visitor" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
     expect(panel.profile).toMatchObject({
       displayName: "Renamed visitor",
       avatarId: "casual",

@@ -112,7 +112,7 @@ async function navigate(id: "A" | "B") {
 function editCurrent(id: string) {
   fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
   fireEvent.click(
-    screen.getByRole("button", { name: new RegExp(`Artwork ${id} image`) }),
+    screen.getByRole("button", { name: new RegExp(`Artwork ${id} 이미지`) }),
   );
   fireEvent.change(screen.getByLabelText("가로 X"), {
     target: { value: "4.2" },

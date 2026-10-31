@@ -37,7 +37,7 @@ it("resolves a selected reference beyond page one and incrementally loads additi
     <Field
       field={{
         name: "wall",
-        label: "대상 월",
+        label: "Wall",
         type: "reference",
         reference: "walls",
         required: true,
@@ -49,7 +49,7 @@ it("resolves a selected reference beyond page one and incrementally loads additi
     />,
   );
   await screen.findByRole("option", { name: "Selected 201" });
-  expect(screen.getByLabelText("대상 월", { exact: false })).toHaveValue("201");
+  expect(screen.getByLabelText("월", { exact: false })).toHaveValue("201");
   expect(api).toHaveBeenCalledWith("/api/v1/admin/walls/201");
   fireEvent.click(screen.getByRole("button", { name: /선택지 더 불러오기/ }));
   await screen.findByRole("option", { name: "Additional 202" });
@@ -58,7 +58,7 @@ it("resolves a selected reference beyond page one and incrementally loads additi
       screen.queryByRole("button", { name: /선택지 더 불러오기/ }),
     ).toBeNull(),
   );
-  fireEvent.change(screen.getByLabelText("대상 월", { exact: false }), {
+  fireEvent.change(screen.getByLabelText("월", { exact: false }), {
     target: { value: "202" },
   });
   expect(change).toHaveBeenCalledWith("202");

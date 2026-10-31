@@ -120,9 +120,10 @@ class AcceptanceGuards(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as root:
             directory = Path(root)
             stage = directory / "staging-candidate"
-            resource = dict(app_container="stage-app", mongo_container="stage-mongo", image="sha256:candidate", network="stage-net", loopback_port=51737)
+            resource = dict(app_container="stage-app", mongo_container="stage-mongo", image="sha256:candidate", network="stage-net", http_scope="isolated-bridge", http_port=5000)
             app = {"Name": "/stage-app", "Id": "app-id", "Image": resource["image"], "State": {"Running": True},
-                   "NetworkSettings": {"Networks": {"stage-net": {}}, "Ports": {"5000/tcp": [{"HostIp": "127.0.0.1", "HostPort": "51737"}]}},
+                   "NetworkSettings": {"Networks": {"stage-net": {"IPAddress": "172.25.0.3"}}, "Ports": {"5000/tcp": None}},
+                   "HostConfig": {"PortBindings": {}},
                    "Config": {"Env": ["MONGODB_URI=mongodb://mongo_container:27017/metamuseum", "MONGODB_DB=metamuseum"]},
                    "Mounts": [{"Destination": target, "Type": "bind", "Source": str(stage / "media" / name)} for name, target in release.MEDIA.items()]}
             mongo = {"Name": "/stage-mongo", "Id": "mongo-id", "State": {"Running": True},
@@ -132,7 +133,7 @@ class AcceptanceGuards(unittest.TestCase):
             network = {"Name": "stage-net", "Internal": True, "Containers": {"app-id": {}, "mongo-id": {}}}
             with patch.object(release, "require_path"):
                 release.validate_stage(directory, "candidate", resource, app, mongo, network, resource["image"])
-                for mutation in ("extra-network", "live-mount", "external-network", "other-container", "live-mongo-uri", "missing-configdb", "live-configdb"):
+                for mutation in ("extra-network", "live-mount", "external-network", "other-container", "live-mongo-uri", "missing-configdb", "live-configdb", "published-port"):
                     a, m, n = copy.deepcopy(app), copy.deepcopy(mongo), copy.deepcopy(network)
                     if mutation == "extra-network": a["NetworkSettings"]["Networks"]["production"] = {}
                     elif mutation == "live-mount": a["Mounts"][0]["Source"] = str(release.DATA / "static_splat")
@@ -140,6 +141,7 @@ class AcceptanceGuards(unittest.TestCase):
                     elif mutation == "other-container": n["Containers"]["production"] = {}
                     elif mutation == "live-mongo-uri": a["Config"]["Env"][0] = "MONGODB_URI=mongodb://production:27017/metamuseum"
                     elif mutation == "missing-configdb": m["Mounts"].pop()
+                    elif mutation == "published-port": a["HostConfig"]["PortBindings"] = {"5000/tcp": [{"HostIp": "0.0.0.0", "HostPort": "51737"}]}
                     else: m["Mounts"][1]["Source"] = str(release.DATA / "mongo-configdb")
                     with self.subTest(mutation=mutation), self.assertRaises(release.ReleaseError):
                         release.validate_stage(directory, "candidate", resource, a, m, n, resource["image"])

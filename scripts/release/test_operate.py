@@ -19,6 +19,18 @@ class SafetyChecks(unittest.TestCase):
         cls.release = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.release)
 
+    def test_bridge_address_requires_only_the_private_staging_network(self):
+        def app(address, extra=False):
+            networks = {"stage-net": {"IPAddress": address}}
+            if extra: networks["production"] = {"IPAddress": "172.18.0.2"}
+            return {"NetworkSettings": {"Networks": networks}}
+        self.assertEqual(self.release.stage_address(app("172.25.0.3"), "stage-net"), "172.25.0.3")
+        for address in ("", "127.0.0.1", "0.0.0.0", "8.8.8.8", "169.254.1.1"):
+            with self.subTest(address=address), self.assertRaises(self.release.ReleaseError):
+                self.release.stage_address(app(address), "stage-net")
+        with self.assertRaises(self.release.ReleaseError):
+            self.release.stage_address(app("172.25.0.3", extra=True), "stage-net")
+
     def test_staging_refuses_live_directory_or_parent(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as root:
             live = Path(root) / "data"

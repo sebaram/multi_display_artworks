@@ -26,7 +26,7 @@ CHECKS = (
     "candidate_room_wall_image_splat_and_both_gltf_files",
     "candidate_preset_upload_apply_and_restart_persistence",
     "candidate_two_visitors_realtime_and_shared_mp4",
-    "private_port_acceptance_access_ready",
+    "isolated_bridge_acceptance_complete",
 )
 PRIVATE_CHECKS = ("health", "staging_login_and_preserved_auth", "live_room_wall_image_splat_gltf", "live_two_visitors_realtime",
                   "staging_preset_upload_apply_restart", "staging_shared_mp4_and_live_clock")
@@ -398,10 +398,22 @@ def wait_mongo(container):
     raise ReleaseError("Isolated Mongo did not become ready")
 
 
-def wait_health(port):
+def stage_address(app, network):
+    from ipaddress import IPv4Address
+    require(set(app["NetworkSettings"]["Networks"]) == {network}, "Staging app has an unreviewed network")
+    try:
+        address = IPv4Address(app["NetworkSettings"]["Networks"][network]["IPAddress"])
+    except (ValueError, KeyError):
+        raise ReleaseError("Staging app has no valid bridge address") from None
+    require(address.is_private and not (address.is_loopback or address.is_link_local or address.is_unspecified or address.is_multicast),
+            "Staging app bridge address is not private")
+    return str(address)
+
+
+def wait_health(port, host="127.0.0.1"):
     for _ in range(60):
         try:
-            with urllib.request.urlopen("http://127.0.0.1:" + str(port) + "/health", timeout=3) as response:
+            with urllib.request.urlopen("http://" + host + ":" + str(port) + "/health", timeout=3) as response:
                 if response.status == 200:
                     return
         except (OSError, ValueError):
@@ -416,7 +428,7 @@ def mongo_bind_paths(stage, declared_volumes):
     return {"/data/db": stage / "mongo", "/data/configdb": stage / "mongo-configdb"}
 
 
-def staging(directory, token, role, image, mongo_image, env, port, app):
+def staging(directory, token, role, image, mongo_image, env, app):
     network = "metamuseum-release-" + token + "-" + role
     mongo_name = network + "-mongo"
     app_name = network + "-app"
@@ -448,12 +460,12 @@ def staging(directory, token, role, image, mongo_image, env, port, app):
         for key in ("PATH", "PYTHONPATH", "PYTHON_VERSION", "PYTHON_PIP_VERSION", "PYTHON_GET_PIP_URL", "PYTHON_GET_PIP_SHA256", "GPG_KEY"):
             stage_env.pop(key, None)
         stage_env.update(ENVIRONMENT="production", MEDIA_ROOT="/app/metamuseum/static", FRONTEND_ROOT="/app/web",
-                         ALLOWED_ORIGINS=json.dumps(["http://localhost:" + str(port), "http://127.0.0.1:" + str(port)]))
+                         ALLOWED_ORIGINS=json.dumps(["http://localhost:5000", "http://127.0.0.1:5000"]))
     require(all("\n" not in value and "\r" not in value for value in stage_env.values()), "Multiline runtime environment requires an explicit export procedure")
     env_path = stage / "app.env"
     env_path.write_text("".join(key + "=" + value + "\n" for key, value in stage_env.items()))
     args = ["docker", "run", "-d", "--name", app_name, "--label", "metamuseum.release=" + token, "--network", network,
-            "-p", "127.0.0.1:" + str(port) + ":5000", "--env-file", str(env_path)]
+            "--env-file", str(env_path)]
     for name, destination in MEDIA.items():
         if role == "legacy" and destination not in {mount["Destination"] for mount in app["Mounts"]}:
             continue
@@ -472,9 +484,10 @@ def staging(directory, token, role, image, mongo_image, env, port, app):
     else:
         args.append(image)
     command(args)
-    wait_health(port)
-    save(stage / "resources.json", {"network": network, "mongo_container": mongo_name, "app_container": app_name, "image": image, "loopback_port": port,
+    save(stage / "resources.json", {"network": network, "mongo_container": mongo_name, "app_container": app_name, "image": image,
+         "http_scope": "isolated-bridge", "http_port": 5000,
          "mongo_bind_paths": {destination: str(source) for destination, source in mongo_paths.items()}})
+    wait_health(5000, host=stage_address(inspect("container", app_name), network))
 
 
 def prepare(args):
@@ -487,10 +500,6 @@ def prepare(args):
     directory = args.release_dir
     assert_isolated(directory, [DATA] + [mount["Source"] for mount in mongo["Mounts"] if mount.get("Source")])
     require(not directory.exists(), "Use a new private release directory for each preparation attempt")
-    require(args.staging_port != args.rollback_port and all(1024 <= port <= 65535 and port != 51736 for port in (args.staging_port, args.rollback_port)),
-            "Staging ports must be distinct unprivileged loopback ports outside production")
-    require_port_free(args.staging_port)
-    require_port_free(args.rollback_port)
     require_snapshot_space(directory, app, env)
     directory.mkdir(parents=True, mode=0o700)
     original_compose(app, directory)
@@ -502,8 +511,8 @@ def prepare(args):
     snapshot(directory / "snapshot", app, env, restart=True)
     print("Original app restarted; restoring independent candidate and legacy copies.", flush=True)
     token = hashlib.sha256(str(directory).encode()).hexdigest()[:12]
-    staging(directory, token, "candidate", args.candidate_image, mongo["Image"], env, args.staging_port, app)
-    staging(directory, token, "legacy", app["Image"], mongo["Image"], env, args.rollback_port, app)
+    staging(directory, token, "candidate", args.candidate_image, mongo["Image"], env, app)
+    staging(directory, token, "legacy", app["Image"], mongo["Image"], env, app)
     manifest = {"production_image": app["Image"], "production_sha": args.production_sha,
                 "candidate_image": args.candidate_image, "candidate_sha": args.candidate_sha, "mongo_image": mongo["Image"],
                 "prepared_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -698,8 +707,6 @@ def main():
     prep.add_argument("--candidate-sha", required=True)
     prep.add_argument("--production-sha", required=True)
     prep.add_argument("--production-sha-evidence", type=Path, required=True)
-    prep.add_argument("--staging-port", type=int, default=51737)
-    prep.add_argument("--rollback-port", type=int, default=51738)
     prep.add_argument("--confirm-exclusive-app-writer", action="store_true")
     cutover = sub.add_parser("deploy", help="Stop public app, final paired snapshot, and hold candidate privately for acceptance")
     cutover.add_argument("--release-dir", type=Path, required=True)

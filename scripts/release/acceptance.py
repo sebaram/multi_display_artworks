@@ -16,7 +16,7 @@ import time
 from urllib.parse import urlsplit
 
 from inventory import CONTAINER, DATA, MEDIA, ReleaseError, command, environment, inspect
-from operate import CHECKS, PRIVATE_CHECKS, assert_isolated, digest, require, require_path, wait_health
+from operate import CHECKS, PRIVATE_CHECKS, assert_isolated, digest, require, require_path, wait_health, stage_address
 
 
 def read(path):
@@ -52,9 +52,10 @@ def validate_stage(directory, role, resource, app, mongo, network, expected_imag
             set(network.get("Containers", {})) == {app["Id"], mongo["Id"]}, "Staging network is not exclusive/internal")
     require(all(set(item["NetworkSettings"]["Networks"]) == {expected_network} for item in (app, mongo)),
             "Staging container has an additional network")
-    require(app["NetworkSettings"]["Ports"].get("5000/tcp") ==
-            [{"HostIp": "127.0.0.1", "HostPort": str(resource["loopback_port"])}] and
-            resource["loopback_port"] not in (51736, 51739), "Staging port is not isolated loopback")
+    require(app["NetworkSettings"]["Ports"].get("5000/tcp") is None and not app["HostConfig"].get("PortBindings") and
+            resource.get("http_scope") == "isolated-bridge" and resource.get("http_port") == 5000,
+            "Staging must have no host/public port mapping")
+    stage_address(app, expected_network)
     mounts = {item["Destination"]: item for item in app["Mounts"]}
     expected = {destination: (stage / "media" / name).resolve() for name, destination in MEDIA.items()}
     if role == "legacy" and MEDIA["wall_media"] not in mounts:
@@ -123,8 +124,7 @@ def legacy_after_writes(resources, manifest, directory, selectors, owned_room):
     app = inspect("container", candidate["app_container"])
     old = inspect("container", legacy["app_container"])
     name = candidate["app_container"] + "-rollback-proof"
-    args = ["docker", "run", "-d", "--name", name, "--network", candidate["network"],
-            "-p", "127.0.0.1:" + str(candidate["loopback_port"]) + ":5000", "--env-file",
+    args = ["docker", "run", "-d", "--name", name, "--network", candidate["network"], "--env-file",
             str(directory / "staging-candidate/app.env")]
     entrypoint = old["Config"].get("Entrypoint") or []
     args += ["--entrypoint", entrypoint[0] if entrypoint else ""]
@@ -141,23 +141,24 @@ def legacy_after_writes(resources, manifest, directory, selectors, owned_room):
     created = False
     try:
         command(args);created = True
-        wait_health(candidate["loopback_port"])
+        rollback_host = stage_address(inspect("container", name), candidate["network"])
+        wait_health(5000, host=rollback_host)
         for path in ("/", "/room?room_id=" + selectors["room"], "/room?room_id=" + owned_room,
                      "/wall?wall_id=" + selectors["wall"]):
-            connection = http.client.HTTPConnection("127.0.0.1", candidate["loopback_port"], timeout=20)
+            connection = http.client.HTTPConnection(rollback_host, 5000, timeout=20)
             try:
                 connection.request("GET", path);response = connection.getresponse()
                 require(response.status == 200 and response.read(65536), "Legacy image cannot read candidate-written staging database")
             finally:
                 connection.close()
         for path in selectors["media"]:
-            media_read("127.0.0.1", candidate["loopback_port"], path)
+            media_read(rollback_host, 5000, path)
         return {"legacy_image_on_candidate_written_staging_db_media": True}
     finally:
         if created:
             command(["docker", "rm", "-f", name])
         command(["docker", "start", candidate["app_container"]])
-        wait_health(candidate["loopback_port"])
+        wait_health(5000, host=stage_address(inspect("container", candidate["app_container"]), candidate["network"]))
 
 
 # This runs inside the immutable candidate image, using its installed dependencies.
@@ -431,19 +432,21 @@ def stage_acceptance(directory, operator):
             validate_stage(directory,role,r,inspect("container",r["app_container"]),inspect("container",r["mongo_container"]),
                            inspect("network",r["network"]),manifest["candidate_image" if role=="candidate" else "production_image"])
         candidate,legacy=resources["candidate"],resources["legacy"]
+        candidate_host=stage_address(inspect("container",candidate["app_container"]),candidate["network"])
+        legacy_host=stage_address(inspect("container",legacy["app_container"]),legacy["network"])
         env=environment(inspect("container",candidate["app_container"]))
-        config={"origin":"http://127.0.0.1:"+str(candidate["loopback_port"]),"stage_write":True,
+        config={"origin":"http://127.0.0.1:5000","stage_write":True,
                 "token":"release-acceptance-"+secrets.token_hex(12),"password":secrets.token_urlsafe(40)}
         config["email"]=config["token"]+"@staging.invalid"
         before=mongo_digest(legacy["mongo_container"],env["MONGODB_DB"])
         compare_originals(before,mongo_digest(candidate["mongo_container"],env["MONGODB_DB"]))
         reads=worker(candidate["app_container"],"read",config);selectors=reads.pop("selectors")
-        candidate_media=[media_read("127.0.0.1",candidate["loopback_port"],path) for path in selectors["media"]]
+        candidate_media=[media_read(candidate_host,5000,path) for path in selectors["media"]]
         for path in ("/health","/","/room?room_id="+selectors["room"],"/wall?wall_id="+selectors["wall"]):
-            c=http.client.HTTPConnection("127.0.0.1",legacy["loopback_port"],timeout=20)
+            c=http.client.HTTPConnection(legacy_host,5000,timeout=20)
             try:c.request("GET",path);r=c.getresponse();require(r.status==200 and r.read(65536),"Legacy restored gallery failed")
             finally:c.close()
-        require(candidate_media==[media_read("127.0.0.1",legacy["loopback_port"],path) for path in selectors["media"]],
+        require(candidate_media==[media_read(legacy_host,5000,path) for path in selectors["media"]],
                 "Legacy and candidate original media differ")
         checks[CHECKS[3]]=True;report.update(reads=reads,media=candidate_media,original_collections=before)
         report["defaults"]=worker(candidate["app_container"],"import",config)
@@ -451,7 +454,8 @@ def stage_acceptance(directory, operator):
             created=worker(candidate["app_container"],"create",config)
             checks[CHECKS[1]]=created["positive_auth"] and reads["auth_cookie_and_denials"]
             checks[CHECKS[5]]=created["two_visitors_pointer_mp4"] and created["range_206"]
-            command(["docker","restart",candidate["app_container"]]);wait_health(candidate["loopback_port"])
+            command(["docker","restart",candidate["app_container"]])
+            wait_health(5000,host=stage_address(inspect("container",candidate["app_container"]),candidate["network"]))
             persisted=worker(candidate["app_container"],"verify",dict(config,expected=created["expected"]))
             report["rollback_after_candidate_writes"]=legacy_after_writes(resources,manifest,directory,selectors,created["owned_room"])
             worker(candidate["app_container"],"verify",dict(config,expected=created["expected"]))
@@ -462,7 +466,7 @@ def stage_acceptance(directory, operator):
         compare_originals(before,mongo_digest(candidate["mongo_container"],env["MONGODB_DB"]))
         compare_originals(before,mongo_digest(legacy["mongo_container"],env["MONGODB_DB"]))
         checks[CHECKS[2]]=True
-        # The host can reach both private staging ports; the cutover mode uses loopback similarly.
+        # Reads, media and sockets succeeded with no host/public staging port publication.
         checks[CHECKS[6]]=reads["two_visitors_and_clock"]
     except (ReleaseError,OSError,ValueError,KeyError,TypeError) as error:
         report["failure"]=str(error) if isinstance(error,ReleaseError) else type(error).__name__

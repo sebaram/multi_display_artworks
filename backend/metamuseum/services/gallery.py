@@ -4,7 +4,7 @@ from datetime import datetime
 
 from bson import ObjectId
 from fastapi import HTTPException
-from mongoengine import (BooleanField, DateTimeField, DictField, FloatField, IntField,
+from mongoengine import (BooleanField, DateTimeField, DictField, Document, FloatField, IntField,
                          ListField, NotUniqueError, ReferenceField, StringField, ValidationError)
 from pydantic import ConfigDict, ValidationError as DTOValidationError, create_model
 
@@ -146,7 +146,7 @@ def validate_payload(resource, data):
                                  'fields':[str(e['loc'][0]) for e in error.errors()]}) from None
 
 
-def validate_geometry(document):
+def validate_geometry(document, *, element_walls=None):
     for name in document._fields:
         value = getattr(document, name)
         if isinstance(value, (float, int)) and not isinstance(value, bool):
@@ -173,10 +173,13 @@ def validate_geometry(document):
         raise HTTPException(422, 'invalid_effect_type')
     if isinstance(document, m.Marker) and document.target_preset and document.target_preset.room.pk != document.room.pk:
         raise HTTPException(422, 'preset_room_mismatch')
-    if isinstance(document, m.WallElement) and document.wall:
-        wall = document.wall
-        if abs(document.position_x or 0) > wall.width / 2 or abs(document.position_y or 0) > wall.height / 2:
-            raise HTTPException(422, 'element_outside_wall_bounds')
+    if isinstance(document, m.WallElement):
+        if element_walls is None:
+            wall = document.wall
+            element_walls = [wall] if wall is not None else []
+        for wall in element_walls:
+            if abs(document.position_x or 0) > wall.width / 2 or abs(document.position_y or 0) > wall.height / 2:
+                raise HTTPException(422, 'element_outside_wall_bounds')
 
 
 def parent_relationship(document):
@@ -223,12 +226,21 @@ def save(resource, data, identifier=None):
         document.updated_time = datetime.utcnow()
     try:
         document.validate(clean=False)
-        validate_geometry(document)
+        bounds_walls = None
+        if isinstance(document, m.WallElement):
+            bounds_walls = list(m.Wall.objects(**{ELEMENTS[document.wall_element_type]: document})) if identifier and 'wall' not in values else []
+            if not bounds_walls:
+                wall = document.wall
+                bounds_walls = [wall] if wall is not None else []
+        validate_geometry(document, element_walls=bounds_walls)
         if isinstance(document, m.LocationPreset):
             if m.Marker.objects(target_preset=document, room__ne=document.room).first():
                 raise HTTPException(409, 'preset_is_referenced_in_another_room')
-        # Legacy clean() silently clamps coordinates; API validation above rejects bad input.
-        document.save()
+        if isinstance(document, m.WallElement):
+            # Avoid the legacy clean override applying a stale reverse wall after validation.
+            Document.save(document, clean=False)
+        else:
+            document.save()
     except NotUniqueError:
         raise HTTPException(409, 'unique_conflict') from None
     except ValidationError as error:

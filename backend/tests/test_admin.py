@@ -53,13 +53,20 @@ def test_explicit_move_uses_containing_lists_and_unrelated_edit_preserves_them(c
     model = m.GLTFmodel.objects.first()
     old = model.wall
     target = m.Wall.objects(pk__ne=old.pk).first()
-    database.g_l_t_fmodel.update_one({'_id': model.pk}, {'$set': {'wall': None if reverse_link == 'missing' else target.pk}})
+    database.wall.update_one({'_id': old.pk}, {'$set': {'width': 10, 'height': 10}})
+    database.wall.update_one({'_id': target.pk}, {'$set': {'width': 1, 'height': 1}})
+    database.g_l_t_fmodel.update_one({'_id': model.pk}, {'$set': {'wall': None if reverse_link == 'missing' else target.pk,
+                                                                             'position_x': 2, 'position': '2 0.25 0.1'}})
     url = '/api/v1/admin/gltfs/' + str(model.pk)
     assert client.patch(url, headers=headers, json={'description': 'Metadata only'}).status_code == 200
     old.reload();target.reload()
     assert model.pk in [item.pk for item in old.gltfs]
     assert model.pk not in [item.pk for item in target.gltfs]
-    assert client.patch(url, headers=headers, json={'wall': str(target.pk)}).status_code == 200
+    stored = database.g_l_t_fmodel.find_one({'_id': model.pk})
+    assert stored['wall'] == (None if reverse_link == 'missing' else target.pk) and stored['position_x'] == 2
+    assert client.patch(url, headers=headers, json={'position_x': 100}).status_code == 422
+    assert client.patch(url, headers=headers, json={'wall': str(target.pk), 'position_x': .2, 'position_y': .2,
+                                                   'position': '0.2 0.2 0.1'}).status_code == 200
     old.reload();target.reload()
     assert model.pk not in [item.pk for item in old.gltfs]
     assert model.pk in [item.pk for item in target.gltfs]

@@ -288,7 +288,7 @@ def readonly():
     paths=[]
     for collection,field,kind,model_class in [('image','image_url','image','Image'),('gaussian_splat','splat_url','gaussian_splat','GaussianSplat'),('g_l_t_fmodel','gltf_url','gltf','GLTFmodel')]:
         # Match the unchanged MongoEngine inheritance discriminator, not obsolete raw records.
-        record=db[collection].find_one({field:{'$type':'string','$regex':r'^(?:\./)?/?static/'},'_cls':model_class})
+        record=db[collection].find_one({field:{'$type':'string','$regex':r'^(?:(?:\./)?/?static/|https?://meta\.juyounglee\.net(?::(?:80|443))?/static/)'},'_cls':model_class})
         check(record,'original_'+kind+'_missing')
         C['element_probe']={'id':str(record['_id']),'kind':kind,'media':record[field],
                             'known_class':record.get('_cls') in ('Image','GaussianSplat','GLTFmodel')}
@@ -296,7 +296,9 @@ def readonly():
         parsed=urlsplit(record[field]);path=parsed.path
         if path.startswith('./static/'):path=path[2:]
         if path.startswith('static/'):path='/'+path
-        check(not parsed.scheme and not parsed.netloc and not parsed.query and
+        local_origin=(not parsed.scheme and not parsed.netloc) or (parsed.scheme in ('http','https') and
+                      parsed.hostname=='meta.juyounglee.net' and parsed.port in (None,80,443) and not parsed.username and not parsed.password)
+        check(local_origin and not parsed.query and
               path.startswith('/static/') and '..' not in path.split('/'),'original_media_not_local')
         paths.append(path)
     paths+=['/static/gltf/matisse_dance.glb','/static/gltf/wheel.glb']

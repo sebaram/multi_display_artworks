@@ -42,7 +42,7 @@ class AcceptanceGuards(unittest.TestCase):
                 return namespace["paths"]
             finally:
                 self.assertEqual(record, before)
-        for value in ("static/image/dance_i.jpg", "/static/image/dance_i.jpg", "./static/image/dance_i.jpg"):
+        for value in ("static/image/dance_i.jpg", "/static/image/dance_i.jpg", "./static/image/dance_i.jpg", "https://meta.juyounglee.net/static/image/dance_i.jpg"):
             with self.subTest(value=value):
                 self.assertEqual(probe(value), ["/static/image/dance_i.jpg"] * 3)
         for value in ("https://elsewhere.invalid/static/image.jpg", "//elsewhere.invalid/static/image.jpg",

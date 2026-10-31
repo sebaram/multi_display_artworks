@@ -173,7 +173,8 @@ def legacy_after_writes(resources, manifest, directory, selectors, owned_room):
 # This runs inside the immutable candidate image, using its installed dependencies.
 # No stdout contains records, cookies, capabilities, passwords or exception text.
 WORKER = r'''
-import hashlib,http.client,json,os,secrets,subprocess,tempfile,time
+import hashlib,json,os,secrets,subprocess,tempfile,time
+import http.client as http_client
 from http.cookies import SimpleCookie
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -193,7 +194,7 @@ class HTTP:
         if self.csrf:h['X-CSRF-Token']=self.csrf
         if isinstance(body,dict):body=json.dumps(body).encode();h['Content-Type']='application/json'
         h.update(headers or {})
-        c=http.client.HTTPConnection('127.0.0.1',5000,timeout=20)
+        c=http_client.HTTPConnection('127.0.0.1',5000,timeout=20)
         try:
             c.request(method,path,body=body,headers=h);r=c.getresponse();data=r.read()
             for k,v in r.getheaders():

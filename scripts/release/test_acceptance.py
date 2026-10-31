@@ -148,6 +148,24 @@ class AcceptanceGuards(unittest.TestCase):
 
 
 class SocketFraming(unittest.TestCase):
+    def test_http_worker_client_does_not_shadow_the_http_module(self):
+        class Response:
+            status = 200
+            def read(self): return b'{}'
+            def getheaders(self): return []
+            def getheader(self, *args): return 'application/json'
+        class Connection:
+            def request(self, *args, **kwargs): pass
+            def getresponse(self): return Response()
+            def close(self): pass
+        namespace = {"json": json, "C": {"origin": "http://127.0.0.1:5000"},
+                     "http_client": type("HTTPClient", (), {"HTTPConnection": lambda *a, **k: Connection()}),
+                     "check": lambda value, label: self.assertTrue(value, label)}
+        node = next(node for node in ast.parse(release.WORKER).body if isinstance(node, ast.ClassDef) and node.name == "HTTP")
+        exec(compile(ast.Module(body=[node], type_ignores=[]), "worker-http", "exec"), namespace)
+        namespace["http"] = namespace["HTTP"]()
+        self.assertEqual(namespace["http"].request("GET", "/health"), {})
+
     def test_engine_ping_socket_ack_and_buffered_event(self):
         class Wire:
             def __init__(self):

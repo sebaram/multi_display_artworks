@@ -25,7 +25,7 @@ Release candidate prepared for staging. This entry does not record a production 
 ### Experimental features and validation limits
 
 - Procedural gaze is optional and off by default. It estimates gaze direction; perceptual naturalness and human attention have not been validated.
-- GaussianAvatars subject 306 is a local research head/bust. Licensed FLAME/model/subject assets are excluded from the repository and production image; production blocks the asset API and preset. Dynamic Gaussian LOD, full-body support and large-room native-avatar performance are not established.
+- GaussianAvatars subject 306 is a local research head/bust. Licensed FLAME/model/subject assets are excluded from the repository and production image; production blocks the asset API and preset. Dynamic Gaussian LOD and full-body support are not implemented; large-room native-avatar performance remains unmeasured.
 - Actual LG V35 coverage is limited to WebGL, appearance save/reload, touch movement and desktop-observer updates. Phone FPS, thermal and resource-use claims are not established. Actual Quest 3 VR/controller/hand acceptance is incomplete; mock XR coverage is separate evidence.
 - YouTube CI accepts either observed playback/pause/seek or a documented bot-login refusal with a visible error and original-video link. An `external_blocked` result is not successful playback. Controlled-player checks separately exercise application HTTP and Socket.IO synchronization.
 - Voice CI uses real WebRTC with a synthetic microphone. Physical microphones/cameras, external networks, TURN and external providers need operational checks. Autoplay, buffering and network delivery still affect local playback timing.

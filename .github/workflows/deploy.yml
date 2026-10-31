@@ -6,14 +6,26 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Explicit operation; production inspection is read-only
+        description: Explicit manual operation; hold closes public ingress until promote or rollback
         type: choice
-        options: [validate, inventory]
+        options: [validate, inventory, prepare, accept-staging, hold, accept-private, promote, rollback]
         default: inventory
+      release_id:
+        description: New lowercase release slug for prepare; same slug for later operations
+        type: string
+        default: ''
+      candidate_sha:
+        description: Exact 40-character candidate SHA; defaults to the workflow ref SHA
+        type: string
+        default: ''
+      attempt_id:
+        description: Explicit cutover basename for accept-private, promote or rollback
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
-  group: metamuseum-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && (inputs.operation || 'inventory') || 'validate' }}
+  group: metamuseum-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.operation != 'validate' && github.run_id || 'validate' }}
   cancel-in-progress: false
 jobs:
   quality:
@@ -48,6 +60,8 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: backend/requirements-dev.lock
+      - name: Host-free release script checks
+        run: python -m unittest discover -s scripts/release -p 'test_*.py' -v
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -131,22 +145,43 @@ jobs:
           docker logs ci_smoke 2>/dev/null || true
           docker rm -f ci_smoke ci_mongo 2>/dev/null || true
           docker network rm metamuseum_ci 2>/dev/null || true
-  production-inventory:
-    if: github.event_name == 'workflow_dispatch' && (inputs.operation == 'inventory' || inputs.operation == '')
+  manual-release:
+    if: github.event_name == 'workflow_dispatch' && inputs.operation != 'validate'
     runs-on: [self-hosted, jy-server]
-    timeout-minutes: 15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
     concurrency:
       group: metamuseum-production-operations
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
           path: .release-checkout
           persist-credentials: false
-      - name: Inspect running production without changing services or data
-        working-directory: .release-checkout
-        run: bash scripts/release.sh inventory --code-manifest > "$RUNNER_TEMP/metamuseum-inventory.json"
+      - name: Check out the exact candidate separately from operations code
+        if: inputs.operation == 'prepare' || inputs.operation == 'hold'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          path: .candidate-checkout
+          persist-credentials: false
+      - name: Check release guard logic on the actual host Python
+        # These tests use controlled boundaries and never touch host Docker/DB state.
+        run: python3 -m unittest discover -s .release-checkout/scripts/release -p 'test_*.py' -q
+      - name: Run the explicit manual operation as the reviewed host user
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_OPERATION: ${{ inputs.operation || 'inventory' }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          RELEASE_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
+          RELEASE_ATTEMPT_ID: ${{ inputs.attempt_id }}
+          RELEASE_INVENTORY_OUTPUT: ${{ runner.temp }}/metamuseum-inventory.json
+        run: python3 .release-checkout/scripts/release/dispatch.py
       - name: Save sanitized production inventory
+        if: inputs.operation == 'inventory' || inputs.operation == ''
         uses: actions/upload-artifact@v4
         with:
           name: production-inventory-${{ github.run_id }}

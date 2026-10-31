@@ -117,8 +117,25 @@ test("owner walking, head independence, planted feet, teleport, stationary late 
           el.components["wasd-controls"].velocity.length(),
         ),
     )
-    .toBeLessThan(0.03);
-  await observer.waitForTimeout(200);
+    .toBe(0);
+  const planted = await page.locator("a-scene").evaluate((scene: any) => {
+    const root = scene.object3D.getObjectByName("avatar-owner");
+    root.updateWorldMatrix(true, true);
+    return root
+      .getObjectByName("leftFoot")
+      .getWorldPosition(new (window as any).AFRAME.THREE.Vector3())
+      .toArray();
+  });
+  // Start measuring after the observer has applied the stationary owner's pose.
+  await expect
+    .poll(async () =>
+      Math.hypot(
+        ...(await body(observer, own.visitorId))!.left.map(
+          (x: number, i: number) => x - planted[i],
+        ),
+      ),
+    )
+    .toBeLessThan(0.005);
   const settled = (await body(observer, own.visitorId))!;
   await observer.waitForTimeout(180);
   const still = (await body(observer, own.visitorId))!;

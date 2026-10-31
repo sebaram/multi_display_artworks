@@ -62,6 +62,7 @@ def inventory(include_code=False):
     app = inspect("container", CONTAINER)
     image = inspect("image", app["Image"])
     mongo = inspect("container", MONGO)
+    mongo_image = inspect("image", mongo["Image"])
     env = environment(app)
     labels = app["Config"].get("Labels") or {}
     image_labels = image["Config"].get("Labels") or {}
@@ -88,11 +89,13 @@ def inventory(include_code=False):
                   "networks": sorted(mongo["NetworkSettings"].get("Networks", {}))},
         "tools": {name: bool(shutil.which(name)) for name in ("docker", "python3", "tar", "sha256sum", "flock")},
         "disk_free_bytes": shutil.disk_usage(DATA if DATA.is_dir() else "/var/www").free,
+        "host_python": sys.version.split()[0],
         "host_uid": os.geteuid(),
         "host_gid": os.getegid(),
         "warnings": ["Do not upload backups, environment files, or raw Docker/Compose inspection to CI artifacts.",
                      "UID permission/ACL write probes, source provenance, proxy restriction, and restore rehearsal are prepare/deploy gates."],
     }
+    report["mongo"]["declared_volumes"] = sorted((mongo_image["Config"].get("Volumes") or {}))
     report["noninteractive_sudo"] = bool(shutil.which("sudo")) and subprocess.run(
         ["sudo", "-n", "true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         timeout=10, check=False).returncode == 0

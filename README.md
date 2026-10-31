@@ -8,10 +8,10 @@ Each room, wall and artwork keeps its own URL. Administrators can edit the galle
 
 The FastAPI/React implementation is prepared as **2.0.0-rc.1** for staging and release review. Backend and frontend package metadata and OpenAPI use this candidate version. Python package tools may normalize it to `2.0.0rc1`, which identifies the same candidate. Production cutover remains subject to the release gates below.
 
-- Candidate: `codex/gaussian-avatar-gaze`, code verified at `71f9a3b`.
-- Legacy baseline: `origin/master`, `974bbfd`, also the source of the last successful recorded production deployment on 2026-10-26. The preservation branch is named `legacy-flask`. The running production image must still be inspected before creating a rollback tag.
-- [Candidate CI](https://github.com/sebaram/multi_display_artworks/actions/runs/41192279779) passed backend, frontend, browser, clean-image and real-Mongo runtime checks.
-- Production deployment is **not enabled** in this branch's workflow. A merge does not deploy the new application.
+- Candidate: `codex/gaussian-avatar-gaze`, with RC package metadata prepared at `56e61a0`. [RC CI](https://github.com/sebaram/multi_display_artworks/actions/runs/41202845230) records its result.
+- Legacy baseline: `legacy-flask`, `974bbfd`, plus annotated tag `production-pre-v2-20261031`. All 81 running application code files matched that commit in the [production identity check](docs/releases/legacy-production-verification.json). Image/configuration and data backups remain separate preparation gates.
+- The earlier [functional baseline CI](https://github.com/sebaram/multi_display_artworks/actions/runs/41192279779) at `71f9a3b` passed backend, frontend, browser, clean-image and real-Mongo runtime checks.
+- Automatic production deployment remains disabled. Explicit manual preparation, acceptance and cutover operations are provided below; merging does not deploy the new application.
 
 See the [candidate changelog](CHANGELOG.md) for changes and compatibility limits, and the [2.0 release review and cutover plan](docs/releases/v2.0-readiness.md) for versioning, legacy preservation, data backup, remaining release gates and rollback.
 
@@ -118,7 +118,24 @@ The root Dockerfile builds React and installs the hashed Python runtime with FFm
 
 Before cutover, preserve the actual running image/configuration and make a consistent Mongo/media backup; rehearse restore and rollback in isolated copies. Startup cleans uploaded files absent from the connected MongoDB, so never combine a staging/empty database with the live `wall_media` directory. Verify UID 1000 write access, every production media mount, HTTPS and WebSocket forwarding. Keep one worker and one application replica until realtime state has a shared owner.
 
-Branch/PR CI runs integration, unit, browser and clean-image checks. The [master-only deployment proposal](docs/superpowers/plans/proposed-production-workflow.yml.txt) is not active and needs its preflight and rollback conditions corrected before activation. The proposed first 2.0 cutover is manually approved after staging, rather than an automatic deployment on merge. No production migration or deployment has been executed from this implementation.
+Branch/PR CI runs integration, unit, browser, clean-image and host-free release-script checks. Push and merge events never deploy production. The manual `deploy.yml` workflow offers `inventory`, `prepare`, `accept-staging`, `hold`, `accept-private`, `promote` and `rollback`; `validate` runs the normal quality job. Host operations share one queue and a host lock, run as UID/GID1000 with Docker access, and keep the existing runner-root checkout intact. Operations code is checked out at the workflow SHA in `.release-checkout`; the separately selected product SHA is checked out in `.candidate-checkout` for preparation and hold.
+
+Use a new lowercase `release_id` for each preparation. Its private backup and evidence directory is `$HOME/.local/state/metamuseum/releases/<release_id>`. `candidate_sha` accepts a full lowercase 40-character SHA and defaults to the selected workflow ref's SHA. Preparation requires a successful **push** quality run for that exact candidate, verifies its clean checkout and matching package versions, and builds only that checkout. The immutable `metamuseum:<version>-<sha>` tag carries OCI revision/version/source labels; operations bind the resolved image ID. Preparation verifies the running legacy image against [the recorded source/image evidence](docs/releases/legacy-production-verification.json), briefly stops the app for a paired database/media snapshot, resumes production, and restores separate candidate and legacy staging copies on loopback51737/51738.
+
+For a candidate branch, replace `master` below with that branch for `prepare` and `accept-staging`. For cutover, prepare and accept a fresh image of the final current master SHA; `hold` and `promote` require dispatch from master, equality with current `origin/master`, and green push quality for that exact SHA.
+
+```sh
+gh workflow run deploy.yml --ref master -f operation=prepare -f release_id=v2-release-1 -f candidate_sha=<40-character-sha>
+gh workflow run deploy.yml --ref master -f operation=accept-staging -f release_id=v2-release-1 -f candidate_sha=<40-character-sha>
+gh workflow run deploy.yml --ref master -f operation=hold -f release_id=v2-release-1 -f candidate_sha=<40-character-sha>
+# Copy the explicit cutover-... basename printed by hold into attempt_id:
+gh workflow run deploy.yml --ref master -f operation=accept-private -f release_id=v2-release-1 -f candidate_sha=<40-character-sha> -f attempt_id=<cutover-basename>
+gh workflow run deploy.yml --ref master -f operation=promote -f release_id=v2-release-1 -f candidate_sha=<40-character-sha> -f attempt_id=<cutover-basename>
+# Recovery uses the captured attempt without requiring new CI or current-master equality:
+gh workflow run deploy.yml --ref master -f operation=rollback -f release_id=v2-release-1 -f attempt_id=<cutover-basename>
+```
+
+Run these operations sequentially and inspect each result. Selecting `hold` authorizes the final paired snapshot and moves the accepted candidate to private loopback51739, closing public port51736. Staging acceptance creates and cleans owned fixtures only in copied data; private acceptance checks the live candidate and references that same image's staging evidence. Selecting `promote` publishes the explicitly identified accepted attempt on51736. Rollback restores that attempt's exact original image/configuration; restoring paired data is a separate decision. Only sanitized inventory is uploaded as an Actions artifact; backups, environment material and detailed acceptance evidence remain private on the host. See the [executable release plan](docs/releases/v2.0-readiness.md) for the remaining release gates.
 
 Review [third-party notices](THIRD_PARTY_NOTICES.md) before public distribution: the pinned wall source has no root license, and its marks/research artwork need documented release rights. Private Gaussian/FLAME assets remain excluded from production. The [release review](docs/releases/v2.0-readiness.md) separates code readiness from these operational and asset-release decisions.
 

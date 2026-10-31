@@ -96,7 +96,7 @@ test("owner walking, head independence, planted feet, teleport, stationary late 
   ).toEqual(beforeTyping);
   await page.getByRole("button", { name: "취소", exact: true }).click();
   await page.bringToFront();
-  await page.locator("a-scene canvas").click({ position: { x: 300, y: 200 } });
+  await page.locator("a-scene canvas.a-canvas").click({ position: { x: 300, y: 200 } });
   await page.keyboard.down("w");
   await page.waitForTimeout(800);
   await page.keyboard.up("w");
@@ -176,7 +176,7 @@ test("owner walking, head independence, planted feet, teleport, stationary late 
     .toBeCloseTo(1, 1);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.bringToFront();
-  await page.locator("a-scene canvas").click({ position: { x: 170, y: 400 } });
+  await page.locator("a-scene canvas.a-canvas").click({ position: { x: 170, y: 400 } });
   await page.keyboard.down("w");
   await page.waitForTimeout(350);
   await page.keyboard.up("w");

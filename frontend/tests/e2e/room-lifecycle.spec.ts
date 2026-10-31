@@ -141,9 +141,9 @@ test("saving an artwork preserves camera, microphone, scene and another artwork 
       (window as any).__voiceButton = document.querySelector("#voice-btn");
     });
     await page.getByRole("button", { name: /작품 목록/ }).click();
-    await page.getByRole("button", { name: "▧ Save A image" }).click();
+    await page.getByRole("button", { name: "▧ Save A 이미지" }).click();
     await page.getByLabel("가로 X", { exact: true }).fill("1.2");
-    await page.getByRole("button", { name: "▧ Save B image" }).click();
+    await page.getByRole("button", { name: "▧ Save B 이미지" }).click();
     await page.getByLabel("가로 X", { exact: true }).fill("2.3");
     await page.getByRole("button", { name: "작품 변경 저장" }).click();
     await expect(
@@ -171,7 +171,7 @@ test("saving an artwork preserves camera, microphone, scene and another artwork 
         .locator(`[data-element-id="${images[0].id}"]`)
         .evaluate((artwork: any) => artwork.object3D.position.x),
     ).toBe(1.2);
-    await page.getByRole("button", { name: "▧ Save A image" }).click();
+    await page.getByRole("button", { name: "▧ Save A 이미지" }).click();
     await expect(page.getByLabel("가로 X", { exact: true })).toHaveValue("1.2");
     await page.locator("#voice-admin-btn").click();
   } finally {

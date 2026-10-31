@@ -211,7 +211,7 @@ test("actual splat source replacement preserves clipping and disposes each old c
       }),
     ).toBe(true);
     const clippedPixels = await page
-      .locator("a-scene canvas")
+      .locator("a-scene canvas.a-canvas")
       .screenshot({ path: "test-results/splat-clipped.png" });
     await artwork.evaluate((el: any) =>
       el.setAttribute("gaussian_splatting", "cutoutEntity", ""),
@@ -224,7 +224,7 @@ test("actual splat source replacement preserves clipping and disposes each old c
       )
       .toBeNull();
     const unclippedPixels = await page
-      .locator("a-scene canvas")
+      .locator("a-scene canvas.a-canvas")
       .screenshot({ path: "test-results/splat-unclipped.png" });
     expect(clippedPixels.equals(unclippedPixels)).toBe(false);
     await artwork.evaluate((el: any) =>
@@ -246,14 +246,14 @@ test("actual splat source replacement preserves clipping and disposes each old c
     const first = await trackDisposal();
     expect(first.textures).toBeGreaterThan(0);
     expect(first.workers).toBe(2);
-    const originalPixels = await page.locator("a-scene canvas").screenshot();
+    const originalPixels = await page.locator("a-scene canvas.a-canvas").screenshot();
     await page
       .getByLabel("미디어 URL")
       .fill("http://127.0.0.1:8766/alternate.splat");
     await waitForSource(343);
     await expect.poll(disposed).toBe(true);
     const alternatePixels = await page
-      .locator("a-scene canvas")
+      .locator("a-scene canvas.a-canvas")
       .screenshot({ path: "test-results/splat-replaced.png" });
     expect(originalPixels.equals(alternatePixels)).toBe(false);
     await page.getByRole("button", { name: "작품 변경 저장" }).click();

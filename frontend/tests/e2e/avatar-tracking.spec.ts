@@ -90,7 +90,7 @@ async function worldAction(page: Page, label: string) {
     const target = [
       ...scene.querySelectorAll("#avatar-xr-panel .avatar-xr-action"),
     ].find(
-      (e: any) => e.querySelector("a-text").getAttribute("value") === label,
+      (e: any) => e.querySelector("[data-avatar-xr-label]")?.getAttribute("aria-label") === label,
     ) as any;
     const gaze = scene.querySelector("#camera a-cursor"),
       T = (window as any).AFRAME.THREE;
@@ -170,8 +170,8 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
   await expect(page.locator("#avatar-xr-origin")).toHaveCount(1);
   expect(
     await page
-      .locator("#avatar-xr-panel .avatar-xr-action a-text")
-      .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("value"))),
+      .locator("#avatar-xr-panel .avatar-xr-action [data-avatar-xr-label]")
+      .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("aria-label"))),
   ).toEqual(
     expect.arrayContaining([
       "서기",

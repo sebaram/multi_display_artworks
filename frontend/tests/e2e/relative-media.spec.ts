@@ -39,7 +39,7 @@ test("normal artwork form saves root-relative and path-relative media unchanged"
     await page.getByRole("button", { name: /작품 목록/ }).click();
     await page
       .getByRole("button", {
-        name: new RegExp(`Relative image ${unique} image`),
+        name: new RegExp(`Relative image ${unique} 이미지`),
       })
       .click();
     await page.evaluate(

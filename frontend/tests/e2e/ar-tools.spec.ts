@@ -70,7 +70,7 @@ test("gesture target assignments and actual touchpoint relay are usable", async 
     page.getByText("Socket.IO 연결됨", { exact: false }),
   ).toBeVisible();
   await expect(page.locator(".target-grid button")).toHaveCount(6);
-  await page.getByRole("button", { name: "오른쪽", exact: true }).click();
+  await page.getByRole("button", { name: "오른쪽 right", exact: true }).click();
   await page.getByRole("button", { name: "할당 제스처 보내기" }).click();
   await expect(other.getByText(/최근 제스처: right/)).toBeVisible();
   const pad = page.locator(".gesture-pad");

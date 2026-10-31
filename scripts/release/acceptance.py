@@ -288,12 +288,13 @@ def readonly():
     paths=[]
     for collection,field,kind,model_class in [('image','image_url','image','Image'),('gaussian_splat','splat_url','gaussian_splat','GaussianSplat'),('g_l_t_fmodel','gltf_url','gltf','GLTFmodel')]:
         # Match the unchanged MongoEngine inheritance discriminator, not obsolete raw records.
-        record=db[collection].find_one({field:{'$type':'string','$ne':''},'_cls':model_class})
+        record=db[collection].find_one({field:{'$type':'string','$regex':r'^(?:\./)?/?static/'},'_cls':model_class})
         check(record,'original_'+kind+'_missing')
         C['element_probe']={'id':str(record['_id']),'kind':kind,'media':record[field],
                             'known_class':record.get('_cls') in ('Image','GaussianSplat','GLTFmodel')}
         http.request('GET','/api/v1/elements/'+kind+'/'+str(record['_id']))
         parsed=urlsplit(record[field]);path=parsed.path
+        if path.startswith('./static/'):path=path[2:]
         if path.startswith('static/'):path='/'+path
         check(not parsed.scheme and not parsed.netloc and not parsed.query and
               path.startswith('/static/') and '..' not in path.split('/'),'original_media_not_local')

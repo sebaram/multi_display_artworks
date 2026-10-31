@@ -34,7 +34,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await run_in_threadpool(app.state.streams.close)
             await run_in_threadpool(disconnect_database)
 
-    application = FastAPI(title="MetaMuseum API", version="2.0.0-rc.1", lifespan=lifespan)
+    application = FastAPI(title="MetaMuseum API", version="2.0.0", lifespan=lifespan)
     application.state.settings = settings
     from .services.streams import StreamManager
     from .services.providers import RateLimiter

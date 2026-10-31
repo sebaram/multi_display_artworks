@@ -1,8 +1,8 @@
 # Changelog
 
-## 2.0.0-rc.1 — 2026-10-31
+## 2.0.0 — 2026-10-31
 
-Release candidate prepared for staging. This entry does not record a production cutover or a published final release. Python packaging may display the same candidate as `2.0.0rc1`.
+The FastAPI/React release source uses version 2.0.0. Actual deployment, image/source identities and recovery evidence are tracked in the [release execution record](docs/releases/v2.0-execution.md).
 
 ### Changes
 
@@ -31,4 +31,4 @@ Release candidate prepared for staging. This entry does not record a production 
 - Voice CI uses real WebRTC with a synthetic microphone. Physical microphones/cameras, external networks, TURN and external providers need operational checks. Autoplay, buffering and network delivery still affect local playback timing.
 - Review [third-party notices](THIRD_PARTY_NOTICES.md) and document upstream wall-source, marks and research-media release rights before public distribution.
 
-The last full candidate code check is [CI 41192279779](https://github.com/sebaram/multi_display_artworks/actions/runs/41192279779) at `71f9a3b`, before this release-preparation change. A new candidate requires its own CI result; historical reports retain their original capture dates and scope.
+The RC source at `5f7152d` passed [CI 41204409109](https://github.com/sebaram/multi_display_artworks/actions/runs/41204409109), including all 49 browser cases, backend/frontend checks and a clean runtime against real MongoDB. The final merged source requires its own push CI before deployment. Historical reports retain their original capture dates and scope.

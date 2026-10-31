@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     frontend_root: Path | None = None
     # Explicit local research opt-in; licensed model data never ships in the web build.
     gaussian_avatar_root: Path | None = None
+    gaussian_avatar_hosts: list[str] = ['127.0.0.1', 'localhost', '::1']
     media_root: Path | None = None
     wall_media_root: Path = Path('wall_media')
     wall_media_max_file_bytes: int = Field(default=2 * 1024**3, gt=0)

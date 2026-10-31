@@ -45,6 +45,8 @@ $env:GAUSSIAN_AVATAR_ROOT = (Resolve-Path FLAME/derived/web).Path
 
 명시적으로 설정한 개발·테스트 서버의 loopback 접속에서만 manifest/rig/PLY 세 파일을 제공한다. 프로덕션과 외부 호스트에서는 자산 경로가 차단되고 네이티브 프리셋도 노출하지 않는다. 코드 이용 조건은 [라이선스 사본](licenses/GaussianAvatars-LICENSE.md)에 보존했다.
 
+Tailscale에서 볼 때는 앱을 loopback에 유지하고 `tailscale serve --bg --tcp=8000 tcp://127.0.0.1:8000`으로 사설망에 전달한다. `GAUSSIAN_AVATAR_HOSTS`에 해당 장치의 짧은 이름/FQDN/IP를 JSON 배열로 명시하고, `ALLOWED_ORIGINS`에도 해당 HTTP 주소를 추가해야 모델·설정 저장·WebSocket이 동작한다. 기본 허용 호스트는 localhost뿐이며, 추가 호스트도 로컬 전달 연결에서만 모델을 받을 수 있다. 전달 해제는 `tailscale serve --tcp=8000 off`를 사용한다. 인터넷 공개 Funnel은 사용하지 않는다.
+
 [FLAME의 현재 이용 조건](https://flame.is.tue.mpg.de/modellicense.html)은 원본 2023과 CC-BY인 2023 Open을 구분한다. 원본의 로컬 연구 이용과 모델/기저의 공개 배포는 다르다. [공식 안내](https://flame.is.tue.mpg.de/)에 연결된 Open 변환 도구도 두 모델을 모두 요구하므로 바로 대체할 수 있다고 가정하지 않는다. 공개 배포 자산과 subject 데이터의 권한은 실제 배포 전에 확인한다.
 
 ## 이번 단계의 짧은 확인

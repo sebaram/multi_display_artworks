@@ -8,8 +8,9 @@ from starlette.requests import Request
 from metamuseum.api.gaussian_dev import research_root, asset
 
 
-def request(*, environment='test', enabled=True, client='127.0.0.1', host='127.0.0.1'):
-    settings = SimpleNamespace(environment=environment, gaussian_avatar_root=Path('FLAME/derived/web') if enabled else None)
+def request(*, environment='test', enabled=True, client='127.0.0.1', host='127.0.0.1', allowed_hosts=None):
+    settings = SimpleNamespace(environment=environment, gaussian_avatar_root=Path('FLAME/derived/web') if enabled else None,
+                               gaussian_avatar_hosts=allowed_hosts or ['127.0.0.1', 'localhost', '::1'])
     app = SimpleNamespace(state=SimpleNamespace(settings=settings))
     return Request(dict(type='http', method='GET', scheme='http', path='/', headers=[(b'host', host.encode())],
                         client=(client, 1234), server=(host, 8000), app=app))
@@ -28,6 +29,17 @@ def test_private_model_delivery_allowlist_excludes_licenses_and_source_models():
     for name in ['references.bin', 'references.json', 'flame2023.pkl', '../flame2023.pkl']:
         with pytest.raises(HTTPException) as raised:
             asset(name, request())
+        assert raised.value.status_code == 404
+
+
+def test_private_forwarder_hostname_is_explicit_and_still_requires_loopback():
+    hosts = ['localhost', 'jyuvr']
+    assert research_root(request(host='jyuvr', allowed_hosts=hosts)).name == 'web'
+    for req in [request(host='jyuvr'), request(host='evil.invalid', allowed_hosts=hosts),
+                request(host='jyuvr', allowed_hosts=hosts, client='192.168.1.5'),
+                request(host='jyuvr', allowed_hosts=hosts, environment='production')]:
+        with pytest.raises(HTTPException) as raised:
+            research_root(req)
         assert raised.value.status_code == 404
 
 

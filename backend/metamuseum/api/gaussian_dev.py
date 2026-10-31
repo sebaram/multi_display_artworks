@@ -1,4 +1,4 @@
-"""Opt-in, loopback-only delivery of private research assets; disabled in production."""
+"""Opt-in private research assets via loopback or a local private-network forwarder."""
 from ipaddress import ip_address
 from pathlib import Path
 
@@ -16,7 +16,7 @@ def research_root(request: Request):
     except ValueError:
         local_client = False
     if (settings.environment == 'production' or not settings.gaussian_avatar_root or not local_client
-            or request.url.hostname not in {'127.0.0.1', 'localhost', '::1'}):
+            or request.url.hostname not in settings.gaussian_avatar_hosts):
         raise HTTPException(404, 'not_found')
     return Path(settings.gaussian_avatar_root).resolve()
 

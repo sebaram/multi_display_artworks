@@ -30,7 +30,10 @@ class AcceptanceGuards(unittest.TestCase):
             before = dict(record)
             def check(condition, label):
                 if not condition: raise RuntimeError(label)
-            namespace = {"C": {}, "db": {name: SimpleNamespace(find_one=lambda query: record)
+            def collection():
+                orphan = dict(record, image_url='static/image/unused.jpg', splat_url='static/splat/unused.splat', gltf_url='static/gltf/unused.glb')
+                return SimpleNamespace(find_one=lambda query: record if query.get('_cls') else orphan)
+            namespace = {"C": {}, "db": {name: collection()
                                 for name in ("image", "gaussian_splat", "g_l_t_fmodel")},
                          "http": SimpleNamespace(request=lambda *args: None),
                          "urlsplit": urlsplit, "check": check, "paths": []}

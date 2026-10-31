@@ -286,8 +286,9 @@ def readonly():
     http.request('GET','/room?room_id='+str(room['_id']));http.request('GET','/api/v1/rooms/'+str(room['_id'])+'/scene')
     http.request('GET','/wall?wall_id='+str(wall['_id']));http.request('GET','/api/v1/walls/'+str(wall['_id']))
     paths=[]
-    for collection,field,kind in [('image','image_url','image'),('gaussian_splat','splat_url','gaussian_splat'),('g_l_t_fmodel','gltf_url','gltf')]:
-        record=db[collection].find_one({field:{'$type':'string','$ne':''}})
+    for collection,field,kind,model_class in [('image','image_url','image','Image'),('gaussian_splat','splat_url','gaussian_splat','GaussianSplat'),('g_l_t_fmodel','gltf_url','gltf','GLTFmodel')]:
+        # Match the unchanged MongoEngine inheritance discriminator, not obsolete raw records.
+        record=db[collection].find_one({field:{'$type':'string','$ne':''},'_cls':model_class})
         check(record,'original_'+kind+'_missing')
         C['element_probe']={'id':str(record['_id']),'kind':kind,'media':record[field],
                             'known_class':record.get('_cls') in ('Image','GaussianSplat','GLTFmodel')}

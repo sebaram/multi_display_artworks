@@ -82,13 +82,13 @@ test("actual admin voice enable, WebRTC tracks and navigation microphone cleanup
   await instrumentVoice(guest);
   await guest.goto(`/room?room_id=${ROOM}`);
   await expect(guest.locator("#voice-btn")).toBeVisible({ timeout: 20000 });
-  if (!(await page.locator("#voice-admin-btn").innerText()).includes("ON"))
+  if (!(await page.locator("#voice-admin-btn").innerText()).includes("켜짐"))
     await page.locator("#voice-admin-btn").click();
-  await expect(guest.locator("#voice-btn")).toContainText("Join Voice");
+  await expect(guest.locator("#voice-btn")).toContainText("음성 참여");
   await page.locator("#voice-btn").click();
-  await expect(page.locator("#voice-btn")).toContainText("Muted");
+  await expect(page.locator("#voice-btn")).toContainText("음소거");
   await guest.locator("#voice-btn").click();
-  await expect(guest.locator("#voice-btn")).toContainText("Muted");
+  await expect(guest.locator("#voice-btn")).toContainText("음소거");
   await expect
     .poll(() =>
       guest.evaluate(() => (window as any).__microphoneTracks?.[0]?.readyState),
@@ -103,7 +103,7 @@ test("actual admin voice enable, WebRTC tracks and navigation microphone cleanup
   await expectConnected(page);
   await expectConnected(guest);
   await guest.locator("#voice-btn").click();
-  await expect(guest.locator("#voice-btn")).toContainText("Speaking");
+  await expect(guest.locator("#voice-btn")).toContainText("말하는 중");
   await expect
     .poll(() =>
       guest.evaluate(() => (window as any).__microphoneTracks[0].enabled),
@@ -127,15 +127,15 @@ test("actual admin voice enable, WebRTC tracks and navigation microphone cleanup
     .toBe(true);
   await expect(page.locator('[id^="voice-audio-"]')).toHaveCount(0);
   await guest.goto(`/room?room_id=${ROOM}`);
-  await expect(guest.locator("#voice-btn")).toContainText("Join Voice", {
+  await expect(guest.locator("#voice-btn")).toContainText("음성 참여", {
     timeout: 20000,
   });
   await guest.locator("#voice-btn").click();
-  await expect(guest.locator("#voice-btn")).toContainText("Muted");
+  await expect(guest.locator("#voice-btn")).toContainText("음소거");
   await expectConnected(guest);
   await expectConnected(page);
   await page.locator("#voice-admin-btn").click();
-  await expect(guest.locator("#voice-btn")).toContainText("Voice Off");
+  await expect(guest.locator("#voice-btn")).toContainText("음성 꺼짐");
   await expect
     .poll(() =>
       guest.evaluate(() =>

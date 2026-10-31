@@ -138,6 +138,22 @@ small {
   border-bottom: 1px solid #dcdfd7;
   background: #f6f5f1;
 }
+.language-switcher {
+  width: auto;
+  max-width: 9rem;
+  min-height: 36px;
+  padding: 5px 8px;
+  font-size: 12px;
+  letter-spacing: normal;
+  text-transform: none;
+  flex: 0 0 auto;
+}
+.element-language {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 2;
+}
 .wordmark {
   font-size: 15px;
   font-weight: 700;
@@ -1062,7 +1078,8 @@ body:has(.room-inspector) #minimap-canvas {
     bottom: 105px !important;
   }
   /* Scene widgets are mounted on body, outside the inspector's room view. */
-  body:has(.room-inspector) :is(#voice-ui, #voice-toast, #minimap-canvas, #minimap-container) {
+  body:has(.room-inspector)
+    :is(#voice-ui, #voice-toast, #minimap-canvas, #minimap-container) {
     display: none !important;
   }
   .tool-grid {
@@ -1122,13 +1139,27 @@ body:has(.room-inspector) #minimap-canvas {
   background: #20313d55;
   font-size: 26px;
 }
-.joystick-hint small { font-size: 11px; }
-.mobile-joystick[data-active="true"] .joystick-hint { opacity: 0; }
-.mobile-joystick[aria-disabled="true"] { visibility: hidden; }
-.mobile-joystick .front { width: 48px !important; height: 48px !important; margin: -24px !important; }
-.mobile-joystick .back { outline: 1px solid #d4e7e566; }
+.joystick-hint small {
+  font-size: 11px;
+}
+.mobile-joystick[data-active="true"] .joystick-hint {
+  opacity: 0;
+}
+.mobile-joystick[aria-disabled="true"] {
+  visibility: hidden;
+}
+.mobile-joystick .front {
+  width: 48px !important;
+  height: 48px !important;
+  margin: -24px !important;
+}
+.mobile-joystick .back {
+  outline: 1px solid #d4e7e566;
+}
 @media (prefers-reduced-motion: reduce) {
-  .joystick-hint { transition: none; }
+  .joystick-hint {
+    transition: none;
+  }
 }
 .ai-inspector {
   position: absolute;
@@ -1257,4 +1288,18 @@ body:has(.room-inspector) #minimap-canvas {
 .stream-item button {
   font-size: 11px;
   padding: 7px 10px;
+}
+@media (max-width: 760px) {
+  .site-header {
+    height: auto;
+    min-height: 70px;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .site-header nav {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }

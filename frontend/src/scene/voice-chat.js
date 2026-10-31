@@ -1,3 +1,5 @@
+import { translate as t, subscribeLocale } from '../app/locale-state.js';
+
 export function createVoiceChat({
   document,
   navigator,
@@ -31,6 +33,7 @@ Signaling events (via Socket.IO):
     adminButton = null,
     voiceToast = null;
   const ownedAudio = new Map();
+  let notification = null;
   // ─── Config ────────────────────────────────────────────────────────────────────
 
   var VoiceChat = {
@@ -73,9 +76,8 @@ Signaling events (via Socket.IO):
         updateVoiceButton();
         if (!VoiceChat.enabled && VoiceChat.active) leaveVoice();
         showVoiceNotification(
-          data.enabled
-            ? "🔊 Voice chat enabled by admin"
-            : "🔇 Voice chat disabled",
+          data.enabled ? '🔊 관리자가 음성 채팅을 켰습니다' : '🔇 음성 채팅이 꺼졌습니다',
+          data.enabled ? '🔊 Voice chat enabled by admin' : '🔇 Voice chat disabled',
         );
         break;
       case "voice.offer":
@@ -101,7 +103,7 @@ Signaling events (via Socket.IO):
         VoiceChat.displaced = true;
         VoiceChat.enabled = false;
         updateVoiceButton();
-        showVoiceNotification("Voice moved to another tab");
+        showVoiceNotification('음성 채팅이 다른 탭으로 이동했습니다', 'Voice moved to another tab');
         break;
       case "voice.mute": {
         var audioEl = ownedAudio.get(data.userId);
@@ -316,10 +318,10 @@ Signaling events (via Socket.IO):
       });
 
       updateVoiceButton();
-      showVoiceNotification("🎙️ Voice active — click to mute");
+      showVoiceNotification('🎙️ 음성 연결됨 — 클릭하여 음소거 해제', '🎙️ Voice active — click to unmute');
     } catch (e) {
       console.error("[Voice] Mic access denied:", e);
-      showVoiceNotification("❌ Microphone access denied");
+      showVoiceNotification('❌ 마이크 접근이 거부되었습니다', '❌ Microphone access denied');
     } finally {
       VoiceChat.joining = false;
       if (!destroyed) updateVoiceButton();
@@ -597,44 +599,45 @@ Signaling events (via Socket.IO):
     var btn = voiceButton;
     if (!btn) return;
     btn.setAttribute?.("aria-busy", String(VoiceChat.joining));
+    var adminBtn = adminButton;
+    if (adminBtn) {
+      adminBtn.textContent = VoiceChat.enabled ? t('🔊 켜짐', '🔊 ON') : t('🔇 꺼짐', '🔇 OFF');
+      adminBtn.setAttribute?.('aria-label', VoiceChat.enabled ? t('음성 채팅 끄기', 'Disable voice chat') : t('음성 채팅 켜기', 'Enable voice chat'));
+      adminBtn.style.background = VoiceChat.enabled
+        ? "rgba(76,175,80,0.9)"
+        : "rgba(80,80,80,0.9)";
+    }
     if (VoiceChat.joining) {
-      btn.textContent = "마이크 연결 중…";
+      btn.textContent = t('마이크 연결 중…', 'Connecting microphone…');
       return;
     }
 
     if (!VoiceChat.enabled) {
-      btn.textContent = "🔇 Voice Off";
+      btn.textContent = t('🔇 음성 꺼짐', '🔇 Voice Off');
       btn.style.cssText =
         "padding:8px 16px;background:rgba(80,80,80,0.9);color:white;border:none;" +
         "border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;";
     } else if (VoiceChat.muted || !VoiceChat.active) {
-      btn.textContent = VoiceChat.active ? "🎤 Muted" : "🎤 Join Voice";
+      btn.textContent = VoiceChat.active ? t('🎤 음소거', '🎤 Muted') : t('🎤 음성 참여', '🎤 Join Voice');
       btn.style.cssText =
         "padding:8px 16px;background:rgba(76,175,80,0.9);color:white;border:none;" +
         "border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;";
     } else {
-      btn.textContent = "🎤 Speaking";
+      btn.textContent = t('🎤 말하는 중', '🎤 Speaking');
       btn.style.cssText =
         "padding:8px 16px;background:#4CAF50;color:white;border:none;" +
         "border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;" +
         "box-shadow:0 0 0 3px rgba(76,175,80,0.4);";
     }
 
-    // Admin button
-    var adminBtn = adminButton;
-    if (adminBtn) {
-      adminBtn.textContent = VoiceChat.enabled ? "🔊 ON" : "🔇 OFF";
-      adminBtn.style.background = VoiceChat.enabled
-        ? "rgba(76,175,80,0.9)"
-        : "rgba(80,80,80,0.9)";
-    }
   }
 
-  function showVoiceNotification(msg, duration) {
+  function showVoiceNotification(ko, en, duration) {
     if (duration === undefined) duration = 3000;
     var toast = voiceToast;
     if (!toast) return;
-    toast.textContent = msg;
+    notification = () => t(ko, en);
+    toast.textContent = notification();
     toast.style.opacity = "1";
     setTimeout(function () {
       toast.style.opacity = "0";
@@ -660,11 +663,16 @@ Signaling events (via Socket.IO):
   }
 
   VoiceChat.handleSocketEvent = handleVoiceSocketEvent;
+  const unsubscribeLocale = subscribeLocale(() => {
+    updateVoiceButton();
+    if (notification && voiceToast) voiceToast.textContent = notification();
+  });
 
   return {
     init: initVoiceChat,
     handleSocketEvent: handleVoiceSocketEvent,
     destroy() {
+      unsubscribeLocale();
       destroyed = true;
       leaveVoice();
       stopWhisperTranscription();

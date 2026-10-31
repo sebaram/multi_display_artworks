@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add Korean and English service UI with a browser-persisted language selector. Switching updates existing controls without resetting editor drafts, scenes or media connections.
+- Document language selection in the English README and keep release review/execution documentation in English.
+
 ## 2.0.0 — 2026-11-01
 
 The FastAPI/React release uses version 2.0.0 and is deployed from `2778ee4`. Actual image/source identities and recovery evidence are tracked in the [release execution record](docs/releases/v2.0-execution.md).

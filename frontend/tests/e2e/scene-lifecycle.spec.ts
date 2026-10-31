@@ -10,7 +10,7 @@ test("repeated SPA entries own only one scene and visitor panel", async ({
       timeout: 20000,
     });
     await expect(
-      page.getByRole("button", { name: "Visitor", exact: true }),
+      page.getByRole("button", { name: "방문자", exact: true }),
     ).toHaveCount(1);
     await page.getByRole("link", { name: "← 전시 목록" }).click();
     await expect(page.locator("a-scene")).toHaveCount(0);

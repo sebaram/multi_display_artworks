@@ -57,7 +57,7 @@ test("actual XR origin constrains world room edges without modifying raw device 
 async function enter(page: Page) {
   await page.goto(`/room?room_id=${room}`);
   await expect(
-    page.getByRole("button", { name: "Visitor", exact: true }),
+    page.getByRole("button", { name: "방문자", exact: true }),
   ).toBeVisible({ timeout: 20000 });
   return page.evaluate(() =>
     JSON.parse(sessionStorage.getItem("metamuseum.tab-visitor.v1")!),
@@ -157,13 +157,13 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
   );
   page.on("pageerror", (e) => errors.push(e.message));
   const own = await enter(page);
-  await page.getByRole("button", { name: "Visitor", exact: true }).click();
-  await page.getByRole("button", { name: "Customize", exact: true }).click();
+  await page.getByRole("button", { name: "방문자", exact: true }).click();
+  await page.getByRole("button", { name: "외형 설정", exact: true }).click();
   await page
-    .getByLabel("Avatar preset", { exact: true })
+    .getByLabel("아바타 프리셋", { exact: true })
     .selectOption("casual");
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "My avatar" })).toHaveCount(0);
+  await page.getByRole("button", { name: "적용", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "내 아바타" })).toHaveCount(0);
   const observer = await context.newPage();
   await enter(observer);
   await expect.poll(() => rig(observer, own.visitorId)).not.toBeNull();
@@ -174,11 +174,11 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
       .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("value"))),
   ).toEqual(
     expect.arrayContaining([
-      "Standing",
-      "Seated",
-      "Calibrate",
-      "Size -",
-      "Size +",
+      "서기",
+      "앉기",
+      "보정",
+      "크기 -",
+      "크기 +",
     ]),
   );
   expect(
@@ -311,12 +311,12 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     xr.getFrame = () => mock.frame;
   });
   await expect(
-    page.getByLabel("Avatar posture", { exact: true }),
+    page.getByLabel("아바타 자세", { exact: true }),
   ).toBeVisible();
   expect((await rig(observer, own.visitorId))!.scale).toBeCloseTo(1, 3);
   await page.locator("a-scene").evaluate((s: any) => s.emit("enter-vr"));
-  await worldAction(page, "Seated");
-  await expect(page.getByLabel("Avatar posture", { exact: true })).toHaveValue(
+  await worldAction(page, "앉기");
+  await expect(page.getByLabel("아바타 자세", { exact: true })).toHaveValue(
     "seated",
   );
   await page.evaluate(() => {
@@ -325,15 +325,15 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     m.left[1] = 1.26;
     m.right[1] = 1.26;
   });
-  await worldAction(page, "Standing");
-  await expect(page.getByLabel("Avatar posture", { exact: true })).toHaveValue(
+  await worldAction(page, "서기");
+  await expect(page.getByLabel("아바타 자세", { exact: true })).toHaveValue(
     "standing",
   );
-  await worldAction(page, "Size +");
+  await worldAction(page, "크기 +");
   await expect
     .poll(async () => (await rig(observer, own.visitorId))!.scale)
     .toBeCloseTo(1.69 / 1.64, 3);
-  await worldAction(page, "Calibrate");
+  await worldAction(page, "보정");
   await expect
     .poll(async () => (await rig(observer, own.visitorId))!.scale)
     .toBeCloseTo(1, 3);
@@ -537,7 +537,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
       distance((await rig(observer, own.visitorId))!.head, beforeReset.head),
     )
     .toBeLessThan(0.015);
-  await worldAction(page, "Calibrate");
+  await worldAction(page, "보정");
   await expect
     .poll(async () => (await rig(observer, own.visitorId))!.scale)
     .toBeCloseTo(1, 3);
@@ -578,7 +578,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     s.emit("enter-vr");
   });
   await expect(
-    page.getByLabel("Avatar posture", { exact: true }),
+    page.getByLabel("아바타 자세", { exact: true }),
   ).toBeVisible();
   await expect
     .poll(() =>
@@ -620,7 +620,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     distance((await rig(observer, own.visitorId))!.root, held.root),
   ).toBeLessThan(0.015);
   await expect(
-    page.getByLabel("Avatar posture", { exact: true }),
+    page.getByLabel("아바타 자세", { exact: true }),
   ).toBeVisible();
   // This reset relates only to the unresolved space; it cannot establish a world mapping.
   await page.evaluate(() => {
@@ -887,7 +887,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     m.left[1] = 0.85;
     m.right[1] = 0.85;
   });
-  await worldAction(page, "Seated");
+  await worldAction(page, "앉기");
   await expect
     .poll(async () =>
       distance(
@@ -904,7 +904,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
   expect(seated.hips[1]).toBeLessThan(0.6);
   expect(seated.foot[1]).toBeCloseTo(0.08, 2);
   await page
-    .getByLabel("Avatar posture", { exact: true })
+    .getByLabel("아바타 자세", { exact: true })
     .selectOption("standing");
   await page.evaluate(() => {
     const m = (window as any).avatarXRMock;
@@ -967,7 +967,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     m.active = true;
   });
   await expect(
-    page.getByLabel("Avatar posture", { exact: true }),
+    page.getByLabel("아바타 자세", { exact: true }),
   ).toBeVisible();
   await expect
     .poll(async () => (await rig(observer, own.visitorId))!.head[1])
@@ -977,13 +977,13 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     .toBeCloseTo(0.08, 2);
   if (
     !(await page
-      .getByRole("button", { name: "Customize", exact: true })
+      .getByRole("button", { name: "외형 설정", exact: true })
       .isVisible())
   )
-    await page.getByRole("button", { name: "Visitor", exact: true }).click();
-  await page.getByRole("button", { name: "Customize", exact: true }).click();
-  await page.getByLabel("Avatar preset", { exact: true }).selectOption("robot");
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
+    await page.getByRole("button", { name: "방문자", exact: true }).click();
+  await page.getByRole("button", { name: "외형 설정", exact: true }).click();
+  await page.getByLabel("아바타 프리셋", { exact: true }).selectOption("robot");
+  await page.getByRole("button", { name: "적용", exact: true }).click();
   const legacyHand = observer.locator(`#hand-left-${own.visitorId}`);
   await expect(legacyHand).toHaveCount(1);
   const palm = () =>
@@ -1066,7 +1066,7 @@ test("actual A-Frame borrowed mock XR solves connected arms, transforms once, lo
     ),
   ).toBeLessThan(0.02);
   await expect(
-    page.getByLabel("Avatar posture", { exact: true }),
+    page.getByLabel("아바타 자세", { exact: true }),
   ).toBeVisible();
   await page.evaluate(() => ((window as any).avatarXRMock.headLost = false));
   await expect(legacyHand).toHaveCount(1);

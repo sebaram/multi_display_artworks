@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { useI18n, translate as t } from "./i18n";
+import { displayError } from "./error-message";
 export function useApi<T>(path: string | undefined) {
   const [state, set] = useState<{ data?: T; error?: string; loading: boolean }>(
     { loading: true },
@@ -29,13 +31,14 @@ export function Status({
   error?: string;
   loading?: boolean;
 }) {
+  useI18n();
   return error ? (
     <div role="alert" className="notice error">
-      {error}
+      {displayError(error)}
     </div>
   ) : loading ? (
     <div role="status" className="loading">
-      불러오는 중…
+      {t("불러오는 중…", "Loading…")}
     </div>
   ) : null;
 }

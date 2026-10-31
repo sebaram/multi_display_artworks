@@ -1,16 +1,12 @@
+import { translate as t, subscribeLocale } from '../../../app/locale-state.js';
+
 export function buildShareRoomUrl(pageLocation, roomId) {
   if (!roomId) return null;
   const protocol = pageLocation.protocol === 'https:' ? 'https:' : 'http:';
   return `${protocol}//${pageLocation.host}/room?room_id=${encodeURIComponent(roomId)}`;
 }
 
-function copiedFeedback(button, setTimeout) {
-  const original = button.textContent;
-  button.textContent = '✅ Copied!';
-  setTimeout(() => { button.textContent = original; }, 1500);
-}
-
-function fallbackCopy({ document, url, button, setTimeout }) {
+function fallbackCopy({ document, url, copiedFeedback }) {
   const textarea = document.createElement('textarea');
   textarea.value = url;
   textarea.style.cssText = 'position:fixed;top:-999px;left:-999px;';
@@ -22,7 +18,7 @@ function fallbackCopy({ document, url, button, setTimeout }) {
     // Copy feedback is still useful when the legacy command is unavailable.
   }
   textarea.remove();
-  copiedFeedback(button, setTimeout);
+  copiedFeedback();
 }
 
 export function mountShare({
@@ -35,10 +31,22 @@ export function mountShare({
 }) {
   const roomUrl = buildShareRoomUrl(location, roomId);
   let overlay = null;
+  let overlayLabels = null;
+  let copied = false;
+  function updateLabels() {
+    button.textContent = t('🔗 공유', '🔗 Share');
+    if (!overlayLabels) return;
+    const { title, copyButton, closeButton } = overlayLabels;
+    title.textContent = t('📱 이 방 공유', '📱 Share this Room');
+    copyButton.textContent = copied ? t('✅ 복사 완료!', '✅ Copied!') : t('📋 URL 복사', '📋 Copy URL');
+    closeButton.textContent = t('닫기', 'Close');
+  }
 
   const close = () => {
     overlay?.remove();
     overlay = null;
+    overlayLabels = null;
+    copied = false;
   };
 
   const show = () => {
@@ -55,7 +63,6 @@ export function mountShare({
     const dialog = document.createElement('div');
     dialog.style.cssText = 'background:#1a1a2e;border-radius:16px;padding:28px;max-width:340px;width:90%;color:white;text-align:center;';
     const title = document.createElement('h3');
-    title.textContent = '📱 Share this Room';
     title.style.cssText = 'margin:0 0 20px 0;font-size:18px;';
     const qrContainer = document.createElement('div');
     qrContainer.id = 'qr-container';
@@ -69,24 +76,34 @@ export function mountShare({
 
     const copyButton = document.createElement('button');
     copyButton.id = 'qr-copy-btn';
-    copyButton.textContent = '📋 Copy URL';
     copyButton.style.cssText = 'flex:1;padding:10px;border-radius:8px;border:none;background:#3498db;color:white;cursor:pointer;font-size:14px;font-weight:600;';
+    const copiedFeedback = () => {
+      if (overlayLabels?.copyButton !== copyButton) return;
+      copied = true;
+      updateLabels();
+      setTimeout(() => {
+        if (overlayLabels?.copyButton !== copyButton) return;
+        copied = false;
+        updateLabels();
+      }, 1500);
+    };
     copyButton.addEventListener('click', () => {
       const copyPromise = navigator.clipboard?.writeText?.(roomUrl);
       if (!copyPromise) {
-        fallbackCopy({ document, url: roomUrl, button: copyButton, setTimeout });
+        fallbackCopy({ document, url: roomUrl, copiedFeedback });
         return;
       }
       copyPromise
-        .then(() => copiedFeedback(copyButton, setTimeout))
-        .catch(() => fallbackCopy({ document, url: roomUrl, button: copyButton, setTimeout }));
+        .then(copiedFeedback)
+        .catch(() => fallbackCopy({ document, url: roomUrl, copiedFeedback }));
     });
 
     const closeButton = document.createElement('button');
     closeButton.id = 'qr-close-btn';
-    closeButton.textContent = 'Close';
     closeButton.style.cssText = 'flex:1;padding:10px;border-radius:8px;border:none;background:#555;color:white;cursor:pointer;font-size:14px;';
     closeButton.addEventListener('click', close);
+    overlayLabels = { title, copyButton, closeButton };
+    updateLabels();
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) close();
     });
@@ -103,14 +120,16 @@ export function mountShare({
 
   const button = document.createElement('button');
   button.id = 'share-room-btn';
-  button.textContent = '🔗 Share';
+  updateLabels();
   button.style.cssText = 'padding:6px 14px;background:rgba(0,0,0,0.75);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;font-size:12px;font-family:-apple-system,sans-serif;pointer-events:auto;';
   button.addEventListener('click', show);
   const toolbar = document.getElementById?.('room-toolbar') ?? document.body;
   toolbar.appendChild(button);
+  const unsubscribeLocale = subscribeLocale(updateLabels);
 
   return {
     destroy() {
+      unsubscribeLocale();
       close();
       button.remove();
     },

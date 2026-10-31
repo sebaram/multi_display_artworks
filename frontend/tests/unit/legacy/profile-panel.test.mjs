@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { beforeEach } from 'node:test';
+import { setLocale } from '../../../src/app/locale-state.js';
+beforeEach(() => setLocale('en'));
 
 import { AVATAR_CATALOG } from '../../../src/scene/legacy/avatar-catalog.js';
 import { mountProfilePanel } from '../../../src/scene/legacy/profile-panel.js';
@@ -102,6 +104,21 @@ const initialProfile = {
   avatarId: 'robot',
   color: '#123456',
 };
+
+test('locale changes update an open editor while keeping draft values and focus', () => {
+  const document = createDocument();
+  const panel = mountProfilePanel({ profile: initialProfile, catalog: AVATAR_CATALOG, document, onSave: value => value });
+  click(findByText(document.body, 'Visitor')); click(findByText(document.body, 'Edit'));
+  const dialog = find(document.body, element => element.tagName === 'dialog');
+  const name = find(document.body, element => element.attributes.id === 'profile-display-name');
+  name.value = 'Unsaved draft'; name.focus();
+  setLocale('ko');
+  assert.equal(findByText(document.body, '방문자 프로필')?.tagName, 'h2');
+  assert.equal(dialog.open, true);
+  assert.equal(name.value, 'Unsaved draft');
+  assert.equal(document.activeElement, name);
+  panel.destroy();
+});
 
 test('async Save keeps the dialog open and blocks Escape until persistence succeeds', async () => {
   const document = createDocument();

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useBlocker } from "react-router-dom";
+import { translate as t } from "./i18n";
 export function useUnsavedChanges(dirty: boolean) {
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
@@ -11,7 +12,10 @@ export function useUnsavedChanges(dirty: boolean) {
     if (blocker.state !== "blocked") return;
     if (
       window.confirm(
-        "저장하지 않은 변경 사항이 있습니다. 변경을 버리고 이동하시겠습니까?",
+        t(
+          "저장하지 않은 변경 사항이 있습니다. 변경을 버리고 이동하시겠습니까?",
+          "You have unsaved changes. Discard them and leave?",
+        ),
       )
     )
       blocker.proceed();

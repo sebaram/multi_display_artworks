@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { beforeEach } from 'node:test';
+import { setLocale } from '../../../src/app/locale-state.js';
+beforeEach(() => setLocale('en'));
 
 import { mountRoomControls } from '../../../src/scene/legacy/application.js';
 import { mountMinimap } from '../../../src/scene/legacy/minimap.js';

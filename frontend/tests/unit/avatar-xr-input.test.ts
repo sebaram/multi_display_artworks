@@ -1,4 +1,6 @@
-import { test, expect, vi } from "vitest";
+import { test, expect, vi, beforeEach } from "vitest";
+import { setLocale } from '../../src/app/i18n';
+beforeEach(() => setLocale('en'));
 import { calibrateAvatar } from "../../src/avatar/calibration";
 import {
   sampleAvatarInput,
@@ -100,6 +102,28 @@ function sceneFixture() {
     },
   };
 }
+test('switching locale keeps XR calibration values, focus and the current session', () => {
+  const f = sceneFixture();
+  try {
+    f.driver.sample(100);
+    const posture = document.querySelector<HTMLSelectElement>('[aria-label="Avatar posture"]')!;
+    const height = document.querySelector<HTMLInputElement>('[aria-label="Standing eye height (m)"]')!;
+    height.value = '1.8'; height.dispatchEvent(new Event('change'));
+    posture.value = 'seated'; posture.dispatchEvent(new Event('change'));
+    const enteredHeight = height.value;
+    height.focus();
+    setLocale('ko');
+    expect(document.querySelector('[aria-label="아바타 자세"]')).toBe(posture);
+    expect(document.querySelector('[aria-label="서 있을 때 눈높이 (m)"]')).toBe(height);
+    expect(height.value).toBe(enteredHeight);
+    expect(posture.value).toBe('seated');
+    expect(posture.selectedOptions[0].textContent).toBe('앉기');
+    expect(document.activeElement).toBe(height);
+    expect(f.driver.active).toBe(true);
+    expect(f.mock.session.end).not.toHaveBeenCalled();
+    expect(f.driver.sample(150)?.posture).toBe('seated');
+  } finally { f.close(); }
+});
 test("new local-floor session retains stature but discards the prior session vertical reset offset", () => {
   const f = sceneFixture();
   try {

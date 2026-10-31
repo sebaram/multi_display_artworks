@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { translate as t, subscribeLocale } from '../app/i18n';
 import { createLifetime } from "./lifetime";
 import {
   openVisitorSession,
@@ -115,16 +116,21 @@ export async function startRealtime(
   });
   life.add(expressions.destroy);
   const expressionButton = document.createElement("button");
-  expressionButton.textContent = "표정 감지 시작";
+  const updateExpressionLabels = () => {
+    expressionButton.textContent = expressionButton.disabled
+      ? t('표정 감지 켜짐', 'Expression detection on') : t('표정 감지 시작', 'Start expression detection');
+    manualExpression.textContent = t('표정 😊', 'Expression 😊');
+  };
   expressionButton.onclick = () => {
     expressions.enable();
     expressionButton.disabled = true;
-    expressionButton.textContent = "표정 감지 켜짐";
+    updateExpressionLabels();
   };
   document.getElementById("room-toolbar")?.append(expressionButton);
   life.add(() => expressionButton.remove());
   const manualExpression = document.createElement('button');
-  manualExpression.textContent = '표정 😊';
+  updateExpressionLabels();
+  life.add(subscribeLocale(updateExpressionLabels));
   manualExpression.onclick = () => expressions.showLocalExpression('😊');
   document.getElementById('room-toolbar')?.append(manualExpression);
   life.add(() => manualExpression.remove());

@@ -6,7 +6,10 @@ import { useSession } from "../../app/context";
 import { legacyResource } from "../../app/routes";
 import type { DocumentDTO, ResourceSpec } from "../../api/types";
 import { Field, formBody } from "./Fields";
+import { useI18n, translate as t } from "../../app/i18n";
+import { resourceLabel } from "./labels";
 export default function Admin() {
+  useI18n();
   const { session } = useSession();
   const location = useLocation();
   const [params, setParams] = useSearchParams();
@@ -119,52 +122,61 @@ export default function Admin() {
   if (!session.authenticated)
     return (
       <main className="page">
-        <h1>스튜디오</h1>
-        <p>관리자 로그인이 필요합니다.</p>
+        <h1>{t("스튜디오", "Studio")}</h1>
+        <p>
+          {t(
+            "관리자 로그인이 필요합니다.",
+            "Administrator sign in is required.",
+          )}
+        </p>
         <Link
           className="button primary"
           to={`/signin?next=${encodeURIComponent(location.pathname + location.search)}`}
         >
-          로그인
+          {t("로그인", "Sign in")}
         </Link>
       </main>
     );
   if (!session.is_admin)
     return (
       <main className="page">
-        <h1>접근 권한이 없습니다.</h1>
-        <Link to="/">전시로 돌아가기</Link>
+        <h1>{t("접근 권한이 없습니다.", "You do not have access.")}</h1>
+        <Link to="/">{t("전시로 돌아가기", "Back to exhibitions")}</Link>
       </main>
     );
   return (
     <main className="studio">
       <aside className="studio-nav">
         <div className="eyebrow">MANAGEMENT STUDIO</div>
-        <h1>공간 관리</h1>
-        <nav aria-label="관리 리소스">
+        <h1>{t("공간 관리", "Manage spaces")}</h1>
+        <nav aria-label={t("관리 리소스", "Administration resources")}>
           {schema.data?.resources.map((s) => (
             <Link
               className={s.name === resource ? "active" : ""}
               key={s.name}
               to={`/kwanri/${s.name}`}
             >
-              {s.label}
+              {resourceLabel(s.name, s.label)}
               <span>↗</span>
             </Link>
           ))}
         </nav>
         <Link className="studio-bottom" to="/wall-editor">
-          월 디자인 스튜디오 ↗
+          {t("월 디자인 스튜디오 ↗", "Wall design studio ↗")}
         </Link>
       </aside>
       <section className="studio-content">
         <div className="section-heading">
           <div>
             <div className="eyebrow">COLLECTION / {resource.toUpperCase()}</div>
-            <h2>{spec?.label || "관리"}</h2>
+            <h2>
+              {spec
+                ? resourceLabel(spec.name, spec.label)
+                : t("관리", "Manage")}
+            </h2>
           </div>
           <button className="primary" onClick={() => create()} disabled={!spec}>
-            + 새로 만들기
+            {t("+ 새로 만들기", "+ Create new")}
           </button>
         </div>
         <Status
@@ -172,12 +184,12 @@ export default function Admin() {
           error={list.error || schema.error}
         />
         <label className="search">
-          목록 검색
+          {t("목록 검색", "Search items")}
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="이름·설명 검색"
+            placeholder={t("이름·설명 검색", "Search names or descriptions")}
           />
         </label>
         <div className="document-list">
@@ -204,37 +216,48 @@ export default function Admin() {
                   <strong>{i.name || String(i.provider || i.id)}</strong>
                   <small>{i.description || i.id}</small>
                 </span>
-                <span>편집 →</span>
+                <span>{t("편집 →", "Edit →")}</span>
               </button>
             ))}
         </div>
         {list.data?.items.length === 0 && (
-          <Empty>등록된 항목이 없습니다. 새 항목을 만들어 보세요.</Empty>
+          <Empty>
+            {t(
+              "등록된 항목이 없습니다. 새 항목을 만들어 보세요.",
+              "No items yet. Create your first item.",
+            )}
+          </Empty>
         )}
         <div className="pagination">
           <button
             disabled={offset === 0}
             onClick={() => setOffset((n) => Math.max(0, n - 50))}
           >
-            이전
+            {t("이전", "Previous")}
           </button>
           <span>
-            {list.data?.total ?? 0}개 · {offset + 1}–
-            {Math.min(offset + 50, list.data?.total || 0)}
+            {list.data?.total ?? 0}
+            {t("개 ·", " items · ")}
+            {offset + 1}–{Math.min(offset + 50, list.data?.total || 0)}
           </span>
           <button
             disabled={offset + 50 >= (list.data?.total || 0)}
             onClick={() => setOffset((n) => n + 50)}
           >
-            다음
+            {t("다음", "Next")}
           </button>
         </div>
       </section>
       {draft && spec && (
         <aside className="inspector admin-inspector">
           <div className="section-heading">
-            <h2>{id ? "항목 편집" : "새 항목"}</h2>
-            <button aria-label="편집 닫기" onClick={() => setDraft(null)}>
+            <h2>
+              {id ? t("항목 편집", "Edit item") : t("새 항목", "New item")}
+            </h2>
+            <button
+              aria-label={t("편집 닫기", "Close editor")}
+              onClick={() => setDraft(null)}
+            >
               ×
             </button>
           </div>
@@ -253,7 +276,7 @@ export default function Admin() {
                 );
                 setId(saved.id);
                 setDraft(saved);
-                setStatus("저장했습니다.");
+                setStatus("saved");
                 list.refresh();
               } catch (err) {
                 setError((err as Error).message);
@@ -276,12 +299,14 @@ export default function Admin() {
             <Status error={error} />
             {status && (
               <p role="status" className="success">
-                {status}
+                {status === "saved" ? t("저장했습니다.", "Saved.") : status}
               </p>
             )}
             <div className="form-actions">
               <button className="primary" disabled={busy}>
-                {busy ? "저장 중…" : "변경 사항 저장"}
+                {busy
+                  ? t("저장 중…", "Saving…")
+                  : t("변경 사항 저장", "Save changes")}
               </button>
               {id && (
                 <button
@@ -289,7 +314,12 @@ export default function Admin() {
                   className="danger"
                   disabled={busy}
                   onClick={async () => {
-                    if (!window.confirm("이 항목을 삭제하시겠습니까?")) return;
+                    if (
+                      !window.confirm(
+                        t("이 항목을 삭제하시겠습니까?", "Delete this item?"),
+                      )
+                    )
+                      return;
                     setBusy(true);
                     try {
                       await write(`/api/v1/admin/${resource}/${id}`, "DELETE");
@@ -303,7 +333,7 @@ export default function Admin() {
                     }
                   }}
                 >
-                  삭제
+                  {t("삭제", "Delete")}
                 </button>
               )}
             </div>
@@ -326,7 +356,7 @@ export default function Admin() {
                         : `/element?wall_element_id=${id}&type=${({ images: "image", splats: "gaussian_splat", gltfs: "gltf", webpages: "webpage" } as Record<string, string>)[resource]}`
                   }
                 >
-                  공개 화면에서 보기 ↗
+                  {t("공개 화면에서 보기 ↗", "View public page ↗")}
                 </Link>
               )}
           </form>

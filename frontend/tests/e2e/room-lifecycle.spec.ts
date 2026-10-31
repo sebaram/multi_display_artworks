@@ -133,7 +133,7 @@ test("saving an artwork preserves camera, microphone, scene and another artwork 
     });
     await page.locator("#voice-admin-btn").click();
     await page.locator("#voice-btn").click();
-    await expect(page.locator("#voice-btn")).toContainText("Muted");
+    await expect(page.locator("#voice-btn")).toContainText("음소거");
     await page.evaluate(() => {
       (window as any).__scene = document.querySelector("a-scene");
       (window as any).__camera = document.querySelector("a-camera");
@@ -157,7 +157,7 @@ test("saving an artwork preserves camera, microphone, scene and another artwork 
             document.querySelector("#voice-btn"),
       ),
     ).toBe(true);
-    await expect(page.locator("#voice-btn")).toContainText("Muted");
+    await expect(page.locator("#voice-btn")).toContainText("음소거");
     expect(
       await page.evaluate(() => (window as any).__audioTracks[0].readyState),
     ).toBe("live");

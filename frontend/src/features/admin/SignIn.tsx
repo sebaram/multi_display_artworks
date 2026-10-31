@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { write, refreshCsrf, safeNext } from "../../api/client";
 import { useSession } from "../../app/context";
+import { useI18n, translate as t } from "../../app/i18n";
+import { displayError } from "../../app/error-message";
 export default function SignIn() {
+  useI18n();
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [error, setError] = useState(""),
@@ -15,20 +18,28 @@ export default function SignIn() {
       <section className="auth-art">
         <div className="eyebrow">META MUSEUM / STUDIO</div>
         <h1>
-          새로운 전시를
+          {t("새로운 전시를", "A place for")}
           <br />
-          시작하는 곳.
+          {t("시작하는 곳.", "your next exhibition.")}
         </h1>
         <p>
-          공간과 작품을 관리하고,
+          {t("공간과 작품을 관리하고,", "Manage spaces and artworks,")}
           <br />
-          관람객과 만나는 경험을 만드세요.
+          {t(
+            "관람객과 만나는 경험을 만드세요.",
+            "and create experiences for your visitors.",
+          )}
         </p>
       </section>
       <section className="auth-form">
         <div className="eyebrow">WELCOME BACK</div>
-        <h2>관리자 로그인</h2>
-        <p>등록된 계정으로 스튜디오에 입장하세요.</p>
+        <h2>{t("관리자 로그인", "Administrator sign in")}</h2>
+        <p>
+          {t(
+            "등록된 계정으로 스튜디오에 입장하세요.",
+            "Enter the studio with your registered account.",
+          )}
+        </p>
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -52,7 +63,7 @@ export default function SignIn() {
           }}
         >
           <label>
-            이메일
+            {t("이메일", "Email")}
             <input
               autoComplete="username"
               type="email"
@@ -62,7 +73,7 @@ export default function SignIn() {
             />
           </label>
           <label>
-            비밀번호
+            {t("비밀번호", "Password")}
             <input
               autoComplete="current-password"
               type="password"
@@ -73,15 +84,20 @@ export default function SignIn() {
           </label>
           {error && (
             <p role="alert" className="error">
-              {error}
+              {displayError(error)}
             </p>
           )}
           <button className="primary" disabled={busy}>
-            {busy ? "로그인 중…" : "로그인 →"}
+            {busy ? t("로그인 중…", "Signing in…") : t("로그인 →", "Sign in →")}
           </button>
         </form>
-        <p className="muted">신규 가입은 운영자에게 문의하세요.</p>
-        <Link to="/">← 전시로 돌아가기</Link>
+        <p className="muted">
+          {t(
+            "신규 가입은 운영자에게 문의하세요.",
+            "Contact the administrator for a new account.",
+          )}
+        </p>
+        <Link to="/">{t("← 전시로 돌아가기", "← Back to exhibitions")}</Link>
       </section>
     </main>
   );

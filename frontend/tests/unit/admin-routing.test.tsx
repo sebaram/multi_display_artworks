@@ -14,6 +14,7 @@ import type { ResourceSpec } from "../../src/api/types";
 const mocks = vi.hoisted(() => ({ api: vi.fn(), write: vi.fn() }));
 vi.mock("../../src/api/client", () => ({ api: mocks.api, write: mocks.write }));
 import Admin from "../../src/features/admin/Admin";
+import { setLocale } from "../../src/app/i18n";
 
 const resources: ResourceSpec[] = ["rooms", "images"].map((name) => ({
   name,
@@ -76,6 +77,34 @@ function mount(
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  setLocale("ko");
+});
+
+it("keeps the admin draft and submitted field keys while switching language", async () => {
+  mount("/kwanri/room/new/");
+  await screen.findByRole("heading", { name: "새 항목" });
+  fireEvent.change(screen.getByLabelText("이름", { exact: false }), {
+    target: { value: "My 한국어 draft" },
+  });
+  act(() => setLocale("en"));
+  expect(screen.getByRole("heading", { name: "New item" })).toBeInTheDocument();
+  expect(screen.getByLabelText("Name", { exact: false })).toHaveValue(
+    "My 한국어 draft",
+  );
+  mocks.write.mockResolvedValue({ ...saved, name: "My 한국어 draft" });
+  fireEvent.submit(
+    screen.getByRole("button", { name: "Save changes" }).closest("form")!,
+  );
+  await screen.findByText("Saved.");
+  expect(mocks.write).toHaveBeenCalledWith("/api/v1/admin/rooms", "POST", {
+    name: "My 한국어 draft",
+    description: "Default description",
+  });
+  act(() => setLocale("ko"));
+  expect(screen.getByText("저장했습니다.")).toBeInTheDocument();
+  expect(screen.getByLabelText("이름", { exact: false })).toHaveValue(
+    "My 한국어 draft",
+  );
 });
 
 it("opens a legacy new route after its schema arrives and preserves the saved draft during list refresh", async () => {
@@ -87,13 +116,11 @@ it("opens a legacy new route after its schema arrives and preserves the saved dr
   expect(screen.queryByRole("heading", { name: "새 항목" })).toBeNull();
   await act(async () => resolve({ resources }));
   await screen.findByRole("heading", { name: "새 항목" });
-  expect(screen.getByLabelText("Description")).toHaveValue(
-    "Default description",
-  );
-  fireEvent.change(screen.getByLabelText("Name", { exact: false }), {
+  expect(screen.getByLabelText("설명")).toHaveValue("Default description");
+  fireEvent.change(screen.getByLabelText("이름", { exact: false }), {
     target: { value: "My draft" },
   });
-  expect(screen.getByLabelText("Name", { exact: false })).toHaveValue(
+  expect(screen.getByLabelText("이름", { exact: false })).toHaveValue(
     "My draft",
   );
   mocks.write.mockResolvedValue({ ...saved, name: "My draft" });
@@ -106,7 +133,7 @@ it("opens a legacy new route after its schema arrives and preserves the saved dr
       screen.getByRole("heading", { name: "항목 편집" }),
     ).toBeInTheDocument(),
   );
-  expect(screen.getByLabelText("Name", { exact: false })).toHaveValue(
+  expect(screen.getByLabelText("이름", { exact: false })).toHaveValue(
     "My draft",
   );
   expect(mocks.write).toHaveBeenCalledWith("/api/v1/admin/rooms", "POST", {
@@ -119,7 +146,7 @@ it("keeps a closed create inspector closed and can open it on a fresh new-route 
   mount("/kwanri/room/new/");
   await screen.findByRole("heading", { name: "새 항목" });
   fireEvent.click(screen.getByRole("button", { name: "편집 닫기" }));
-  expect(screen.queryByLabelText("Name", { exact: false })).toBeNull();
+  expect(screen.queryByLabelText("이름", { exact: false })).toBeNull();
   fireEvent.click(screen.getByRole("link", { name: "New room route" }));
   await screen.findByRole("heading", { name: "새 항목" });
 });
@@ -127,23 +154,23 @@ it("keeps a closed create inspector closed and can open it on a fresh new-route 
 it("preserves edit-id precedence and ordinary resource navigation from a new route", async () => {
   mount("/kwanri/room/new/?id=saved-room");
   await screen.findByRole("heading", { name: "항목 편집" });
-  expect(screen.getByLabelText("Name", { exact: false })).toHaveValue(
+  expect(screen.getByLabelText("이름", { exact: false })).toHaveValue(
     "Saved room",
   );
-  fireEvent.click(screen.getByRole("link", { name: /images/ }));
-  await screen.findByRole("heading", { name: "images" });
-  expect(screen.queryByLabelText("Name", { exact: false })).toBeNull();
+  fireEvent.click(screen.getByRole("link", { name: /이미지/ }));
+  await screen.findByRole("heading", { name: "이미지" });
+  expect(screen.queryByLabelText("이름", { exact: false })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "+ 새로 만들기" }));
   await screen.findByRole("heading", { name: "새 항목" });
-  expect(screen.getByLabelText("Name", { exact: false })).toHaveValue("");
+  expect(screen.getByLabelText("이름", { exact: false })).toHaveValue("");
 });
 
 it("opens a new draft when history returns from another resource to its create route", async () => {
   mount("/kwanri/room/new/");
   await screen.findByRole("heading", { name: "새 항목" });
-  fireEvent.click(screen.getByRole("link", { name: /images/ }));
-  await screen.findByRole("heading", { name: "images" });
+  fireEvent.click(screen.getByRole("link", { name: /이미지/ }));
+  await screen.findByRole("heading", { name: "이미지" });
   fireEvent.click(screen.getByRole("button", { name: "Back" }));
   await screen.findByRole("heading", { name: "새 항목" });
-  expect(screen.getByLabelText("Name", { exact: false })).toHaveValue("");
+  expect(screen.getByLabelText("이름", { exact: false })).toHaveValue("");
 });

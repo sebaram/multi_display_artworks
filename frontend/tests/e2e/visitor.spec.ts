@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { ROOM } from "./helpers";
 async function visitorReady(page: Page) {
   await expect(
-    page.getByRole("button", { name: "Visitor", exact: true }),
+    page.getByRole("button", { name: "방문자", exact: true }),
   ).toBeVisible({ timeout: 20000 });
   const visitor = await page.evaluate(() =>
     JSON.parse(sessionStorage.getItem("metamuseum.tab-visitor.v1") || "null"),

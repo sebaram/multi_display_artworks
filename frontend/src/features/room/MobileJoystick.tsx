@@ -1,3 +1,4 @@
+import { useI18n } from "../../app/i18n";
 import { useEffect, useRef } from "react";
 import { create } from "nipplejs";
 
@@ -5,6 +6,7 @@ export default function MobileJoystick({ disabled, onMove }: {
   disabled: boolean;
   onMove(forward: number, right: number): void;
 }) {
+  const { t } = useI18n();
   const zone = useRef<HTMLDivElement>(null);
   const move = useRef(onMove);
   move.current = onMove;
@@ -67,8 +69,8 @@ export default function MobileJoystick({ disabled, onMove }: {
       document.removeEventListener("focusin", onUI);
     };
   }, [disabled]);
-  return <div ref={zone} className="mobile-joystick" role="group" aria-label="이동 조이스틱"
-    aria-disabled={disabled} aria-description="드래그 방향과 거리로 이동합니다. 손을 떼면 멈춥니다. 키보드는 WASD 또는 방향키를 사용하세요.">
-    <div className="joystick-hint" aria-hidden="true"><span>✥</span><small>드래그로 이동</small></div>
+  return <div ref={zone} className="mobile-joystick" role="group" aria-label={t("이동 조이스틱", "Movement joystick")}
+    aria-disabled={disabled} aria-description={t("드래그 방향과 거리로 이동합니다. 손을 떼면 멈춥니다. 키보드는 WASD 또는 방향키를 사용하세요.", "Drag to move in that direction; drag farther to move faster. Release to stop. Use WASD or arrow keys on a keyboard.")}>
+    <div className="joystick-hint" aria-hidden="true"><span>✥</span><small>{t("드래그로 이동", "Drag to move")}</small></div>
   </div>;
 }

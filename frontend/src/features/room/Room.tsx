@@ -1,3 +1,6 @@
+import { useI18n } from "../../app/i18n";
+import { LanguageSwitcher } from "../../app/LanguageSwitcher";
+import { localizeRoomMessage } from "./messages";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api, write } from "../../api/client";
@@ -58,6 +61,11 @@ export default function Room({
 }: {
   mode?: "room" | "wall" | "element";
 }) {
+  const { t } = useI18n();
+  const typeLabels: Record<string, string> = {
+    image: t("이미지", "Image"), gaussian_splat: t("가우시안 스플랫", "Gaussian splat"),
+    gltf: t("3D 모델", "3D model"), webpage: t("웹페이지", "Webpage"),
+  };
   const [ai, setAI] = useState(false);
   const [youtube, setYouTube] = useState<
     { wallId: string; layerId: string; route: string } | undefined
@@ -159,7 +167,7 @@ export default function Room({
         try {
           const response = await wallHead();
           if (!current() || response.status === 304) return;
-          if (!response.ok) throw Error("월을 새로고침하지 못했습니다.");
+          if (!response.ok) throw Error(t("월을 새로고침하지 못했습니다.", "Could not refresh the wall."));
           const nextEtag = response.headers.get("ETag");
           if ((nextEtag && nextEtag === etag) || hasDraft()) return;
           const wall = await api<WallDTO>(`/api/v1/walls/${wallId}`, {
@@ -197,12 +205,12 @@ export default function Room({
     async function fetchData() {
       let value: RoomScene;
       if (mode === "room") {
-        if (!roomId) throw Error("전시 공간을 선택하세요.");
+        if (!roomId) throw Error(t("전시 공간을 선택하세요.", "Select an exhibition space."));
         value = await api(`/api/v1/rooms/${roomId}/scene?${query}`, {
           signal: abort.signal,
         });
       } else if (mode === "wall") {
-        if (!wallId) throw Error("월을 선택하세요.");
+        if (!wallId) throw Error(t("월을 선택하세요.", "Select a wall."));
         if (refreshMs) {
           try {
             const response = await wallHead();
@@ -218,7 +226,7 @@ export default function Room({
           true,
         );
       } else {
-        if (!elementId) throw Error("작품을 선택하세요.");
+        if (!elementId) throw Error(t("작품을 선택하세요.", "Select an artwork."));
         const element = await api<ElementDTO>(
           `/api/v1/elements/${type}/${elementId}`,
           { signal: abort.signal },
@@ -402,11 +410,11 @@ export default function Room({
     />
   );
   if (mode === "wall") return (
-    <main className="room-view wall-display" aria-label={data?.room.name || "월 표시"}>
+    <main className="room-view wall-display" aria-label={data?.room.name || t("월 표시", "Wall display")}>
       <div className="scene-host" ref={host} data-testid="scene-host" />
       <div className="room-hud">
-        <Status loading={loading || (!ready && !error)} error={error} />
-        {notice && <p role="status">{notice}</p>}
+        <Status loading={loading || (!ready && !error)} error={localizeRoomMessage(error)} />
+        {notice && <p role="status">{localizeRoomMessage(notice)}</p>}
       </div>
       {!!youtubeLayers.length && <div className="room-bottom">
         {youtubeLayers.map(layer => <button key={`${layer.wallId}-${layer.layerId}`}
@@ -422,41 +430,41 @@ export default function Room({
       <div className="scene-host" ref={host} data-testid="scene-host" />
       <div className="room-top">
         <Link className="room-back" to="/">
-          ← 전시 목록
+          {t("← 전시 목록", "← Exhibitions")}
         </Link>
         <div>
-          <strong>{data?.room.name || "전시 공간"}</strong>
+          <strong>{data?.room.name || t("전시 공간", "Exhibition space")}</strong>
           <small>
             {ready
-              ? "WASD / 방향키로 이동 · 드래그로 둘러보기"
-              : "공간을 준비하고 있습니다"}
+              ? t("WASD / 방향키로 이동 · 드래그로 둘러보기", "Move with WASD / arrow keys · Drag to look around")
+              : t("공간을 준비하고 있습니다", "Preparing the space")}
           </small>
         </div>
         <button aria-expanded={list} onClick={() => setList(!list)}>
-          작품 목록 <span>{elements.length}</span>
+          {t("작품 목록", "Artwork list")} <span>{elements.length}</span>
         </button>
         <button
           onClick={async () => {
             await navigator.clipboard?.writeText(location.href);
-            setStatus("전시 링크를 복사했습니다.");
+            setStatus(t("전시 링크를 복사했습니다.", "Exhibition link copied."));
           }}
         >
-          링크 공유 ↗
+          {t("링크 공유 ↗", "Share link ↗")}
         </button>
       </div>
       <div className="room-hud">
-        <Status loading={loading} error={error} />
+        <Status loading={loading} error={localizeRoomMessage(error)} />
         {notice && (
           <div role="status" className="notice">
-            {notice}
-            <button aria-label="알림 닫기" onClick={() => setNotice("")}>
+            {localizeRoomMessage(notice)}
+            <button aria-label={t("알림 닫기", "Dismiss notification")} onClick={() => setNotice("")}>
               ×
             </button>
           </div>
         )}
-        {status && !draft && <p role="status">{status}</p>}
+        {status && !draft && <p role="status">{localizeRoomMessage(status)}</p>}
       </div>
-      <div id="room-toolbar" className="room-toolbar" />
+      <div id="room-toolbar" className="room-toolbar"><LanguageSwitcher /></div>
       <MobileJoystick key={route}
         disabled={!ready || !!draft || list || ai || !!youtube || captureLocation || !!data?.isArMarker || !!data?.isArCompanion}
         onMove={(forward, right) => instance.current?.move(forward, right)} />
@@ -466,7 +474,7 @@ export default function Room({
             <SharedPlayback
               key={wall.id}
               wallId={wall.id}
-              title={wall.name || "월"}
+              title={wall.name || t("월", "Wall")}
               command={(id, action, position) =>
                 instance.current?.playbackCommand(id, action, position) || false
               }
@@ -492,7 +500,7 @@ export default function Room({
             instance.current?.sound(!sound);
           }}
         >
-          {sound ? "소리 끄기" : "소리 켜기"}
+          {sound ? t("소리 끄기", "Mute") : t("소리 켜기", "Enable sound")}
         </button>
         <button
           onClick={() => {
@@ -500,17 +508,17 @@ export default function Room({
             if (scene?.enterVR) void scene.enterVR();
           }}
         >
-          VR 입장
+          {t("VR 입장", "Enter VR")}
         </button>
         <select
-          aria-label="지정 위치로 이동"
+          aria-label={t("지정 위치로 이동", "Go to a saved location")}
           defaultValue=""
           onChange={(e) => {
             const p = data?.presets.find((p) => p.id === e.target.value);
             if (p) instance.current?.teleport(p);
           }}
         >
-          <option value="">위치 이동</option>
+          <option value="">{t("위치 이동", "Go to location")}</option>
           {data?.presets.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -525,7 +533,7 @@ export default function Room({
               setLocationError("");
             }}
           >
-            현재 위치 저장
+            {t("현재 위치 저장", "Save current location")}
           </button>
         )}
         {captureLocation && data && (
@@ -560,7 +568,7 @@ export default function Room({
                 );
                 setCaptureLocation(false);
                 setLocationName("");
-                setStatus("현재 위치를 저장했습니다.");
+                setStatus(t("현재 위치를 저장했습니다.", "Current location saved."));
               } catch (reason) {
                 if (routeRef.current === targetRoute)
                   setLocationError((reason as Error).message);
@@ -570,7 +578,7 @@ export default function Room({
             }}
           >
             <label>
-              장소 이름
+              {t("장소 이름", "Location name")}
               <input
                 required
                 maxLength={160}
@@ -583,39 +591,39 @@ export default function Room({
                 className="primary"
                 disabled={savingLocation || !locationName.trim()}
               >
-                위치 저장
+                {t("위치 저장", "Save location")}
               </button>
               <button type="button" onClick={() => setCaptureLocation(false)}>
-                취소
+                {t("취소", "Cancel")}
               </button>
             </div>
-            {locationError && <p role="alert">{locationError}</p>}
+            {locationError && <p role="alert">{localizeRoomMessage(locationError)}</p>}
           </form>
         )}
         {!!data?.roomId && (
-          <Link to={`/room?room_id=${data.roomId}&ar=marker`}>마커 AR</Link>
+          <Link to={`/room?room_id=${data.roomId}&ar=marker`}>{t("마커 AR", "Marker AR")}</Link>
         )}
         {!!data?.roomId && (
           <Link to={`/room?room_id=${data.roomId}&ar=companion`}>
-            폰 연동 AR
+            {t("폰 연동 AR", "Phone-linked AR")}
           </Link>
         )}
         {session.is_admin && data?.roomId && (
           <button disabled={!ready} onClick={() => (ai ? closeAI() : openAI())}>
-            AI 큐레이션
+            {t("AI 큐레이션", "AI curation")}
           </button>
         )}
         {session.is_admin && data?.walls[0]?.id && (
           <Link to={`/wall-editor?wall_id=${data?.walls[0]?.id || ""}`}>
-            월 디자인 ↗
+            {t("월 디자인 ↗", "Wall design ↗")}
           </Link>
         )}
       </div>
       {list && (
         <aside className="artwork-list">
           <div className="section-heading">
-            <h2>전시 작품</h2>
-            <button onClick={() => setList(false)} aria-label="작품 목록 닫기">
+            <h2>{t("전시 작품", "Exhibited artworks")}</h2>
+            <button onClick={() => setList(false)} aria-label={t("작품 목록 닫기", "Close artwork list")}>
               ×
             </button>
           </div>
@@ -631,7 +639,7 @@ export default function Room({
               <span>{e.wall_element_type === "image" ? "▧" : "◇"}</span>
               <span>
                 {e.name}
-                <small>{e.wall_element_type}</small>
+                <small>{typeLabels[e.wall_element_type] || e.wall_element_type}</small>
               </span>
             </button>
           ))}
@@ -639,7 +647,7 @@ export default function Room({
             .filter((w) => w.id)
             .map((w) => (
               <Link key={w.id} to={`/wall?wall_id=${w.id}`}>
-                {w.name} 단독 보기 ↗
+                {t("{name} 단독 보기 ↗", "View {name} on its own ↗", { name: w.name || w.id })}
               </Link>
             ))}
         </aside>
@@ -695,12 +703,12 @@ export default function Room({
         <aside className="inspector room-inspector">
           <div className="section-heading">
             <div>
-              <div className="eyebrow">ARTWORK / {draft.wall_element_type}</div>
+              <div className="eyebrow">{t("작품", "ARTWORK")} / {typeLabels[draft.wall_element_type] || draft.wall_element_type}</div>
               <h2>{draft.name}</h2>
             </div>
             <button
               onClick={() => setSelected(null)}
-              aria-label="작품 정보 닫기"
+              aria-label={t("작품 정보 닫기", "Close artwork details")}
             >
               ×
             </button>
@@ -716,7 +724,7 @@ export default function Room({
           <Link
             to={`/element?wall_element_id=${draft.id}&type=${draft.wall_element_type}`}
           >
-            작품 단독 보기 ↗
+            {t("작품 단독 보기 ↗", "View artwork on its own ↗")}
           </Link>
           {draft.wall_element_type === "webpage" && (
             <Webpage url={String(draft.webpage_url || draft.url || "")} />
@@ -731,7 +739,7 @@ export default function Room({
                 draft.webpage_url,
             )}
           >
-            작품 원본 열기 ↗
+            {t("작품 원본 열기 ↗", "Open original artwork ↗")}
           </a>
           {session.is_admin && (
             <form
@@ -774,7 +782,7 @@ export default function Room({
                     wall: draft.wall,
                   };
                   instance.current?.update([saved]);
-                  setStatus("저장했습니다.");
+                  setStatus(t("저장했습니다.", "Saved."));
                   setDrafts((d) => {
                     const next = { ...d };
                     delete next[draft.id];
@@ -802,9 +810,10 @@ export default function Room({
                 }
               }}
             >
-              <div className="form-section">작품 편집 · 월 기준 좌표 (m)</div>
+              <LanguageSwitcher />
+              <div className="form-section">{t("작품 편집 · 월 기준 좌표 (m)", "Edit artwork · Wall coordinates (m)")}</div>
               <label>
-                작품 이름
+                {t("작품 이름", "Artwork name")}
                 <input
                   value={draft.name || ""}
                   onChange={(e) => patch({ name: e.target.value })}
@@ -825,14 +834,14 @@ export default function Room({
                     {
                       (
                         {
-                          position_x: "가로 X",
-                          position_y: "세로 Y",
-                          scale_x: "크기 X",
-                          scale_y: "크기 Y",
-                          scale_z: "크기 Z",
-                          rotation_x: "회전 X°",
-                          rotation_y: "회전 Y°",
-                          rotation_z: "회전 Z°",
+                          position_x: t("가로 X", "Horizontal X"),
+                          position_y: t("세로 Y", "Vertical Y"),
+                          scale_x: t("크기 X", "Scale X"),
+                          scale_y: t("크기 Y", "Scale Y"),
+                          scale_z: t("크기 Z", "Scale Z"),
+                          rotation_x: t("회전 X°", "Rotation X°"),
+                          rotation_y: t("회전 Y°", "Rotation Y°"),
+                          rotation_z: t("회전 Z°", "Rotation Z°"),
                         } as Record<string, string>
                       )[field]
                     }
@@ -853,14 +862,14 @@ export default function Room({
                 .filter((f) => draft[f] !== undefined)
                 .map((f) => (
                   <label key={f}>
-                    미디어 URL
+                    {t("미디어 URL", "Media URL")}
                     <input
                       type="text"
                       inputMode="url"
                       ref={(input) =>
                         input?.setCustomValidity(
                           draft[f] && !safeMediaUrl(draft[f])
-                            ? "HTTP(S) 주소 또는 상대 미디어 경로를 입력하세요."
+                            ? t("HTTP(S) 주소 또는 상대 미디어 경로를 입력하세요.", "Enter an HTTP(S) URL or relative media path.")
                             : "",
                         )
                       }
@@ -871,7 +880,7 @@ export default function Room({
                 ))}
               {draft.wall_element_type === "gltf" && (
                 <label>
-                  깊이 Z (m)
+                  {t("깊이 Z (m)", "Depth Z (m)")}
                   <input
                     type="number"
                     step={0.01}
@@ -882,30 +891,30 @@ export default function Room({
                   />
                 </label>
               )}
-              <p className="muted">방향키: 1cm 이동 · Shift: 10cm 이동</p>
+              <p className="muted">{t("방향키: 1cm 이동 · Shift: 10cm 이동", "Arrow keys: move 1 cm · Shift: move 10 cm")}</p>
               <button className="primary" disabled={busy}>
-                {busy ? "저장 중…" : "작품 변경 저장"}
+                {busy ? t("저장 중…", "Saving…") : t("작품 변경 저장", "Save artwork changes")}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   if (original) {
                     patch(original);
-                    setStatus("변경을 되돌렸습니다.");
+                    setStatus(t("변경을 되돌렸습니다.", "Changes reverted."));
                   }
                 }}
               >
-                되돌리기
+                {t("되돌리기", "Revert")}
               </button>
             </form>
           )}
           {status && (
             <p role="status" className="notice">
-              {status}
+              {localizeRoomMessage(status)}
             </p>
           )}
           <div className="attribution">
-            아바타: Shiba by zixisun02 · Rigged Simple by Cesium (CC BY 4.0)
+            {t("아바타: Shiba by zixisun02 · Rigged Simple by Cesium (CC BY 4.0)", "Avatars: Shiba by zixisun02 · Rigged Simple by Cesium (CC BY 4.0)")}
           </div>
         </aside>
       )}
@@ -913,27 +922,27 @@ export default function Room({
   );
 }
 function Webpage({ url }: { url: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const safe = safeMediaUrl(url);
   return (
     <section className="webpage-view">
       <button onClick={() => setOpen(!open)}>
-        {open ? "웹페이지 닫기" : "웹페이지 플레이어 열기"}
+        {open ? t("웹페이지 닫기", "Close webpage") : t("웹페이지 플레이어 열기", "Open webpage player")}
       </button>
       {open && (
         <>
           <p>
-            페이지가 보이지 않으면 사이트의 삽입 제한일 수 있습니다. 원본 링크를
-            열어 확인하세요.
+            {t("페이지가 보이지 않으면 사이트의 삽입 제한일 수 있습니다. 원본 링크를 열어 확인하세요.", "If the page does not appear, the site may block embedding. Open the original link to check.")}
           </p>
           <iframe
-            title="작품 웹페이지"
+            title={t("작품 웹페이지", "Artwork webpage")}
             src={safe}
             sandbox="allow-scripts allow-forms allow-presentation"
             referrerPolicy="no-referrer"
           />
           <a href={safe} target="_blank" rel="noopener noreferrer">
-            원본 페이지 열기 ↗
+            {t("원본 페이지 열기 ↗", "Open original page ↗")}
           </a>
         </>
       )}

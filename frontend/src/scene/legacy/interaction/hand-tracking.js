@@ -1,4 +1,5 @@
 import { MIN_SEND_INTERVAL_MS } from "../core/sync-constants.js";
+import { translate as t, subscribeLocale } from '../../../app/locale-state.js';
 
 function jointPose(frame, referenceSpace, hand, name) {
   const jointSpace = hand.get(name);
@@ -150,7 +151,7 @@ export function mountHandTracking({
     }
     button = document.createElement("button");
     button.id = "hand-tracking-btn";
-    button.textContent = "🤚 Enter VR / Hands";
+    button.textContent = t('🤚 VR / 손 추적 시작', '🤚 Enter VR / Hands');
     button.style.cssText =
       "position:fixed;bottom:20px;right:20px;padding:10px 20px;background:#666;color:white;border:none;border-radius:8px;z-index:9999;";
     button.addEventListener("click", () => {
@@ -165,9 +166,13 @@ export function mountHandTracking({
     if (!scene?.renderer?.xr?.getSession?.()) publish();
   }, MIN_SEND_INTERVAL_MS);
   void addButton();
+  const unsubscribeLocale = subscribeLocale(() => {
+    if (button) button.textContent = t('🤚 VR / 손 추적 시작', '🤚 Enter VR / Hands');
+  });
   return {
     tick,
     destroy() {
+      unsubscribeLocale();
       destroyed = true;
       session?.removeEventListener?.("end", ended);
       session = null;

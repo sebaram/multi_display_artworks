@@ -60,7 +60,7 @@ test("real microphone MediaRecorder posts STT audio and relays the provider tran
     await expect(guest.locator(".remote-avatar")).toHaveCount(1);
     await page.locator("#voice-admin-btn").click();
     await page.locator("#voice-btn").click();
-    await expect(page.locator("#voice-btn")).toContainText("Muted");
+    await expect(page.locator("#voice-btn")).toContainText("음소거");
     const transcribed = page.waitForResponse(
       (response) =>
         response.url().endsWith("/api/transcribe") &&

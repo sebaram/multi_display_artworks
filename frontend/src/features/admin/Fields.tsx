@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
 import type { DocumentDTO, FieldSpec } from "../../api/types";
+import { useI18n, translate as t } from "../../app/i18n";
+import { fieldLabel } from "./labels";
+import { displayError } from "../../app/error-message";
 export function Field({
   field,
   value,
@@ -12,6 +15,7 @@ export function Field({
   change: (value: unknown) => void;
   editing: boolean;
 }) {
+  useI18n();
   if (field.readonly) return null;
   const id = `field-${field.name}`,
     required = field.required && !(editing && field.secret);
@@ -29,7 +33,7 @@ export function Field({
     return (
       <div className="reference-field">
         <label htmlFor={id}>
-          {field.label || field.name}
+          {fieldLabel(field.name, field.label || field.name)}
           {required ? " *" : ""}
         </label>
         <ReferenceSelect
@@ -51,7 +55,7 @@ export function Field({
         value={String(value ?? "")}
         onChange={(e) => change(e.target.value)}
       >
-        <option value="">선택하세요</option>
+        <option value="">{t("선택하세요", "Select an option")}</option>
         {field.choices.map((choice) => (
           <option
             value={typeof choice === "object" ? choice.value : choice}
@@ -93,7 +97,11 @@ export function Field({
         }
         step={field.type === "number" ? "any" : undefined}
         required={required}
-        placeholder={editing && field.secret ? "새 키 입력 시에만 변경" : ""}
+        placeholder={
+          editing && field.secret
+            ? t("새 키 입력 시에만 변경", "Enter a new key to change it")
+            : ""
+        }
         autoComplete={field.secret ? "new-password" : "off"}
         value={String(value ?? "")}
         onChange={(e) =>
@@ -112,11 +120,16 @@ export function Field({
       className={field.type === "boolean" ? "checkbox-field" : ""}
       htmlFor={id}
     >
-      {field.label || field.name}
+      {fieldLabel(field.name, field.label || field.name)}
       {required ? " *" : ""}
       {input}
       {field.secret && editing && (
-        <small>비워 두면 기존 비밀키를 유지합니다.</small>
+        <small>
+          {t(
+            "비워 두면 기존 비밀키를 유지합니다.",
+            "Leave blank to keep the existing secret.",
+          )}
+        </small>
       )}
     </label>
   );
@@ -136,6 +149,7 @@ function ReferenceSelect({
   value: unknown;
   change: (value: unknown) => void;
 }) {
+  useI18n();
   const [page, setPage] = useState<{
     items: DocumentDTO[];
     total: number;
@@ -184,7 +198,7 @@ function ReferenceSelect({
             `/api/v1/admin/${resource}/${encodeURIComponent(id)}`,
           );
         } catch {
-          return { id, name: `${id} (불러오지 못함)` } as DocumentDTO;
+          return { id, name: id, unavailable: true } as DocumentDTO;
         }
       }),
     ).then((items) => {
@@ -238,20 +252,28 @@ function ReferenceSelect({
           )
         }
       >
-        {!multiple && <option value="">선택하세요</option>}
+        {!multiple && (
+          <option value="">{t("선택하세요", "Select an option")}</option>
+        )}
         {[...options.values()].map((item) => (
           <option key={item.id} value={item.id}>
             {item.name || item.id}
+            {item.unavailable ? t(" (불러오지 못함)", " (unavailable)") : ""}
           </option>
         ))}
       </select>
       {page.offset < page.total && (
         <button type="button" disabled={loading} onClick={() => void more()}>
-          선택지 더 불러오기 ({page.offset}/{page.total})
+          {t("선택지 더 불러오기 (", "Load more options (")}
+          {page.offset}/{page.total})
         </button>
       )}
-      {loading && <small role="status">선택지를 불러오는 중…</small>}
-      {error && <small role="alert">{error}</small>}
+      {loading && (
+        <small role="status">
+          {t("선택지를 불러오는 중…", "Loading options…")}
+        </small>
+      )}
+      {error && <small role="alert">{displayError(error)}</small>}
     </>
   );
 }

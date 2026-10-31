@@ -1,19 +1,23 @@
 """Compatibility adapters for gallery links and their existing JSON mutations."""
+import asyncio
 import hashlib
 import json
+import logging
 from pathlib import Path
 from urllib.parse import parse_qs, quote
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
-from starlette.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
 from ..auth import admin_from_session, require_admin
 from ..models import LocationPreset, Marker
 from ..services import gallery as service
+from ..services import legacy_cameras
 from .admin import save_wall, delete_wall
 
 router = APIRouter(include_in_schema=False)
+logger = logging.getLogger(__name__)
 LEGACY_RESOURCES = {'room':'rooms', 'wall':'walls', 'image':'images', 'gaussiansplat':'splats',
                     'gltfmodel':'gltfs', 'webpage':'webpages', 'locationpreset':'locations',
                     'roomeffect':'effects', 'marker':'markers', 'mm_marker_admin':'markers',
@@ -52,19 +56,74 @@ def room(request: Request, room_id: str | None = None):
 
 
 @router.get('/wall')
+@router.head('/wall')
 def wall(request: Request, wall_id: str | None = None):
-    if wall_id is None:
-        raise HTTPException(400, 'wall_id_required')
-    document = service.get('walls', wall_id)
+    try:
+        if wall_id is None:
+            raise HTTPException(400, 'wall_id_required')
+        document = service.get('walls', wall_id)
+    except HTTPException as error:
+        if request.method == 'HEAD':
+            return Response(status_code=error.status_code, headers=error.headers)
+        raise
     # Content hash includes ordered artworks as well as the persisted wall timestamp.
     etag = '"' + hashlib.sha256(json.dumps(service.wall_dto(document), sort_keys=True).encode()).hexdigest() + '"'
     if request.headers.get('if-none-match') == etag:
         return Response(status_code=304, headers={'ETag':etag})
     response = spa(request)
+    if request.method == 'HEAD' and isinstance(response, HTMLResponse):
+        response.body = b''
     response.headers['ETag'] = etag
     if document.updated_time:
         response.headers['Last-Modified'] = document.updated_time.strftime('%a, %d %b %Y %H:%M:%S GMT')
     return response
+
+
+@router.post('/camera-data')
+async def camera_data(request: Request):
+    maximum = 16384
+    try:
+        if int(request.headers.get('content-length', '0')) > maximum:
+            return JSONResponse({'error': 'body too large'}, status_code=413)
+        body = bytearray()
+        async with asyncio.timeout(5):
+            async for chunk in request.stream():
+                if len(body) + len(chunk) > maximum:
+                    return JSONResponse({'error': 'body too large'}, status_code=413)
+                body.extend(chunk)
+        data = legacy_cameras.validate(json.loads(body))
+    except TimeoutError:
+        return JSONResponse({'error': 'body timeout'}, status_code=408)
+    except (ValueError, UnicodeDecodeError, RecursionError) as error:
+        return JSONResponse({'error': str(error) if isinstance(error, ValueError) and not isinstance(error, json.JSONDecodeError)
+                             else 'invalid camera data'}, status_code=400)
+    try:
+        limiter = request.app.state.legacy_camera_limiter
+        client = request.client.host if request.client else 'unknown'
+        limiter.check(('camera-global', '*'), limit=1000, period=1)
+        limiter.check(('camera-ip', client), limit=100, period=1)
+        limiter.check(('camera-user', data['userId']), limit=20, period=1)
+        if not await run_in_threadpool(legacy_cameras.save, data):
+            return JSONResponse({'error': 'camera capacity reached'}, status_code=429)
+    except HTTPException as error:
+        return JSONResponse({'error': 'rate limit exceeded'}, status_code=error.status_code, headers=error.headers)
+    except Exception:
+        logger.exception('Error saving legacy camera snapshot')
+        return JSONResponse({'error': 'server error'}, status_code=500)
+    return {'status': 'success'}
+
+
+@router.get('/get-cameras')
+def get_cameras(request: Request):
+    try:
+        client = request.client.host if request.client else 'unknown'
+        request.app.state.legacy_camera_limiter.check(('camera-read', client), limit=5, period=1)
+        return legacy_cameras.recent()
+    except HTTPException as error:
+        return JSONResponse({'error': 'rate limit exceeded'}, status_code=error.status_code, headers=error.headers)
+    except Exception:
+        logger.exception('Error reading legacy camera snapshots')
+        return []
 
 
 @router.get('/element')

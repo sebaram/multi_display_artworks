@@ -111,7 +111,7 @@ export function mountRoom({
     "xr-mode-ui": "enabled: false",
     webxr: "referenceSpaceType: local-floor; requiredFeatures: local-floor; optionalFeatures: bounded-floor, hand-tracking",
     cursor: "rayOrigin: mouse",
-    raycaster: "objects: .artwork-source, .artwork-pick-target, .wall-surface; interval: 50",
+    raycaster: "objects: .artwork-source, .artwork-pick-target, .wall-surface, .wall-occluder; interval: 50",
   });
   scene.setAttribute("aria-label", bootstrap.room?.name || "3D 전시 공간");
   let refreshPicking = true;
@@ -344,6 +344,7 @@ export function mountRoom({
     scene.append(node);
     node.append(
       entity("a-box", {
+        class: "wall-occluder",
         width: wall.width,
         height: wall.height,
         depth: wall.depth,
@@ -499,21 +500,27 @@ export function mountRoom({
       return;
     }
     if (Date.now() - lastPointer < 50) return;
-    for (const [id, wall] of walls) {
-      const mesh = wall.node.getObject3D?.("mesh");
-      if (!mesh) continue;
-      const hit = raycaster.intersectObject(mesh, false)[0];
-      if (!hit?.uv) continue;
-      lastPointer = Date.now();
-      realtime?.client.emit("wall.interaction", {
-        wall_id: id,
-        binding_revision: wall.binding.revision,
-        client_seq: ++sequence,
-        kind: "move",
-        uv: { u: hit.uv.x, v: hit.uv.y },
-      });
-      break;
+    const candidates = new Map<any, string | undefined>();
+    for (const [id, structure] of structures) {
+      const surface = walls.get(id)?.node;
+      // Ordinary wall bodies also occlude interactive surfaces behind them.
+      for (const node of [surface, structure.node.querySelector('a-box') as Entity | null]) {
+        const mesh = node?.getObject3D?.('mesh');
+        if (!mesh) continue;
+        let visible = true;
+        for (let parent = mesh; parent; parent = parent.parent)
+          if (parent.visible === false) { visible = false; break; }
+        if (visible) candidates.set(mesh, node === surface ? id : undefined);
+      }
     }
+    const hit = raycaster.intersectObjects([...candidates.keys()], false)[0];
+    const id = hit && candidates.get(hit.object), wall = id && walls.get(id);
+    if (!wall || !hit.uv || wall.binding.config.state?.interactive === false) return;
+    lastPointer = Date.now();
+    realtime?.client.emit("wall.interaction", {
+      wall_id: id, binding_revision: wall.binding.revision,
+      client_seq: ++sequence, kind: "move", uv: { u: hit.uv.x, v: hit.uv.y },
+    });
   }
   function mouseUp() {
     dragging = undefined;

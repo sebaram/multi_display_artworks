@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { api, write } from "../../api/client";
 import { useApi, Status, Empty } from "../../app/ui";
@@ -29,6 +29,7 @@ export default function Admin() {
     [status, setStatus] = useState(""),
     [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
+  const openedCreateRoute = useRef<string | null>(null);
   const requestedId = params.get("id");
   useEffect(() => {
     setId(null);
@@ -71,9 +72,9 @@ export default function Admin() {
       setError((e as Error).message);
     }
   }
-  function create() {
+  function create(updateQuery = true) {
     setId(null);
-    setParams({ resource });
+    if (updateQuery) setParams({ resource });
     setDraft(
       Object.fromEntries(
         (spec?.fields || [])
@@ -94,6 +95,27 @@ export default function Admin() {
     setError("");
     setStatus("");
   }
+  useEffect(() => {
+    if (location.pathname.split("/")[3] !== "new" || requestedId) {
+      openedCreateRoute.current = null;
+      return;
+    }
+    if (
+      !session.is_admin ||
+      !spec ||
+      openedCreateRoute.current === location.key
+    )
+      return;
+    openedCreateRoute.current = location.key;
+    create(false);
+  }, [
+    location.pathname,
+    location.key,
+    requestedId,
+    resource,
+    session.is_admin,
+    spec,
+  ]);
   if (!session.authenticated)
     return (
       <main className="page">
@@ -141,7 +163,7 @@ export default function Admin() {
             <div className="eyebrow">COLLECTION / {resource.toUpperCase()}</div>
             <h2>{spec?.label || "관리"}</h2>
           </div>
-          <button className="primary" onClick={create} disabled={!spec}>
+          <button className="primary" onClick={() => create()} disabled={!spec}>
             + 새로 만들기
           </button>
         </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from "react";
+import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import {
   createBrowserRouter,
@@ -129,15 +129,20 @@ function Logout() {
   const { reload } = useSession();
   const nav = useNavigate();
   const [error, setError] = useState("");
+  const request = useRef<Promise<void> | null>(null);
   useEffect(() => {
     let live = true;
-    void write("/api/v1/auth/signout", "POST")
+    // Replayed effects must share the request that rotates the CSRF cookie.
+    const signout = request.current ??= write("/api/v1/auth/signout", "POST")
       .then(refreshCsrf)
-      .then(reload)
+      .then(reload);
+    void signout
       .then(() => {
         if (live) nav("/");
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        if (live) setError(e.message);
+      });
     return () => {
       live = false;
     };

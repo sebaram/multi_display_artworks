@@ -1,5 +1,9 @@
 # 비교·성능 보고서
 
+[2026-10-31 후속 수정 검증](parity-fix-verification.json): 비교 보고서의 F1–F7을 수정하고 아바타 팝업을 컴팩트하게 바꿨습니다. [데스크톱](../validation/avatar-compact-desktop.png)·[모바일](../validation/avatar-compact-mobile.png)에서 기본 설정과 버튼이 한 화면에 들어옵니다. 구현 이력을 전달하지 않은 독립 검토자가 별도 브라우저와 집중 검사로 다시 확인했으며, 확인 범위 내 추가 조치 사항은 없었습니다. 전체 CI·실기기 재검증은 별도입니다.
+
+[2026-10-31 운영 배포판·작업 브랜치 비교](deployment-comparison.html)는 마지막 성공 배포 `master · 974bbfd`와 `codex/gaussian-avatar-gaze · f81d22d`를 독립 검토자 3명과 실제 Chrome으로 비교했습니다. 27개 기능 항목, 확정 결함 7건, 이번에 촬영한 화면 11장을 담은 단일 HTML입니다. 실제 브라우저·API·mock 재현·코드 확인을 구분하며, 운영 데이터와 실기기는 이번에 변경하거나 검증하지 않았습니다. [구조화 결과](deployment-comparison-results.json)에 재현 조건·소스 위치·CI 조회 시점과 미확인 범위를 기록했습니다. 최신 CI는 브라우저9건 실패·37건 통과로 종료돼 image/runtime 검사는 건너뛰었습니다. 이 실패 목록과 원인을 재현한 확정 결함7건은 구분했습니다.
+
 [렌더링 최적화 전후 비교](render-optimization.html)는 기존 빌드와 화면 밖 월 갱신 중단, 이미지 LOD·자산 해제, Spark 2.4 공유 렌더러를 적용한 빌드를 비교합니다. 동일 화면 버퍼 조건과 자동 품질 조절 조건을 구분하고, 화질·메모리 비용이 달라진 부분도 표시합니다. [적용 정책과 한계](../rendering-performance.md).
 
 최종 빌드의 46회 비교와 스크린샷 25장을 단일 HTML에 담았습니다. [원자료](render-optimization-results.json), [브라우저 검증](render-optimization-validation.json), [파일 해시](render-optimization-artifact.json)를 함께 보관합니다. 이미지 재방문 시 작은 축소 이미지를 재사용해 개발 중 발견한 모바일 FPS 퇴행을 해소했습니다. 라이브 월 고정 해상도 FPS 감소와 splat 메모리 증가는 첫 평가에 명시했습니다. 실제 휴대폰·Quest 3는 미측정입니다.

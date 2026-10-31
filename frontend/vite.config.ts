@@ -6,27 +6,38 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: Object.fromEntries(
-      [
-        "/api",
-        "/room/",
-        "/socket.io",
-        "/static",
-        "/stream",
-        "/visitor-capability",
-        "/marker",
-        "/ar-companion/status",
-        "/llm",
-        "/whisper",
-        "/ar/",
-        "/gesture-mark/api",
-        "/gesture-mark/events",
-        "/gesture-mark/stream",
-      ].map((path) => [
-        path,
-        { target: backend, changeOrigin: false, ws: true },
-      ]),
-    ),
+    proxy: {
+      ...Object.fromEntries(
+        [
+          "/api",
+          "/room/",
+          "/socket.io",
+          "/static",
+          "/stream",
+          "/visitor-capability",
+          "/camera-data",
+          "/get-cameras",
+          "/marker",
+          "/ar-companion/status",
+          "/llm",
+          "/whisper",
+          "/ar/",
+          "/gesture-mark/api",
+          "/gesture-mark/events",
+          "/gesture-mark/stream",
+        ].map((path) => [
+          path,
+          { target: backend, changeOrigin: false, ws: true },
+        ]),
+      ),
+      "^/wall(?:\\?|$)": {
+        target: backend,
+        changeOrigin: false,
+        bypass(request) {
+          if (request.method !== "HEAD") return request.url;
+        },
+      },
+    },
   },
   test: {
     environment: "jsdom",

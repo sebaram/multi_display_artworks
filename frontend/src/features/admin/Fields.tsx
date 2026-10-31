@@ -269,9 +269,11 @@ export function formBody(
       )
       .map((f) => [
         f.name,
-        f.type === "json" && typeof draft[f.name] === "string"
-          ? JSON.parse(draft[f.name] as string)
-          : draft[f.name],
+        f.type === "reference" && !f.required && draft[f.name] === ""
+          ? null
+          : f.type === "json" && typeof draft[f.name] === "string"
+            ? JSON.parse(draft[f.name] as string)
+            : draft[f.name],
       ]),
   );
 }

@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-31",
+  "timezone": "Asia/Seoul",
+  "branch": "codex/gaussian-avatar-gaze",
+  "baseline": "f81d22d",
+  "original_report": "deployment-comparison.html",
+  "scope": "확정 결함 F1–F7 수정, 컴팩트 아바타 팝업, 입증된 CI 실패 원인 수정과 독립 재검토",
+  "findings": [
+    {"id":"F1","status":"fixed","evidence":"실제 브라우저에서 Casual·색 저장 후 월 단독 보기의 이름만 변경. 선택과 영구 appearance 모두 Casual/#207F89 유지."},
+    {"id":"F2","status":"fixed","evidence":"실제 새 Marker 관리 폼에서 optional target preset을 비운 채 저장201. 필수 참조는 기존 검증 유지."},
+    {"id":"F3","status":"fixed","evidence":"실제 HEAD200/body0, If-None-Match304. 변경 없는 장면 객체 유지, 외부 색 수정 후 자동 반영. 초안/route 취소 경계는 집중 단위 검사."},
+    {"id":"F4","status":"fixed","evidence":"실제 wall=null 이미지가 장면에 표시. null/undefined 월 조회0, Visitor/방 권한 없이 로컬 표시. 네 타입의 단위 회귀 검사."},
+    {"id":"F5","status":"fixed","evidence":"실제 브라우저 포인터가 먼저 등록된 뒤쪽 월 대신 앞쪽 월을 선택. 앞 월의 디자인을 제거해 일반 벽으로 남겨도 뒤 월에 move를 전송하지 않음."},
+    {"id":"F6","status":"fixed","evidence":"실제 Mongo 기반 POST camera-data200, GET get-cameras200 및 등록 항목 확인. 5초 유효기간·상한·비정상 값·rate 검사는 mock 저장소를 쓰는 HTTP 회귀 검사."},
+    {"id":"F7","status":"fixed","evidence":"실제 /kwanri/mm_marker_admin/new/에서 새 항목 폼 열림. 지연 스키마·초안 보존·뒤로 가기는 집중 단위 검사."}
+  ],
+  "compact_dialog": {
+    "default_controls_scroll_free": true,
+    "advanced_gaze": "확장 시 내용 영역만 스크롤하며 하단 버튼은 유지",
+    "desktop": {"viewport":[1280,720],"dialog_height":465.8,"body_scroll_height":334,"body_client_height":334,"all_visible_controls_inside":true},
+    "mobile_viewport": {"viewport":[390,844],"dialog_height":606.4,"body_scroll_height":489,"body_client_height":489,"all_visible_controls_inside":true},
+    "short_mobile_viewport": {"viewport":[390,640],"dialog_height":573.6,"body_scroll_height":456,"body_client_height":456,"all_visible_controls_inside":true},
+    "hardware": "동일 데스크톱 Chrome의 화면 크기 변경이며 물리 모바일/XR 검증이 아님",
+    "screenshots": ["../validation/avatar-compact-desktop.png","../validation/avatar-compact-mobile.png"]
+  },
+  "focused_checks": {
+    "backend": {"passed":20,"file":"backend/tests/test_legacy_camera_compatibility.py","storage":"mock; 공유 DB 초기화 fixture 사용 안 함"},
+    "frontend": {"passed":43,"groups":[{"files":"room-standalone, room-review, ai-ownership","passed":29},{"files":"reference-field, admin-routing, routes","passed":8},{"files":"scene-pointer, scene-wall-state","passed":5},{"files":"legacy-proxy","passed":1}]},
+    "typecheck": "passed",
+    "production_frontend_build": "passed",
+    "browser_smoke_page_errors": [],
+    "database": "marker-guarded localhost27028/metamuseum_test. 임시 방·월·Marker·이미지·디자인 삭제. 카메라 snapshot은5초 유효기간을 따름."
+  },
+  "ci_follow_up": {
+    "remote_run": "https://github.com/sebaram/multi_display_artworks/actions/runs/41176439671",
+    "remote_run_applies_to": "수정 전 f81d22d:9실패/37통과",
+    "proven_fixes": ["StrictMode 로그아웃 요청 중복→CSRF403 재현 후 요청 공유로 수정", "avatar-detail 테스트 기본 방을 CI seed와 일치시키고 join 대기 상한 추가", "색 변경 미지원 Shiba 프리셋에 대한 잘못된 색 입력 기대 수정"],
+    "focused_browser_tests": {"passed":4,"cases":["로그아웃 중복/회전 CSRF 회귀","20개 전체 포즈 snapshot 수신","hidden peer·상세도·SPA 재입장","익명 외형 저장·재접속·reload"]},
+    "not_claimed_fixed": ["원래의 reload Visitor 누락은 로컬에서 재현되지 않음", "50개 포즈 변형은 이번 재실행 안 함", "기존 voice timeout 원인은 이번 확인 안 함", "월 persistence의 전체409 조합과 live YouTube 외부 재생은 이번 재실행 안 함"],
+    "full_ci_rerun": false
+  },
+  "clean_context_review": {
+    "status":"completed",
+    "context":"fork_turns=none; 구현 내역·이전 성공 결과 미제공",
+    "actionable_findings":0,
+    "focused_frontend_tests_passed":25,
+    "independent_browser_checks":["1280×720·390×844·390×640 기본 설정/버튼 표시", "사람 외형 전체 값의 이름-only 변경 보존", "기존 이미지/new 폼과 빈 부모 저장·지정·해제", "미배정 이미지의 방 권한 없는 렌더링", "변경 없는 장면 보존과 refresh=1 변경 반영", "8000·Vite5173 HEAD200→304 및 빈 body", "카메라 부정 입력400·본문 초과413·조회200", "Vite StrictMode 로그아웃 단일 요청"],
+    "backend_pytest_rerun":"자동 승인 검토가 공유 DB fixture 위험으로 거절해 재시도하지 않음. 원래 단계별20개 테스트 통과와 별도로, 독립 검토에서는 코드 및 실제 API로 확인함.",
+    "limits":["카메라 유효기간·용량/rate 상한·signed presence 분리는 독립 코드/테스트 검토로 확인", "고급 시선 확장의 모든 조합·모든 프리셋·실기기·전체 회귀는 재실행하지 않음"],
+    "temporary_records":"독립 검토자가 만든 이미지와 월 모두204삭제 완료"
+  },
+  "limits": ["운영 데이터·배포·push 변경 없음", "휴대폰·Quest3·Vision Pro 실제 기기 검증 없음", "전체 회귀·성능 매트릭스 반복 없음"]
+}

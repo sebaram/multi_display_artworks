@@ -6,6 +6,7 @@ import { useSession } from "../../app/context";
 import { Status } from "../../app/ui";
 import { loadAFrame, mountRoom, safeMediaUrl } from "../../scene/mountRoom";
 import { startRealtime } from "../../scene/realtime";
+import { loadAvatarCatalog } from "../../avatar/catalog";
 import AIPanel from "./AIPanel";
 import { loadAR, mountAR } from "../../scene/ar";
 import YouTubePanel from "./YouTubePanel";
@@ -16,19 +17,20 @@ const resources: Record<string, string> = {
   gltf: "gltfs",
   webpage: "webpages",
 };
-function standalone(wall: WallDTO, isAdmin: boolean): RoomScene {
+async function standalone(wall: WallDTO, isAdmin: boolean): Promise<RoomScene> {
   const room =
-    typeof wall.room === "string" ? wall.room : (wall.room as any).id;
+    typeof wall.room === "string" ? wall.room : (wall.room as any)?.id || "";
+  const extent = Math.max(20, Math.max(wall.width, wall.height) * 1.5);
   return {
     room: { id: room, name: wall.name, description: wall.description },
     roomId: room,
     boundary: {
-      min_x: -20,
-      max_x: 20,
-      min_y: -20,
-      max_y: 20,
-      min_z: -20,
-      max_z: 20,
+      min_x: -extent,
+      max_x: extent,
+      min_y: -extent,
+      max_y: extent,
+      min_z: -extent,
+      max_z: extent,
     },
     spawn_preset: {
       position: `0 0 ${Math.max(wall.width, wall.height) * 1.2}`,
@@ -37,7 +39,9 @@ function standalone(wall: WallDTO, isAdmin: boolean): RoomScene {
     presets: [],
     walls: [{ ...wall, position: "0 0 0", rotation: "0 0 0" }],
     wallList: [],
-    avatarCatalog: ["shiba", "robot", "rigged-simple", "none"],
+    avatarCatalog: (await loadAvatarCatalog()).presets.map(
+      (preset) => preset.id,
+    ),
     visitorCapabilityUrl: "/visitor-capability",
     isAdmin,
     syncDebugEnabled: false,
@@ -80,6 +84,8 @@ export default function Room({
     [locationError, setLocationError] = useState("");
   const dataRef = useRef(data);
   dataRef.current = data;
+  const draftsRef = useRef(drafts);
+  draftsRef.current = drafts;
   const aiPreview = useRef<ElementDTO[]>([]);
   const aiOwner = useRef<{
     route: string;
@@ -125,6 +131,50 @@ export default function Room({
   }, [youtube, youtubeSource]);
   useEffect(() => {
     let live = true;
+    const abort = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let etag: string | null = null;
+    const refresh = Number(params.get("refresh"));
+    const refreshMs =
+      mode === "wall" && Number.isFinite(refresh) && refresh > 0
+        ? Math.max(1, Math.min(3600, refresh)) * 1000
+        : 0;
+    const current = () => live && routeRef.current === route;
+    const hasDraft = () =>
+      Object.keys(draftsRef.current).length > 0 || !!aiOwner.current;
+    const wallHead = () =>
+      fetch(`/wall?${query}`, {
+        method: "HEAD",
+        credentials: "include",
+        cache: "no-cache",
+        signal: abort.signal,
+        headers: etag ? { "If-None-Match": etag } : {},
+      });
+    function scheduleRefresh() {
+      if (!refreshMs || !current()) return;
+      timer = setTimeout(async () => {
+        try {
+          const response = await wallHead();
+          if (!current() || response.status === 304) return;
+          if (!response.ok) throw Error("월을 새로고침하지 못했습니다.");
+          const nextEtag = response.headers.get("ETag");
+          if ((nextEtag && nextEtag === etag) || hasDraft()) return;
+          const wall = await api<WallDTO>(`/api/v1/walls/${wallId}`, {
+            signal: abort.signal,
+          });
+          const value = await standalone(wall, session.is_admin);
+          if (!current() || hasDraft()) return;
+          etag = nextEtag;
+          setData(value);
+          setSceneData(value);
+          setLiveDesigns({});
+        } catch (reason) {
+          if (current()) setNotice((reason as Error).message);
+        } finally {
+          scheduleRefresh();
+        }
+      }, refreshMs);
+    }
     setLoading(true);
     setError("");
     setData(undefined);
@@ -145,35 +195,76 @@ export default function Room({
       let value: RoomScene;
       if (mode === "room") {
         if (!roomId) throw Error("전시 공간을 선택하세요.");
-        value = await api(`/api/v1/rooms/${roomId}/scene?${query}`);
+        value = await api(`/api/v1/rooms/${roomId}/scene?${query}`, {
+          signal: abort.signal,
+        });
       } else if (mode === "wall") {
         if (!wallId) throw Error("월을 선택하세요.");
-        value = standalone(
-          await api(`/api/v1/walls/${wallId}`),
+        if (refreshMs) {
+          try {
+            const response = await wallHead();
+            if (response.ok) etag = response.headers.get("ETag");
+          } catch (reason) {
+            if (!current()) return;
+            setNotice((reason as Error).message);
+          }
+        }
+        value = await standalone(
+          await api(`/api/v1/walls/${wallId}`, { signal: abort.signal }),
           session.is_admin,
         );
       } else {
         if (!elementId) throw Error("작품을 선택하세요.");
         const element = await api<ElementDTO>(
           `/api/v1/elements/${type}/${elementId}`,
+          { signal: abort.signal },
         );
-        const wall = await api<WallDTO>(`/api/v1/walls/${element.wall}`);
-        value = standalone({ ...wall, elements: [element] }, session.is_admin);
+        const wall = element.wall
+          ? await api<WallDTO>(`/api/v1/walls/${element.wall}`, {
+              signal: abort.signal,
+            })
+          : {
+              id: "",
+              room: "",
+              name: element.name,
+              description: element.description,
+              position: "0 0 0",
+              rotation: "0 0 0",
+              depth: 0.01,
+              width: Math.max(
+                1,
+                Math.abs(element.position_x || 0) * 2 +
+                  (element.width || 1.5) * Math.abs(element.scale_x ?? 1),
+              ),
+              height: Math.max(
+                1,
+                Math.abs(element.position_y || 0) * 2 +
+                  (element.height || 1) * Math.abs(element.scale_y ?? 1),
+              ),
+              elements: [element],
+            };
+        value = await standalone(
+          { ...wall, elements: [element] },
+          session.is_admin,
+        );
       }
-      if (live) {
+      if (current()) {
         setData(value);
         setSceneData(value);
         setLoading(false);
+        scheduleRefresh();
       }
     }
     void fetchData().catch((e) => {
-      if (live) {
+      if (current()) {
         setError(e.message);
         setLoading(false);
       }
     });
     return () => {
       live = false;
+      abort.abort();
+      clearTimeout(timer);
     };
   }, [mode, roomId, wallId, elementId, type, query, session.is_admin]);
   useEffect(() => {
@@ -191,7 +282,9 @@ export default function Room({
           bootstrap: data,
           services: {
             startRealtime: (scene, bootstrap, events, signal) =>
-              startRealtime(scene, bootstrap, events, signal),
+              bootstrap.roomId
+                ? startRealtime(scene, bootstrap, events, signal)
+                : undefined,
             onSelect: (id) => {
               setSelected(id);
               setStatus("");
@@ -225,7 +318,9 @@ export default function Room({
   const elements = data?.walls.flatMap((w) => w.elements) || [],
     original = elements.find((e) => e.id === selected),
     draft = selected ? drafts[selected] || original : undefined;
-  useEffect(() => { instance.current?.select?.(selected); }, [selected, ready]);
+  useEffect(() => {
+    instance.current?.select?.(selected);
+  }, [selected, ready]);
   const panelOwner = aiOwner.current;
   function ownsAI(owner: typeof panelOwner) {
     return (
@@ -483,18 +578,20 @@ export default function Room({
             {locationError && <p role="alert">{locationError}</p>}
           </form>
         )}
-        <Link to={`/room?room_id=${data?.roomId || roomId}&ar=marker`}>
-          마커 AR
-        </Link>
-        <Link to={`/room?room_id=${data?.roomId || roomId}&ar=companion`}>
-          폰 연동 AR
-        </Link>
-        {session.is_admin && (
+        {!!data?.roomId && (
+          <Link to={`/room?room_id=${data.roomId}&ar=marker`}>마커 AR</Link>
+        )}
+        {!!data?.roomId && (
+          <Link to={`/room?room_id=${data.roomId}&ar=companion`}>
+            폰 연동 AR
+          </Link>
+        )}
+        {session.is_admin && data?.roomId && (
           <button disabled={!ready} onClick={() => (ai ? closeAI() : openAI())}>
             AI 큐레이션
           </button>
         )}
-        {session.is_admin && (
+        {session.is_admin && data?.walls[0]?.id && (
           <Link to={`/wall-editor?wall_id=${data?.walls[0]?.id || ""}`}>
             월 디자인 ↗
           </Link>
@@ -524,11 +621,13 @@ export default function Room({
               </span>
             </button>
           ))}
-          {data?.walls.map((w) => (
-            <Link key={w.id} to={`/wall?wall_id=${w.id}`}>
-              {w.name} 단독 보기 ↗
-            </Link>
-          ))}
+          {data?.walls
+            .filter((w) => w.id)
+            .map((w) => (
+              <Link key={w.id} to={`/wall?wall_id=${w.id}`}>
+                {w.name} 단독 보기 ↗
+              </Link>
+            ))}
         </aside>
       )}
       {ai && data && (

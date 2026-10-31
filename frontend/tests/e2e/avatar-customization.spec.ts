@@ -148,7 +148,10 @@ for (const transition of ['empty account', 'logout'] as const) {
     await page.getByRole('button', { name: 'Reload saved appearance' }).click();
     const expected = transition === 'empty account' ? { avatarId: 'shiba', color: '#4CAF50' } : anonymous;
     await expect(page.getByLabel('Avatar preset', { exact: true })).toHaveValue(expected.avatarId);
-    await expect(page.getByLabel('top color', { exact: true })).toHaveValue(expected.color.toLowerCase());
+    const catalog = await page.request.get('/api/v1/avatars/catalog').then(r => r.json());
+    if (catalog.presets.find((preset: any) => preset.id === expected.avatarId).capabilities.colors)
+      await expect(page.getByLabel('top color', { exact: true })).toHaveValue(expected.color.toLowerCase());
+    else await expect(page.getByLabel('top color', { exact: true })).toHaveCount(0);
     expect(await profile(page)).toEqual(accountProfile);
     expect((await remoteLook(other, visitor.visitorId)).colors.top).toBe('#A13579');
     if (transition === 'logout') {

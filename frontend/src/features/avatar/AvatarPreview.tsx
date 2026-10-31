@@ -21,7 +21,7 @@ export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; ap
     let renderer: any;
     try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); }
     catch { setError('Preview unavailable: WebGL could not start'); return; }
-    renderer.domElement.style.cssText = 'display:block;width:100%;height:260px;max-width:100%;';
+    renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;max-width:100%;';
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     host.current.append(renderer.domElement);
     world.add(new THREE.HemisphereLight(0xffffff, 0x596978, 2.8));
@@ -35,8 +35,9 @@ export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; ap
     let frame = 0;
     const draw = () => {
       const width = host.current?.clientWidth || 300;
-      renderer.setSize(width, 260, false);
-      camera.aspect = width / 260; camera.updateProjectionMatrix();
+      const height = host.current?.clientHeight || 260;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height; camera.updateProjectionMatrix();
       const distance = controls.current.zoom * (preset.nativeGaussian ? .35 : 1);
       const focusHeight = preset.nativeGaussian ? 1.6 : .92 + Math.max(0, Math.min(1, (2.8 - distance) / 1.4)) * .65;
       camera.position.set(0, focusHeight + .1, -distance); camera.lookAt(0, focusHeight, 0);
@@ -49,10 +50,12 @@ export function AvatarPreview({ preset, appearance }: { preset: AvatarPreset; ap
       renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove();
     };
   }, [preset.kind, preset.rigVersion, preset.assetUrl, preset.nativeGaussian]);
-  return <section aria-label="Avatar preview">
-    {preset.kind === 'humanoid' ? <div ref={host} style={{ height: 260, width: '100%' }} /> : <p>{preset.label} · Legacy avatar preview</p>}
+  return <section aria-label="Avatar preview" className="avatar-preview">
+    {preset.kind === 'humanoid' ? <div ref={host} className="avatar-preview-host" /> : <p>{preset.label} · Legacy avatar preview</p>}
     {error && <p role="status">{error} · Your saved appearance is kept. Try another preset or reload.</p>}
+    <div className="avatar-preview-controls">
     <label>Rotate <input aria-label="Rotate preview" type="range" min="-180" max="180" value={rotation} onChange={e => setRotation(+e.target.value)} /></label>
     <label>Zoom <input aria-label="Zoom preview" type="range" min="1.4" max="4" step=".1" value={zoom} onChange={e => setZoom(+e.target.value)} /></label>
+    </div>
   </section>;
 }

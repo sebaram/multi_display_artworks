@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 const api = vi.hoisted(() => vi.fn());
 vi.mock("../../src/api/client", () => ({ api }));
-import { Field } from "../../src/features/admin/Fields";
+import { Field, formBody } from "../../src/features/admin/Fields";
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -63,4 +63,45 @@ it("resolves a selected reference beyond page one and incrementally loads additi
   });
   expect(change).toHaveBeenCalledWith("202");
   expect(api).toHaveBeenCalledTimes(3);
+});
+
+it("serializes blank optional single references as null while preserving selected references and lists", () => {
+  const fields = [
+    { name: "wall", type: "reference", reference: "walls" },
+    { name: "target_preset", type: "reference", reference: "locations" },
+    { name: "walls", type: "reference-list", reference: "walls" },
+  ].map((field) => ({
+    label: field.name,
+    required: false,
+    readonly: false,
+    ...field,
+  }));
+  expect(formBody(fields, { wall: "", target_preset: "", walls: [] })).toEqual({
+    wall: null,
+    target_preset: null,
+    walls: [],
+  });
+  expect(formBody(fields, { wall: "saved-wall", target_preset: null })).toEqual(
+    {
+      wall: "saved-wall",
+      target_preset: null,
+    },
+  );
+});
+
+it("keeps required reference validation when the blank option is selected", async () => {
+  api.mockResolvedValue({ items: [], total: 0 });
+  const field = {
+    name: "room",
+    label: "Room",
+    type: "reference",
+    reference: "rooms",
+    required: true,
+    readonly: false,
+  };
+  render(<Field field={field} value="" change={() => {}} editing={false} />);
+  await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+  const select = screen.getByRole("combobox") as HTMLSelectElement;
+  expect(select.checkValidity()).toBe(false);
+  expect(formBody([field], { room: "" })).toEqual({ room: "" });
 });

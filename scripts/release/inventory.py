@@ -67,6 +67,13 @@ def release_stacks():
             if item["State"]["Running"]:
                 probe = "import json,urllib.request\ntry:\n r=urllib.request.urlopen('http://127.0.0.1:5000/health',timeout=5); print(json.dumps({'status':r.status}))\nexcept Exception as e:\n print(json.dumps({'error_type':type(e).__name__}))"
                 record["internal_health"] = json.loads(command(["docker", "exec", identifier, "python", "-c", probe]))
+                from urllib.request import urlopen
+                address = next(iter(item["NetworkSettings"]["Networks"].values()))["IPAddress"]
+                try:
+                    with urlopen("http://" + address + ":5000/health", timeout=5) as response:
+                        record["bridge_health"] = {"status": response.status}
+                except OSError as error:
+                    record["bridge_health"] = {"error_type": type(error).__name__}
         result.append(record)
     return result
 

@@ -11,7 +11,7 @@ import urllib.request
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OPERATIONS = ("inventory", "prepare", "accept-staging", "close-staging", "hold", "accept-private", "promote", "rollback")
+OPERATIONS = ("inventory", "prepare", "accept-staging", "close-staging", "abandon-staging", "hold", "accept-private", "promote", "rollback")
 
 
 class DispatchError(Exception):
@@ -139,6 +139,10 @@ def execute(args):
     require(bool(attempt) == needs_attempt, "Provide an explicit attempt_id only for accept-private, promote or rollback")
     # Rollback is bound by the captured attempt; new CI or a newer master never blocks recovery.
     sha = validate_sha(args.candidate_sha) if args.operation != "rollback" else None
+    if args.operation == "abandon-staging":
+        require(args.operator, "Retirement requires the initiating operator identity")
+        helper("retire.py", ["--release-dir", directory, "--candidate-sha", sha, "--operator", args.operator])
+        return
     if args.operation in ("hold", "promote"):
         assert_master(args.ref, sha, args.repository)
     if args.operation in ("prepare", "hold", "promote"):

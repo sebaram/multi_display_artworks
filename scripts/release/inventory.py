@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -45,6 +46,29 @@ def inspect(kind, name):
 
 def environment(container):
     return dict(entry.split("=", 1) for entry in container["Config"].get("Env", []) if "=" in entry)
+
+
+def release_stacks():
+    result = []
+    ids = command(["docker", "container", "ls", "--all", "--filter", "label=metamuseum.release", "--format", "{{.ID}}"]).decode().split()
+    for identifier in ids:
+        item = inspect("container", identifier)
+        name = item["Name"].lstrip("/")
+        if not re.fullmatch(r"metamuseum-release-[a-f0-9]{12}-(candidate|legacy)-(app|mongo)", name):
+            continue
+        record = {"name": name, "image": item["Image"],
+                  "state": {key: item["State"].get(key) for key in ("Status", "Running", "ExitCode", "OOMKilled")},
+                  "ports": item["NetworkSettings"].get("Ports")}
+        if name.endswith("-app"):
+            logs = subprocess.run(["docker", "logs", "--tail", "80", identifier], capture_output=True)
+            # Exception class names only: never publish arbitrary exception messages or log lines.
+            record["exception_classes"] = sorted(set(re.findall(r"(?m)^([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)):",
+                (logs.stdout + logs.stderr).decode(errors="replace"))))
+            if item["State"]["Running"]:
+                probe = "import json,urllib.request\ntry:\n r=urllib.request.urlopen('http://127.0.0.1:5000/health',timeout=5); print(json.dumps({'status':r.status}))\nexcept Exception as e:\n print(json.dumps({'error_type':type(e).__name__}))"
+                record["internal_health"] = json.loads(command(["docker", "exec", identifier, "python", "-c", probe]))
+        result.append(record)
+    return result
 
 
 def file_info(path):
@@ -96,6 +120,7 @@ def inventory(include_code=False):
                      "UID permission/ACL write probes, source provenance, proxy restriction, and restore rehearsal are prepare/deploy gates."],
     }
     report["mongo"]["declared_volumes"] = sorted((mongo_image["Config"].get("Volumes") or {}))
+    report["release_stacks"] = release_stacks()
     report["noninteractive_sudo"] = bool(shutil.which("sudo")) and subprocess.run(
         ["sudo", "-n", "true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         timeout=10, check=False).returncode == 0

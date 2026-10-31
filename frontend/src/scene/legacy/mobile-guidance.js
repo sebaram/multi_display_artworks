@@ -1,3 +1,5 @@
+import { translate as t, subscribeLocale } from '../../app/locale-state.js';
+
 export function isMobilePointer(coarsePointer, mobileWidth) {
   return Boolean(coarsePointer.matches && mobileWidth.matches);
 }
@@ -18,11 +20,11 @@ export function mountMobileGuidance({ document, matchMedia }) {
 
   function sync() {
     if (isMobilePointer(coarsePointer, mobileWidth)) {
-      if (hint) return;
+      if (hint) { hint.textContent = t('누른 채 드래그하여 이동', 'Hold and drag to move'); return; }
       hint = document.createElement('div');
       hint.setAttribute('id', 'mobile-movement-guidance');
       hint.setAttribute('role', 'status');
-      hint.textContent = 'Hold and drag to move';
+      hint.textContent = t('누른 채 드래그하여 이동', 'Hold and drag to move');
       hint.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9998;padding:8px 12px;border-radius:999px;background:rgba(10,14,30,0.82);color:white;font:13px sans-serif;pointer-events:none;white-space:nowrap;';
       document.body.appendChild(hint);
       return;
@@ -34,9 +36,11 @@ export function mountMobileGuidance({ document, matchMedia }) {
   const removeCoarseListener = listen(coarsePointer, sync);
   const removeWidthListener = listen(mobileWidth, sync);
   sync();
+  const unsubscribeLocale = subscribeLocale(sync);
 
   return {
     destroy() {
+      unsubscribeLocale();
       removeCoarseListener();
       removeWidthListener();
       hint?.remove();

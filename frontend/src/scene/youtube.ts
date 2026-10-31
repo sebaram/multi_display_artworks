@@ -2,6 +2,7 @@ import { createLifetime } from "./lifetime";
 import type { PlaybackClock } from "../wall-engine/types";
 import type { VideoLayer } from "../wall-engine/types";
 import { mediaTarget } from "../wall-engine/motion.js";
+import { translate as t, subscribeLocale } from "../app/i18n";
 let apiReady: Promise<any> | undefined;
 function loadYouTube() {
   if ((window as any).YT?.Player) return Promise.resolve((window as any).YT);
@@ -15,11 +16,7 @@ function loadYouTube() {
     script.src = "https://www.youtube.com/iframe_api";
     script.onerror = () => {
       apiReady = undefined;
-      reject(
-        Error(
-          "YouTube 플레이어에 연결하지 못했습니다. 원본 링크를 열어 주세요.",
-        ),
-      );
+      reject(Error("youtube_unavailable"));
     };
     document.head.append(script);
   }));
@@ -64,8 +61,23 @@ export function mountYouTube({
   let player: any;
   let ready = false;
   let playing = false;
+  let lastError: (() => string) | undefined;
+  const report = (message: () => string) => {
+    lastError = message;
+    if (!life.disposed) onError(message());
+  };
+  life.add(
+    subscribeLocale(() => {
+      if (lastError && !life.disposed) onError(lastError());
+    }),
+  );
   if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
-    onError("올바르지 않은 YouTube 영상 ID입니다.");
+    report(() =>
+      t(
+        "올바르지 않은 YouTube 영상 ID입니다.",
+        "The YouTube video ID is invalid.",
+      ),
+    );
     return { unmute() {}, dispose: life.dispose };
   }
   const holder = document.createElement("div");
@@ -103,8 +115,12 @@ export function mountYouTube({
           },
           onError(event: any) {
             if (!life.disposed)
-              onError(
-                `YouTube 재생 오류 (${event.data}). 원본 링크를 열어 확인하세요.`,
+              report(() =>
+                t(
+                  "YouTube 재생 오류 ({code}). 원본 링크를 열어 확인하세요.",
+                  "YouTube playback error ({code}). Open the original link to check.",
+                  { code: event.data },
+                ),
               );
           },
         },
@@ -123,7 +139,15 @@ export function mountYouTube({
       life.add(() => clearInterval(timer));
     })
     .catch((error) => {
-      if (!life.disposed) onError(error.message);
+      if (!life.disposed)
+        report(() =>
+          error.message === "youtube_unavailable"
+            ? t(
+                "YouTube 플레이어에 연결하지 못했습니다. 원본 링크를 열어 주세요.",
+                "Unable to connect to YouTube. Open the original video link.",
+              )
+            : error.message,
+        );
     });
   return {
     unmute() {

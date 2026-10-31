@@ -1,4 +1,8 @@
 import type { AvatarAppearanceV2, AvatarCatalog } from "../../avatar/types";
+import { translate as t, subscribeLocale } from "../../app/i18n";
+import { displayAvatarPreset } from "../../avatar/catalog";
+
+let labelId = 0;
 
 /** A-Frame controller rays and a gaze cursor keep this panel usable without a DOM overlay. */
 export function mountAvatarXRPanel({
@@ -25,23 +29,64 @@ export function mountAvatarXRPanel({
     busy = false,
     active = false,
     generation = 0;
-  const title = document.createElement("a-text");
-  title.setAttribute("position", "-.6 .42 .01");
-  title.setAttribute("width", "1.4");
+  const assets = document.createElement("a-assets");
+  scene.append(assets);
+  const labelTextures: any[] = [];
+  // The default a-text font has no Hangul. Canvas uses the device's system font.
+  function createLabel(width: number, height: number) {
+    const canvas = document.createElement("canvas");
+    canvas.id = `avatar-xr-label-${++labelId}`;
+    canvas.width = 1024;
+    canvas.height = 256;
+    assets.append(canvas);
+    const plane: any = document.createElement("a-plane");
+    plane.setAttribute("data-avatar-xr-label", "");
+    plane.setAttribute("width", String(width));
+    plane.setAttribute("height", String(height));
+    plane.setAttribute("material", `shader: flat; src: #${canvas.id}; transparent: true; side: double; depthWrite: false`);
+    labelTextures.push(plane);
+    return {
+      plane,
+      update(value: string) {
+        plane.setAttribute("aria-label", value);
+        const context = canvas.getContext("2d");
+        if (!context) return;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.font = '112px sans-serif';
+        const size = Math.min(112, 112 * 960 / Math.max(1, context.measureText(value).width));
+        context.font = `${size}px sans-serif`;
+        context.fillStyle = "#ffffff";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(value, canvas.width / 2, canvas.height / 2);
+        const texture = plane.getObject3D?.("mesh")?.material?.map;
+        if (texture) texture.needsUpdate = true;
+      },
+    };
+  }
+  const titleLabel = createLabel(1.2, .24);
+  const title = titleLabel.plane;
+  title.setAttribute("position", "0 .42 .01");
   panel.append(title);
-  const status = (text: string) => title.setAttribute("value", text);
-  status("My avatar - select, Apply or Revert");
-  function button(label: string, x: number, y: number, action: () => void) {
+  let statusLabel = () => t("내 아바타 - 선택 후 적용 또는 되돌리기", "My avatar - select, Apply or Revert");
+  const status = (label: () => string) => {
+    statusLabel = label;
+    titleLabel.update(label());
+  };
+  status(statusLabel);
+  const labelUpdates: (() => void)[] = [];
+  function button(label: () => string, x: number, y: number, action: () => void) {
     const target = document.createElement("a-plane");
     target.classList.add("avatar-xr-action");
     target.setAttribute("width", ".58");
     target.setAttribute("height", ".16");
     target.setAttribute("position", `${x} ${y} .02`);
     target.setAttribute("color", "#36556b");
-    const text = document.createElement("a-text");
-    text.setAttribute("value", label);
-    text.setAttribute("align", "center");
-    text.setAttribute("width", "1.4");
+    const buttonLabel = createLabel(.54, .12);
+    const text = buttonLabel.plane;
+    const update = () => buttonLabel.update(label());
+    update();
+    labelUpdates.push(update);
     text.setAttribute("position", "0 0 .01");
     target.append(text);
     target.addEventListener("click", () => {
@@ -53,64 +98,64 @@ export function mountAvatarXRPanel({
     .filter((p) => p.kind === "humanoid")
     .forEach((p, index) =>
       button(
-        p.label,
+        () => displayAvatarPreset(p),
         index % 2 ? 0.32 : -0.32,
         0.2 - Math.floor(index / 2) * 0.2,
         () => {
           draft = { ...structuredClone(p.defaultAppearance!), ...(draft.gaze ? { gaze: structuredClone(draft.gaze) } : {}) };
-          status(`Selected: ${p.label} - Apply to save`);
+          status(() => t("선택: {name} - 적용하여 저장", "Selected: {name} - Apply to save", { name: displayAvatarPreset(p) }));
         },
       ),
     );
-  button("Apply", -0.32, -0.28, () => {
+  button(() => t("적용", "Apply"), -0.32, -0.28, () => {
     const attempt = generation;
-    const finish = (message: string) => {
+    const finish = (message: () => string) => {
       if (active && generation === attempt) status(message);
     };
     busy = true;
-    status("Saving...");
+    status(() => t("저장 중…", "Saving..."));
     void apply(draft)
       .then(
-        () => finish("Saved"),
-        () => finish("Save failed - reload outside VR"),
+        () => finish(() => t("저장했습니다", "Saved")),
+        () => finish(() => t("저장 실패 - VR 밖에서 다시 불러오세요", "Save failed - reload outside VR")),
       )
       .finally(() => {
         busy = false;
       });
   });
-  button("Revert", 0.32, -0.28, () => {
+  button(() => t("되돌리기", "Revert"), 0.32, -0.28, () => {
     draft = current();
-    status("Reverted to current saved look");
+    status(() => t("현재 저장된 외형으로 되돌렸습니다", "Reverted to current saved look"));
   });
-  const calibration = (detail: Record<string, unknown>, message: string) => {
+  const calibration = (detail: Record<string, unknown>, message: () => string) => {
     scene.emit("avatar-calibration", detail, false);
     status(message);
   };
-  button("Standing", -0.32, -0.5, () =>
-    calibration({ posture: "standing" }, "Standing - Calibrate while upright"),
+  button(() => t("서기", "Standing"), -0.32, -0.5, () =>
+    calibration({ posture: "standing" }, () => t("서기 - 똑바로 선 상태에서 보정하세요", "Standing - Calibrate while upright")),
   );
-  button("Seated", 0.32, -0.5, () =>
+  button(() => t("앉기", "Seated"), 0.32, -0.5, () =>
     calibration(
       { posture: "seated" },
-      "Seated - standing size retained (default 1.64m)",
+      () => t("앉기 - 서 있을 때의 크기 유지 (기본 1.64m)", "Seated - standing size retained (default 1.64m)"),
     ),
   );
-  button("Calibrate", -0.32, -0.72, () =>
+  button(() => t("보정", "Calibrate"), -0.32, -0.72, () =>
     calibration(
       { calibrate: true },
-      "Height calibrated - stand to measure stature",
+      () => t("높이 보정 완료 - 키를 측정하려면 서세요", "Height calibrated - stand to measure stature"),
     ),
   );
-  button("Size -", 0.32, -0.72, () =>
+  button(() => t("크기 -", "Size -"), 0.32, -0.72, () =>
     calibration(
       { heightDelta: -0.05 },
-      "Standing eye height -0.05m (session only)",
+      () => t("서 있을 때 눈높이 -0.05m (현재 세션만)", "Standing eye height -0.05m (session only)"),
     ),
   );
-  button("Size +", -0.32, -0.94, () =>
+  button(() => t("크기 +", "Size +"), -0.32, -0.94, () =>
     calibration(
       { heightDelta: 0.05 },
-      "Standing eye height +0.05m (session only)",
+      () => t("서 있을 때 눈높이 +0.05m (현재 세션만)", "Standing eye height +0.05m (session only)"),
     ),
   );
   scene.append(panel);
@@ -168,7 +213,7 @@ export function mountAvatarXRPanel({
     active = true;
     generation++;
     draft = current();
-    status("My avatar - select, Apply or Revert");
+    status(() => t("내 아바타 - 선택 후 적용 또는 되돌리기", "My avatar - select, Apply or Revert"));
     place();
     panel.setAttribute("visible", "true");
     setInteraction(true);
@@ -182,11 +227,18 @@ export function mountAvatarXRPanel({
   scene.addEventListener("enter-vr", enter);
   scene.addEventListener("exit-vr", exit);
   scene.addEventListener("avatar-xr-origin-changed", originChanged);
+  const unsubscribe = subscribeLocale(() => {
+    labelUpdates.forEach(update => update());
+    status(statusLabel);
+  });
   return () => {
+    unsubscribe();
     exit();
     scene.removeEventListener("enter-vr", enter);
     scene.removeEventListener("exit-vr", exit);
     scene.removeEventListener("avatar-xr-origin-changed", originChanged);
+    labelTextures.forEach(label => label.getObject3D?.("mesh")?.material?.map?.dispose());
+    assets.remove();
     panel.remove();
     gaze.remove();
     pointers.forEach((p) => p.remove());

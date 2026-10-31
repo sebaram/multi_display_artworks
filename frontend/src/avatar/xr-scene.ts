@@ -1,4 +1,5 @@
 import { calibrateAvatar, AVATAR_EYE_HEIGHT } from "./calibration";
+import { translate as t, subscribeLocale } from '../app/i18n';
 import {
   createXRInputState,
   readXRTransform,
@@ -54,11 +55,9 @@ export function mountAvatarXRInput({
   const controls = document.createElement("span");
   controls.hidden = true;
   const posture = document.createElement("select");
-  posture.setAttribute("aria-label", "Avatar posture");
   for (const mode of ["standing", "seated"]) {
     const option = document.createElement("option");
     option.value = mode;
-    option.textContent = mode === "standing" ? "Standing" : "Seated";
     posture.append(option);
   }
   const height = document.createElement("input");
@@ -68,9 +67,16 @@ export function mountAvatarXRInput({
   height.step = ".01";
   height.value = "1.64";
   height.style.width = "5em";
-  height.setAttribute("aria-label", "Standing eye height (m)");
   const button = document.createElement("button");
-  button.textContent = "Calibrate avatar height";
+  const updateLabels = () => {
+    posture.setAttribute('aria-label', t('아바타 자세', 'Avatar posture'));
+    for (const option of posture.options)
+      option.textContent = option.value === 'standing' ? t('서기', 'Standing') : t('앉기', 'Seated');
+    height.setAttribute('aria-label', t('서 있을 때 눈높이 (m)', 'Standing eye height (m)'));
+    button.textContent = t('아바타 키 보정', 'Calibrate avatar height');
+  };
+  updateLabels();
+  const unsubscribeLocale = subscribeLocale(updateLabels);
   controls.append(posture, height, button);
   document.getElementById("room-toolbar")?.append(controls);
   const capturePose = () => {
@@ -415,6 +421,7 @@ export function mountAvatarXRInput({
       };
     },
     dispose() {
+      unsubscribeLocale();
       session?.removeEventListener("end", end);
       if (session) end();
       scene.removeEventListener("enter-vr", capturePose, true);

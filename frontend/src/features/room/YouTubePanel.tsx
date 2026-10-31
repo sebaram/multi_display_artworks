@@ -1,3 +1,5 @@
+import { localizeRoomMessage } from "./messages";
+import { useI18n } from "../../app/i18n";
 import { useEffect, useRef, useState } from "react";
 import { mountYouTube } from "../../scene/youtube";
 import type { PlaybackClock } from "../../wall-engine/types";
@@ -16,6 +18,7 @@ export default function YouTubePanel({
   isAdmin: boolean;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const container = useRef<HTMLDivElement>(null),
     adapter = useRef<ReturnType<typeof mountYouTube> | undefined>(undefined);
   const [error, setError] = useState(""),
@@ -35,29 +38,29 @@ export default function YouTubePanel({
   function send(action: "play" | "pause" | "seek") {
     if (!command(action, action === "seek" ? position : undefined))
       setError(
-        "공유 재생 연결이 준비되지 않았습니다. 방 연결 상태를 확인하고 다시 시도하세요.",
+        t("공유 재생 연결이 준비되지 않았습니다. 방 연결 상태를 확인하고 다시 시도하세요.", "Shared playback is not ready. Check the room connection and try again."),
       );
   }
   return (
-    <section className="youtube-panel" aria-label="공유 YouTube 플레이어">
+    <section className="youtube-panel" aria-label={t("공유 YouTube 플레이어", "Shared YouTube player")}>
       <div className="section-heading">
         <div>
-          <div className="eyebrow">SYNCHRONIZED PLAYER</div>
+          <div className="eyebrow">{t("동기화 플레이어", "SYNCHRONIZED PLAYER")}</div>
           <h2>{title || "YouTube"}</h2>
         </div>
-        <button onClick={onClose} aria-label="YouTube 플레이어 닫기">
+        <button onClick={onClose} aria-label={t("YouTube 플레이어 닫기", "Close YouTube player")}>
           ×
         </button>
       </div>
       <div className="youtube-frame" ref={container} />
       {error && (
         <p role="status" className="notice error">
-          {error}
+          {localizeRoomMessage(error)}
         </p>
       )}
       <div className="form-actions">
         <button onClick={() => adapter.current?.unmute()}>
-          이 기기 소리 켜기
+          {t("이 기기 소리 켜기", "Enable sound on this device")}
         </button>
         <a
           className="button"
@@ -65,15 +68,15 @@ export default function YouTubePanel({
           rel="noopener noreferrer"
           href={`https://www.youtube.com/watch?v=${videoId}`}
         >
-          원본 영상 ↗
+          {t("원본 영상 ↗", "Original video ↗")}
         </a>
       </div>
       {isAdmin && (
         <div className="form-actions">
-          <button onClick={() => send("play")}>공유 재생</button>
-          <button onClick={() => send("pause")}>공유 일시정지</button>
+          <button onClick={() => send("play")}>{t("공유 재생", "Shared play")}</button>
+          <button onClick={() => send("pause")}>{t("공유 일시정지", "Shared pause")}</button>
           <label>
-            이동 시간 (초)
+            {t("이동 시간 (초)", "Seek time (seconds)")}
             <input
               type="number"
               min={0}
@@ -82,12 +85,11 @@ export default function YouTubePanel({
               onChange={(e) => setPosition(Number(e.target.value))}
             />
           </label>
-          <button onClick={() => send("seek")}>공유 위치 이동</button>
+          <button onClick={() => send("seek")}>{t("공유 위치 이동", "Shared seek")}</button>
         </div>
       )}
       <p>
-        이 플레이어는 같은 방의 공유 영상 시계를 따릅니다. 영상 준비 후 현재
-        위치로 맞춰집니다.
+        {t("이 플레이어는 같은 방의 공유 영상 시계를 따릅니다. 영상 준비 후 현재 위치로 맞춰집니다.", "This player follows the shared video clock in this room and seeks to the current position when ready.")}
       </p>
     </section>
   );

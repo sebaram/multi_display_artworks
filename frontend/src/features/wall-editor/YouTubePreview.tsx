@@ -1,3 +1,5 @@
+import { useI18n } from "../../app/i18n";
+import { displayError } from "../../app/error-message";
 import { useEffect, useRef, useState } from "react";
 import { mountYouTube } from "../../scene/youtube";
 import type { WallRenderer } from "../../wall-engine/types";
@@ -14,6 +16,7 @@ export function YouTubePreview({
   renderer: React.RefObject<WallRenderer | null>;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const host = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const player = useRef<ReturnType<typeof mountYouTube> | null>(null);
@@ -36,17 +39,19 @@ export function YouTubePreview({
     };
   }, [id, videoId, renderer]);
   return (
-    <section aria-label="YouTube 초안 미리보기">
+    <section aria-label={t("YouTube 초안 미리보기", "YouTube draft preview")}>
       <h3>{title}</h3>
       <div className="youtube-preview" ref={host} />
       <button onClick={() => player.current?.unmute()}>
-        이 기기 소리 켜기
+        {t("이 기기 소리 켜기", "Unmute on this device")}
       </button>{" "}
-      <button onClick={onClose}>닫기</button>
-      {error && <p role="status">{error}</p>}
+      <button onClick={onClose}>{t("닫기", "Close")}</button>
+      {error && <p role="status">{displayError(error)}</p>}
       <p>
-        이 플레이어는 편집 중인 초안의 로컬 시계를 따릅니다. 적용된 월의 공유
-        재생 제어는 실시간 연결이 준비되면 사용할 수 있습니다.
+        {t(
+          "이 플레이어는 편집 중인 초안의 로컬 시계를 따릅니다. 적용된 월의 공유 재생 제어는 실시간 연결이 준비되면 사용할 수 있습니다.",
+          "This player follows the local clock of your draft. Shared playback controls for the applied wall become available when the live connection is ready.",
+        )}
       </p>
     </section>
   );

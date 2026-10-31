@@ -1,4 +1,6 @@
-import { it, expect, vi, afterEach } from "vitest";
+import { it, expect, vi, afterEach, beforeEach } from "vitest";
+import { setLocale } from '../../src/app/i18n';
+beforeEach(() => setLocale('en'));
 afterEach(() => document.body.replaceChildren());
 import { createVoiceChat } from "../../src/scene/voice-chat.js";
 it("shows an active muted microphone and toggles its actual track", async () => {

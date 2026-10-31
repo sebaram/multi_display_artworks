@@ -1,12 +1,15 @@
+import { localizeRoomMessage } from "./messages";
+import { useI18n } from "../../app/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { loadAFrame } from "../../scene/mountRoom";
 import { loadAR, mountAR } from "../../scene/ar";
 export default function ARCompanion() {
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const roomId = params.get("room_id") || "";
   const [status, setStatus] = useState(
-      "카메라 시작을 누르면 권한을 요청합니다.",
+      t("카메라 시작을 누르면 권한을 요청합니다.", "Press Start camera to request camera permission."),
     ),
     [started, setStarted] = useState(false);
   const host = useRef<HTMLDivElement>(null);
@@ -46,9 +49,9 @@ export default function ARCompanion() {
   }, [started, roomId]);
   return (
     <main className="page companion-page">
-      <div className="eyebrow">AR COMPANION / PHONE</div>
-      <h1>폰으로 공간 연결</h1>
-      <p role="status">{status}</p>
+      <div className="eyebrow">{t("AR 컴패니언 / 휴대폰", "AR COMPANION / PHONE")}</div>
+      <h1>{t("폰으로 공간 연결", "Connect your space with a phone")}</h1>
+      <p role="status">{localizeRoomMessage(status)}</p>
       <div className="companion-camera" ref={host} />
       {!started ? (
         <button
@@ -56,19 +59,18 @@ export default function ARCompanion() {
           disabled={!roomId}
           onClick={() => setStarted(true)}
         >
-          카메라 시작
+          {t("카메라 시작", "Start camera")}
         </button>
       ) : (
-        <button onClick={() => setStarted(false)}>카메라·연결 종료</button>
+        <button onClick={() => setStarted(false)}>{t("카메라·연결 종료", "Stop camera and disconnect")}</button>
       )}
       <Link className="button" to={`/room?room_id=${roomId}&ar=companion`}>
-        수신 화면 열기 ↗
+        {t("수신 화면 열기 ↗", "Open receiving view ↗")}
       </Link>
       <p>
-        카메라에서 등록된 마커를 인식하면 같은 방의 XR 화면이 해당 위치로
-        이동합니다.
+        {t("카메라에서 등록된 마커를 인식하면 같은 방의 XR 화면이 해당 위치로 이동합니다.", "When the camera recognizes a registered marker, the XR view in the same room moves to its position.")}
       </p>
-      <Link to="/tools">← 도구 목록</Link>
+      <Link to="/tools">{t("← 도구 목록", "← Tools")}</Link>
     </main>
   );
 }

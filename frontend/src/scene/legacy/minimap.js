@@ -1,3 +1,5 @@
+import { translate as t, subscribeLocale } from '../../app/locale-state.js';
+
 const ELEMENT_COLORS = {
   image: '#4CAF50',
   gaussian_splat: '#FF9800',
@@ -144,23 +146,23 @@ function drawRoomMap(context, width, height, { presets, boundary, wallList, came
   context.stroke();
 }
 
-function createLegend(document) {
+function createLegend(document, label) {
   const legend = document.createElement('ul');
-  legend.setAttribute('aria-label', 'Map legend');
+  label(legend, '지도 범례', 'Map legend', 'aria-label');
   legend.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;padding:0;margin:12px 0 0;font:13px sans-serif;';
   [
-    ['Wall', 'rgba(120,160,255,0.8)'],
-    ['Artwork', '#4CAF50'],
-    ['Preset', '#FFD700'],
-    ['You', '#00E676'],
-  ].forEach(([label, color]) => {
+    ['벽', 'Wall', 'rgba(120,160,255,0.8)'],
+    ['작품', 'Artwork', '#4CAF50'],
+    ['프리셋', 'Preset', '#FFD700'],
+    ['내 위치', 'You', '#00E676'],
+  ].forEach(([ko, en, color]) => {
     const item = document.createElement('li');
     item.style.cssText = 'display:flex;align-items:center;gap:6px;';
     const swatch = document.createElement('span');
     swatch.setAttribute('aria-hidden', 'true');
     swatch.style.cssText = `display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};`;
     const text = document.createElement('span');
-    text.textContent = label;
+    label(text, ko, en);
     item.append(swatch, text);
     legend.appendChild(item);
   });
@@ -176,6 +178,15 @@ export function mountMinimap({
   requestAnimationFrame,
   cancelAnimationFrame,
 }) {
+  const labels = [];
+  function label(element, ko, en, attribute) {
+    const update = () => {
+      if (attribute) element.setAttribute(attribute, t(ko, en));
+      else element.textContent = t(ko, en);
+    };
+    labels.push(update);
+    update();
+  }
   const view = document.defaultView ?? globalThis.window;
   const requestFrame = requestAnimationFrame ?? view?.requestAnimationFrame?.bind(view);
   const cancelFrame = cancelAnimationFrame ?? view?.cancelAnimationFrame?.bind(view);
@@ -184,8 +195,8 @@ export function mountMinimap({
   canvas.setAttribute('id', 'minimap-canvas');
   canvas.setAttribute('role', 'button');
   canvas.setAttribute('tabindex', '0');
-  canvas.setAttribute('aria-label', 'Open expanded room map');
-  canvas.setAttribute('title', 'Open expanded room map');
+  label(canvas, '확대 방 지도 열기', 'Open expanded room map', 'aria-label');
+  label(canvas, '확대 방 지도 열기', 'Open expanded room map', 'title');
   canvas.width = 110;
   canvas.height = 110;
   canvas.style.cssText = 'position:fixed;top:10px;right:10px;width:110px;height:110px;opacity:0.85;border-radius:8px;border:2px solid rgba(255,255,255,0.3);z-index:9999;cursor:pointer;background:rgba(20,20,40,0.9);';
@@ -198,12 +209,12 @@ export function mountMinimap({
   header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:12px;';
   const title = document.createElement('h2');
   title.setAttribute('id', 'expanded-map-title');
-  title.textContent = 'Room map';
+  label(title, '방 지도', 'Room map');
   title.style.cssText = 'font:600 20px sans-serif;margin:0;';
   const closeButton = document.createElement('button');
   closeButton.setAttribute('type', 'button');
-  closeButton.setAttribute('aria-label', 'Close expanded map');
-  closeButton.textContent = 'Close';
+  label(closeButton, '확대 지도 닫기', 'Close expanded map', 'aria-label');
+  label(closeButton, '닫기', 'Close');
   closeButton.style.cssText = 'padding:7px 12px;border:0;border-radius:6px;background:#44506f;color:white;cursor:pointer;';
   header.append(title, closeButton);
 
@@ -211,10 +222,11 @@ export function mountMinimap({
   mapContainer.style.cssText = 'width:100%;min-width:0;';
   const expandedCanvas = document.createElement('canvas');
   expandedCanvas.setAttribute('role', 'img');
-  expandedCanvas.setAttribute('aria-label', 'Expanded room map showing walls, artworks, presets, and your position');
+  label(expandedCanvas, '벽, 작품, 프리셋, 내 위치를 표시하는 확대 방 지도', 'Expanded room map showing walls, artworks, presets, and your position', 'aria-label');
   expandedCanvas.style.cssText = 'display:block;width:100%;max-height:65vh;border-radius:8px;background:rgba(20,20,40,0.95);';
   mapContainer.appendChild(expandedCanvas);
-  dialog.append(header, mapContainer, createLegend(document));
+  dialog.append(header, mapContainer, createLegend(document, label));
+  const unsubscribeLocale = subscribeLocale(() => labels.forEach(update => update()));
 
   document.body.append(canvas, dialog);
   const compactContext = canvas.getContext('2d');
@@ -311,6 +323,7 @@ export function mountMinimap({
     dialog,
     expandedCanvas,
     destroy() {
+      unsubscribeLocale();
       destroyed = true;
       if (frameId !== null) cancelFrame?.(frameId);
       view?.removeEventListener?.('resize', onResize);

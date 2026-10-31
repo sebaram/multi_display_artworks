@@ -1,4 +1,5 @@
 import Hls from "hls.js";
+import { translate as t, subscribeLocale } from '../app/i18n';
 import { createWallRenderer } from "../wall-engine";
 import { createLifetime } from "./lifetime";
 import { elementPosition, vector } from "./coordinates";
@@ -45,7 +46,7 @@ export function loadAFrame() {
         script.onload = () => resolve();
         script.onerror = () => {
           runtime = undefined;
-          reject(Error("Gaussian splat 런타임을 불러오지 못했습니다."));
+          reject(Error(t('Gaussian splat 런타임을 불러오지 못했습니다.', 'Could not load the Gaussian splat runtime.')));
         };
         document.head.append(script);
       };
@@ -60,7 +61,7 @@ export function loadAFrame() {
         runtime = undefined;
         reject(
           Error(
-            "3D 런타임을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.",
+            t('3D 런타임을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.', 'Could not load the 3D runtime. Refresh and try again.'),
           ),
         );
       };
@@ -106,7 +107,9 @@ export function mountRoom({
     cursor: bootstrap.displayOnly ? undefined : "rayOrigin: mouse",
     raycaster: bootstrap.displayOnly ? undefined : "objects: .artwork-source, .artwork-pick-target, .wall-surface, .wall-occluder; interval: 50",
   });
-  scene.setAttribute("aria-label", bootstrap.room?.name || "3D 전시 공간");
+  const updateSceneLabel = () => scene.setAttribute('aria-label', bootstrap.room?.name || t('3D 전시 공간', '3D exhibition space'));
+  updateSceneLabel();
+  life.add(subscribeLocale(updateSceneLabel));
   let refreshPicking = true;
   const pickTargetsChanged = () => { refreshPicking = true; };
   scene.addEventListener("artwork-pick-target-changed", pickTargetsChanged);
@@ -358,7 +361,9 @@ export function mountRoom({
         rotation: `${element.rotation_x || 0} ${element.rotation_y || 0} ${element.rotation_z || 0}`,
         scale: `${element.scale_x ?? 1} ${element.scale_y ?? 1} ${element.scale_z ?? 1}`,
       });
-      root.setAttribute("title", element.name || "작품");
+      const updateArtworkLabel = () => root.setAttribute('title', (elementNodes.get(element.id)?.data ?? element).name || t('작품', 'Artwork'));
+      updateArtworkLabel();
+      life.add(subscribeLocale(updateArtworkLabel));
       const source = resourceRegistry && ["image", "gltf", "gaussian_splat"].includes(element.wall_element_type)
         ? createArtworkSource({ root, data: element, AFRAME, resources: resourceRegistry, onError: services.onError, maxImageSize: performanceState.settings.maxImageSize })
         : undefined;
@@ -404,7 +409,7 @@ export function mountRoom({
           life.add(() => root.removeEventListener("splat-error", error));
         } else
           services.onError?.(
-            "Gaussian splat 렌더러를 불러오지 못했습니다. 작품 원본 링크에서 확인하세요.",
+            t('Gaussian splat 렌더러를 불러오지 못했습니다. 작품 원본 링크에서 확인하세요.', 'Could not load the Gaussian splat renderer. Open the original artwork link.'),
           );
       } else
         root.append(
@@ -864,7 +869,8 @@ export function mountRoom({
             events("wall.playback_state", response.state);
           else if (response && !response.ok)
             services.onError?.(
-              `공유 재생 변경 실패 (${response.status}). ${response.detail || "다시 시도하세요."}`,
+              t('공유 재생 변경 실패 ({status}). {detail}', 'Shared playback update failed ({status}). {detail}',
+                { status: response.status, detail: response.detail || t('다시 시도하세요.', 'Try again.') }),
             );
         },
       );

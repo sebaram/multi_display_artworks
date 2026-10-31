@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { translate as t } from '../app/i18n';
 
 /** A display receives public wall state but never joins visitor presence. */
 export function startWallDisplay(wallId: string, onEvent: (event: string, payload: any) => void,
@@ -18,7 +19,7 @@ export function startWallDisplay(wallId: string, onEvent: (event: string, payloa
     if (disposed) return;
     onEvent("connect", { client });
     socket.timeout(5000).emit("wall.watch", { wall_id: wallId }, (error: Error | null, reply: any) => {
-      if (!disposed && (error || !reply?.ok)) onError?.("월 실시간 연결을 확인하세요.");
+      if (!disposed && (error || !reply?.ok)) onError?.(t('월 실시간 연결을 확인하세요.', 'Check the live wall connection.'));
     });
   });
   for (const event of ["wall.snapshot", "wall.design_applied", "wall.design_removed", "wall.interaction_state", "wall.playback_state"]) {

@@ -24,21 +24,21 @@ for(const count of [20,50]) test(`a late observer decodes a room snapshot contai
     }
     await enter(page);
     await expect.poll(()=>page.locator('.remote-avatar').evaluateAll(els=>els.filter((el:any)=>el.avatarInstance).length),{timeout:10000}).toBe(count);
-    await expect(page.getByText(/Visitor connection expired/)).toHaveCount(0);
+    await expect(page.getByText(/방문자 연결이 만료/)).toHaveCount(0);
   }finally{clients.forEach(c=>c.disconnect());}
 });
 async function enter(page:Page) {
   await page.goto(`/room?room_id=${room}`);
-  await expect(page.getByRole('button',{name:'Visitor',exact:true})).toBeVisible({timeout:20000});
+  await expect(page.getByRole('button',{name:'방문자',exact:true})).toBeVisible({timeout:20000});
   return page.evaluate(()=>JSON.parse(sessionStorage.getItem('metamuseum.tab-visitor.v1')!));
 }
 async function customize(page:Page,color:string) {
-  await page.getByRole('button',{name:'Visitor',exact:true}).click();
-  await page.getByRole('button',{name:'Customize',exact:true}).click();
-  await page.getByLabel('Avatar preset',{exact:true}).selectOption('casual');
-  await page.getByLabel('top color',{exact:true}).fill(color);
-  await page.getByRole('button',{name:'Apply',exact:true}).click();
-  await expect(page.getByRole('dialog',{name:'My avatar'})).toHaveCount(0);
+  await page.getByRole('button',{name:'방문자',exact:true}).click();
+  await page.getByRole('button',{name:'외형 설정',exact:true}).click();
+  await page.getByLabel('아바타 프리셋',{exact:true}).selectOption('casual');
+  await page.getByLabel('상의 색상',{exact:true}).fill(color);
+  await page.getByRole('button',{name:'적용',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'내 아바타'})).toHaveCount(0);
 }
 async function position(page:Page,x:number,z:number,yaw=0) {
   await page.locator('#camera').evaluate((el:any,p:any)=>{
@@ -74,7 +74,7 @@ test('moving hidden peer restores newest appearance and joints, near/far meshes 
     await expect(page.locator('a-scene')).toHaveCount(0);
     expect(await page.evaluate(()=>(window as any).__oldAvatar.root.parent)).toBeNull();
     await page.evaluate((id)=>{history.pushState({},'',`/room?room_id=${id}`);dispatchEvent(new PopStateEvent('popstate'));},room);
-    await expect(page.getByRole('button',{name:'Visitor',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'방문자',exact:true})).toBeVisible();
     await expect.poll(()=>peer().evaluate((el:any)=>!!el.avatarInstance)).toBe(true);
   }
   await actor.close();await expect(peer()).toHaveCount(0);

@@ -1,3 +1,5 @@
+import { localizeRoomMessage } from "./messages";
+import { useI18n } from "../../app/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
@@ -30,9 +32,19 @@ type Touch = {
   pressure: number;
 };
 export default function GestureTool() {
+  const { t } = useI18n();
+  const directionLabels: Record<string, string> = {
+    nn: t("북", "North"), ne: t("북동", "Northeast"), ee: t("동", "East"), se: t("남동", "Southeast"),
+    ss: t("남", "South"), sw: t("남서", "Southwest"), ww: t("서", "West"), nw: t("북서", "Northwest"),
+    ns: t("북 → 남", "North → South"), sn: t("남 → 북", "South → North"),
+    ew: t("동 → 서", "East → West"), we: t("서 → 동", "West → East"),
+    en: t("동 → 북", "East → North"), wn: t("서 → 북", "West → North"),
+    es: t("동 → 남", "East → South"), ws: t("서 → 남", "West → South"),
+    up: t("위", "Up"), down: t("아래", "Down"), left: t("왼쪽", "Left"), right: t("오른쪽", "Right"),
+  };
   const [params] = useSearchParams();
   const count = Math.max(1, Math.min(24, Number(params.get("targets")) || 8));
-  const [status, setStatus] = useState("연결 중…"),
+  const [status, setStatus] = useState(t("연결 중…", "Connecting…")),
     [gesture, setGesture] = useState("—"),
     [points, setPoints] = useState<Touch[]>([]),
     [selected, setSelected] = useState("target-0"),
@@ -55,12 +67,12 @@ export default function GestureTool() {
       record(`제스처: ${value.result_str}`);
     }
     socket.on("connect", () => {
-      setStatus("Socket.IO 연결됨");
+      setStatus(t("Socket.IO 연결됨", "Socket.IO connected"));
       socket.emit("gesture_mark.join", {});
       es?.close();
       es = undefined;
     });
-    socket.on("disconnect", () => setStatus("연결 끊김 · 다시 연결 중"));
+    socket.on("disconnect", () => setStatus(t("연결 끊김 · 다시 연결 중", "Disconnected · Reconnecting")));
     socket.on("gesture_mark.touchpoint", touch);
     socket.on("gesture_mark.gesture", result);
     socket.on("gesture_mark.clear", () => setPoints([]));
@@ -75,7 +87,7 @@ export default function GestureTool() {
     socket.on("connect_error", () => {
       if (es) return;
       es = new EventSource("/gesture-mark/stream");
-      es.onopen = () => setStatus("SSE 수신 연결됨");
+      es.onopen = () => setStatus(t("SSE 수신 연결됨", "SSE receiver connected"));
       es.onmessage = (e) => {
         try {
           const value = JSON.parse(e.data);
@@ -87,7 +99,7 @@ export default function GestureTool() {
           else if(Number.isFinite(value.x)&&Number.isFinite(value.y))touch(value);
         } catch {}
       };
-      es.onerror = () => setStatus("실시간 연결 오류");
+      es.onerror = () => setStatus(t("실시간 연결 오류", "Realtime connection error"));
     });
     return () => {
       es?.close();
@@ -143,10 +155,10 @@ export default function GestureTool() {
   }
   return (
     <main className="page gesture-page">
-      <div className="eyebrow">INPUT LAB / GESTURE MARK</div>
-      <h1>제스처 · 터치포인트</h1>
+      <div className="eyebrow">{t("입력 실험실 / 제스처 마크", "INPUT LAB / GESTURE MARK")}</div>
+      <h1>{t("제스처 · 터치포인트", "Gestures · Touchpoints")}</h1>
       <p role="status">
-        {status} · 최근 제스처: <strong>{gesture}</strong>
+        {localizeRoomMessage(status)} · {t("최근 제스처:", "Latest gesture:")} <strong>{gesture}</strong>
       </p>
       <div className="gesture-layout">
         <section>
@@ -154,7 +166,7 @@ export default function GestureTool() {
             className="gesture-pad"
             tabIndex={0}
             role="application"
-            aria-label="터치포인트 입력 패드"
+            aria-label={t("터치포인트 입력 패드", "Touchpoint input pad")}
             onPointerDown={(e) => {
               e.currentTarget.setPointerCapture(e.pointerId);
               trace.current = [];
@@ -177,20 +189,20 @@ export default function GestureTool() {
                 }}
               />
             ))}
-            <p>이 영역을 터치하거나 드래그하세요</p>
+            <p>{t("이 영역을 터치하거나 드래그하세요", "Touch or drag in this area")}</p>
           </div>
           <button
             onClick={() => {
               sock.current?.emit("gesture_mark.clear", {});
               setPoints([]);
-              record("터치포인트 지움");
+              record(t("터치포인트 지움", "Touchpoints cleared"));
             }}
           >
-            입력 지우기
+            {t("입력 지우기", "Clear input")}
           </button>
         </section>
         <section>
-          <h2>대상 선택 · 제스처 할당</h2>
+          <h2>{t("대상 선택 · 제스처 할당", "Select target · Assign gesture")}</h2>
           <div className="target-grid">
             {Array.from({ length: count }, (_, i) => `target-${i}`).map(
               (id, i) => (
@@ -200,12 +212,12 @@ export default function GestureTool() {
                   onClick={() => setSelected(id)}
                 >
                   T{i + 1}
-                  <small>{assignments[id]?.join(" → ") || "미할당"}</small>
+                  <small>{assignments[id]?.join(" → ") || t("미할당", "Unassigned")}</small>
                 </button>
               ),
             )}
           </div>
-          <p>{selected} · 단계를 차례로 선택하세요.</p>
+          <p>{selected} · {t("단계를 차례로 선택하세요.", "Select the steps in order.")}</p>
           <div className="direction-grid">
             {directions.map((direction) => (
               <button
@@ -217,7 +229,7 @@ export default function GestureTool() {
                   }))
                 }
               >
-                {direction}
+                {directionLabels[direction]} <small>{direction}</small>
               </button>
             ))}
           </div>
@@ -225,7 +237,7 @@ export default function GestureTool() {
             <button
               onClick={() => setAssignments((a) => ({ ...a, [selected]: [] }))}
             >
-              선택 대상 초기화
+              {t("선택 대상 초기화", "Reset selected target")}
             </button>
             <button
               onClick={() =>
@@ -234,20 +246,20 @@ export default function GestureTool() {
                 })
               }
             >
-              할당 제스처 보내기
+              {t("할당 제스처 보내기", "Send assigned gesture")}
             </button>
           </div>
         </section>
       </div>
       <details>
-        <summary>최근 이벤트</summary>
+        <summary>{t("최근 이벤트", "Recent events")}</summary>
         <ul>
           {log.map((line, i) => (
-            <li key={i}>{line}</li>
+            <li key={i}>{localizeRoomMessage(line)}</li>
           ))}
         </ul>
       </details>
-      <Link to="/tools">← 도구 목록</Link>
+      <Link to="/tools">{t("← 도구 목록", "← Tools")}</Link>
     </main>
   );
 }

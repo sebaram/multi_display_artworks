@@ -1,10 +1,30 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { setLocale } from '../../../src/app/locale-state.js';
 
 import * as handTracking from '../../../src/scene/legacy/interaction/hand-tracking.js';
 import { createPosePublisher } from '../../../src/scene/legacy/core/pose-publisher.js';
 
 const { mountHandTracking } = handTracking;
+
+test('VR entry label changes in place without requesting a session and unsubscribes on destroy', async () => {
+  setLocale('en');
+  const button = { style: {}, addEventListener() {}, remove() {} };
+  let requested = 0;
+  const controller = mountHandTracking({
+    document: { body: { appendChild() {} }, createElement: () => button },
+    navigator: { xr: { isSessionSupported: async () => true, requestSession: () => { requested++; } } },
+    setInterval: () => 1, clearInterval() {},
+  });
+  await Promise.resolve();
+  assert.equal(button.textContent, '🤚 Enter VR / Hands');
+  setLocale('ko');
+  assert.equal(button.textContent, '🤚 VR / 손 추적 시작');
+  assert.equal(requested, 0);
+  controller.destroy();
+  setLocale('en');
+  assert.equal(button.textContent, '🤚 VR / 손 추적 시작');
+});
 
 test('XRJointSpace data is read through XRFrame.getJointPose', () => {
   assert.equal(typeof handTracking.collectHandPoses, 'function');

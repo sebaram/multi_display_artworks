@@ -32,6 +32,7 @@ vi.mock("../../src/scene/youtube", () => ({
   },
 }));
 import Room from "../../src/features/room/Room";
+import { setLocale } from "../../src/app/i18n";
 const element = (id: string) => ({
   id,
   wall: "w",
@@ -102,7 +103,25 @@ function mount(artworks = [element("a"), element("b")]) {
 }
 afterEach(() => {
   cleanup();
+  setLocale("ko");
   vi.clearAllMocks();
+});
+it("keeps an unsaved artwork and its mounted scene when switching language", async () => {
+  mount();
+  await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
+  fireEvent.click(screen.getByRole("button", { name: /a 이미지/ }));
+  fireEvent.change(screen.getByLabelText("작품 이름"), { target: { value: "내 draft" } });
+  fireEvent.change(screen.getByLabelText("가로 X"), { target: { value: "1.2" } });
+  act(() => setLocale("en"));
+  expect(screen.getByRole("button", { name: "Save artwork changes" })).toBeInTheDocument();
+  expect(screen.getByLabelText("Artwork name")).toHaveValue("내 draft");
+  expect(screen.getByLabelText("Horizontal X")).toHaveValue(1.2);
+  expect(mocks.mount).toHaveBeenCalledTimes(1);
+  expect(mocks.dispose).not.toHaveBeenCalled();
+  act(() => setLocale("ko"));
+  expect(screen.getByLabelText("작품 이름")).toHaveValue("내 draft");
+  expect(screen.getByLabelText("가로 X")).toHaveValue(1.2);
 });
 it("offers canonical controls for uploaded-video-only walls", async () => {
   mount();
@@ -165,11 +184,11 @@ it("saves one returned document without remounting or losing another preview", a
   mount();
   await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
   fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
-  fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+  fireEvent.click(screen.getByRole("button", { name: /a 이미지/ }));
   fireEvent.change(screen.getByLabelText("가로 X"), {
     target: { value: "1.2" },
   });
-  fireEvent.click(screen.getByRole("button", { name: /b image/ }));
+  fireEvent.click(screen.getByRole("button", { name: /b 이미지/ }));
   fireEvent.change(screen.getByLabelText("가로 X"), {
     target: { value: "2.3" },
   });
@@ -181,7 +200,7 @@ it("saves one returned document without remounting or losing another preview", a
   expect(mocks.update).toHaveBeenLastCalledWith([
     expect.objectContaining({ id: "b", position_x: 2.25 }),
   ]);
-  fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+  fireEvent.click(screen.getByRole("button", { name: /a 이미지/ }));
   expect(screen.getByLabelText("가로 X")).toHaveValue(1.2);
 });
 it.each(["stale-wall", null])(
@@ -190,7 +209,7 @@ it.each(["stale-wall", null])(
     mount();
     await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
-    fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+    fireEvent.click(screen.getByRole("button", { name: /a 이미지/ }));
     fireEvent.change(screen.getByLabelText("작품 이름"), {
       target: { value: "Edited artwork" },
     });
@@ -251,7 +270,7 @@ it.each([
     mount([{ ...element("a"), image_url: source }]);
     await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
-    fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+    fireEvent.click(screen.getByRole("button", { name: /a 이미지/ }));
     fireEvent.change(screen.getByLabelText("가로 X"), {
       target: { value: "1.2" },
     });
@@ -278,7 +297,7 @@ it.each(["javascript:alert(1)", "data:text/html,unsafe"])(
     mount();
     await waitFor(() => expect(mocks.mount).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole("button", { name: /작품 목록/ }));
-    fireEvent.click(screen.getByRole("button", { name: /a image/ }));
+    fireEvent.click(screen.getByRole("button", { name: /a 이미지/ }));
     fireEvent.change(screen.getByLabelText("미디어 URL"), {
       target: { value: source },
     });

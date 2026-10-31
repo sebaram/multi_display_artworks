@@ -3,7 +3,7 @@ import { ROOM } from "./helpers";
 async function enter(page: Page) {
   await page.goto(`/room?room_id=${ROOM}`);
   await expect(
-    page.getByRole("button", { name: "Visitor", exact: true }),
+    page.getByRole("button", { name: "방문자", exact: true }),
   ).toBeVisible({ timeout: 20000 });
   return page.evaluate(() =>
     JSON.parse(sessionStorage.getItem("metamuseum.tab-visitor.v1")!),
@@ -40,13 +40,13 @@ test("owner walking, head independence, planted feet, teleport, stationary late 
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   const own = await enter(page);
-  await page.getByRole("button", { name: "Visitor", exact: true }).click();
-  await page.getByRole("button", { name: "Customize", exact: true }).click();
+  await page.getByRole("button", { name: "방문자", exact: true }).click();
+  await page.getByRole("button", { name: "외형 설정", exact: true }).click();
   await page
-    .getByLabel("Avatar preset", { exact: true })
+    .getByLabel("아바타 프리셋", { exact: true })
     .selectOption("casual");
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "My avatar" })).toHaveCount(0);
+  await page.getByRole("button", { name: "적용", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "내 아바타" })).toHaveCount(0);
   const observer = await context.newPage();
   await enter(observer);
   await expect.poll(() => body(observer, own.visitorId)).not.toBeNull();
@@ -81,10 +81,10 @@ test("owner walking, head independence, planted feet, teleport, stationary late 
   const idle = (await body(observer, own.visitorId))!;
   // Form typing keeps its focus and must not drive the camera.
   if (
-    !(await page.getByRole("button", { name: "Edit", exact: true }).isVisible())
+    !(await page.getByRole("button", { name: "편집", exact: true }).isVisible())
   )
-    await page.getByRole("button", { name: "Visitor", exact: true }).click();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await page.getByRole("button", { name: "방문자", exact: true }).click();
+  await page.getByRole("button", { name: "편집", exact: true }).click();
   const beforeTyping = await page
     .locator("#camera")
     .evaluate((el: any) => el.object3D.position.toArray());
@@ -94,7 +94,7 @@ test("owner walking, head independence, planted feet, teleport, stationary late 
       .locator("#camera")
       .evaluate((el: any) => el.object3D.position.toArray()),
   ).toEqual(beforeTyping);
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "취소", exact: true }).click();
   await page.bringToFront();
   await page.locator("a-scene canvas").click({ position: { x: 300, y: 200 } });
   await page.keyboard.down("w");
@@ -197,13 +197,13 @@ test("390px coarse-pointer analog joystick drives the owner body shown to a peer
   });
   const page = await mobile.newPage();
   const owner = await enter(page);
-  await page.getByRole("button", { name: "Visitor", exact: true }).click();
-  await page.getByRole("button", { name: "Customize", exact: true }).click();
+  await page.getByRole("button", { name: "방문자", exact: true }).click();
+  await page.getByRole("button", { name: "외형 설정", exact: true }).click();
   await page
-    .getByLabel("Avatar preset", { exact: true })
+    .getByLabel("아바타 프리셋", { exact: true })
     .selectOption("sporty");
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "My avatar" })).toHaveCount(0);
+  await page.getByRole("button", { name: "적용", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "내 아바타" })).toHaveCount(0);
   const observer = await mobile.newPage();
   await enter(observer);
   await expect.poll(() => body(observer, owner.visitorId)).not.toBeNull();

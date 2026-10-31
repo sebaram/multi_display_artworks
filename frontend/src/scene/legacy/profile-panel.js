@@ -1,3 +1,13 @@
+import { translate as t, subscribeLocale } from '../../app/locale-state.js';
+
+const PRESET_LABELS = {
+  casual: ['캐주얼', 'Casual'], sporty: ['스포티', 'Sporty'], explorer: ['탐험가', 'Explorer'],
+  'humanoid-robot': ['휴머노이드 로봇', 'Humanoid Robot'], shiba: ['시바견', 'Shiba'],
+  robot: ['로봇', 'Robot'], 'rigged-simple': ['기본 리깅 모델', 'Rigged Simple'], none: ['없음', 'None'],
+  'gaussian-306': ['GaussianAvatars 306 · 로컬 연구용 상체', 'GaussianAvatars 306 · Local research bust'],
+};
+const avatarLabel = (id, fallback) => PRESET_LABELS[id] ? t(...PRESET_LABELS[id]) : fallback;
+
 function setStyles(element, styles) {
   element.setAttribute('style', styles);
 }
@@ -30,18 +40,31 @@ export function mountProfilePanel({
   let dialog = null;
   let editor = null;
   let saving = false;
+  let errorText = null;
+  const labels = [];
+  function label(element, ko, en, attribute) {
+    const update = () => {
+      if (attribute) element.setAttribute(attribute, t(ko, en));
+      else element.textContent = t(ko, en);
+    };
+    labels.push(update);
+    update();
+    return element;
+  }
+  const button = (ko, en) => label(createButton(document, ''), ko, en);
+  const fieldLabel = (ko, en, id) => label(createLabel(document, '', id), ko, en);
 
   const container = document.createElement('div');
   setStyles(container, 'pointer-events:auto;');
 
-  const visitorButton = createButton(document, 'Visitor');
+  const visitorButton = button('방문자', 'Visitor');
   visitorButton.setAttribute('aria-controls', 'visitor-profile-summary');
   visitorButton.setAttribute('aria-expanded', 'false');
   container.appendChild(visitorButton);
 
   const summary = document.createElement('section');
   summary.setAttribute('id', 'visitor-profile-summary');
-  summary.setAttribute('aria-label', 'Visitor profile');
+  label(summary, '방문자 프로필', 'Visitor profile', 'aria-label');
   setStyles(summary, [
     'display:flex',
     'flex-wrap:wrap',
@@ -61,24 +84,33 @@ export function mountProfilePanel({
   swatch.setAttribute('aria-hidden', 'true');
   const summaryText = document.createElement('span');
   summaryText.setAttribute('aria-live', 'polite');
-  const editButton = createButton(document, 'Edit');
-  const newVisitorButton = createButton(document, 'New visitor');
+  const editButton = button('편집', 'Edit');
+  const newVisitorButton = button('새 방문자', 'New visitor');
   const errorMessage = document.createElement('p');
   errorMessage.setAttribute('role', 'alert');
   setStyles(errorMessage, 'margin:8px 0 0;color:#ffb4ab;');
-  const retryButton = createButton(document, 'Retry');
+  const retryButton = button('다시 시도', 'Retry');
   summary.append(swatch, summaryText, editButton, newVisitorButton);
   if (onCustomize) {
-    const customize = createButton(document, 'Customize');
+    const customize = button('외형 설정', 'Customize');
     customize.addEventListener('click', onCustomize);
     summary.append(customize);
   }
 
   function updateProfile(nextProfile) {
     currentProfile = { ...nextProfile };
-    const avatarLabel = catalog[currentProfile.avatarId]?.label ?? catalog.shiba?.label ?? 'Shiba';
-    summaryText.textContent = `${currentProfile.displayName} · ${avatarLabel} · ${currentProfile.color}`;
+    renderProfile();
     swatch.setAttribute('style', `display:inline-block;width:18px;height:18px;border-radius:50%;background:${currentProfile.color};border:1px solid white;`);
+  }
+
+  function renderProfile() {
+    const id = catalog[currentProfile.avatarId] ? currentProfile.avatarId : 'shiba';
+    const name = avatarLabel(id, catalog[id]?.label ?? 'Shiba');
+    summaryText.textContent = `${currentProfile.displayName} · ${name} · ${currentProfile.color}`;
+  }
+
+  function renderError() {
+    if (errorText) errorMessage.textContent = typeof errorText === 'function' ? errorText() : errorText;
   }
 
   function open() {
@@ -87,14 +119,16 @@ export function mountProfilePanel({
   }
 
   function showConnectionError(
-    message = 'Visitor connection expired or was rejected. Retry to create a new visitor.',
+    message = () => t('방문자 연결이 만료되었거나 거부되었습니다. 다시 시도하여 새 방문자를 만드세요.', 'Visitor connection expired or was rejected. Retry to create a new visitor.'),
   ) {
     open();
-    errorMessage.textContent = message;
+    errorText = message;
+    renderError();
     if (!errorMessage.parentNode) summary.append(errorMessage, retryButton);
   }
 
   function clearConnectionError() {
+    errorText = null;
     errorMessage.remove();
     retryButton.remove();
   }
@@ -123,7 +157,7 @@ export function mountProfilePanel({
     setStyles(form, 'padding:24px;');
     const title = document.createElement('h2');
     title.setAttribute('id', 'profile-dialog-title');
-    title.textContent = 'Visitor profile';
+    label(title, '방문자 프로필', 'Visitor profile');
     setStyles(title, 'margin:0 0 8px;font-size:20px;');
 
     const nameInput = document.createElement('input');
@@ -145,7 +179,9 @@ export function mountProfilePanel({
       const option = document.createElement('option');
       option.setAttribute('value', avatarId);
       option.value = avatarId;
-      option.textContent = avatar.label;
+      const update = () => { option.textContent = avatarLabel(avatarId, avatar.label); };
+      labels.push(update);
+      update();
       avatarSelect.appendChild(option);
     });
 
@@ -157,8 +193,8 @@ export function mountProfilePanel({
 
     const actions = document.createElement('div');
     setStyles(actions, 'display:flex;justify-content:flex-end;gap:8px;margin-top:20px;');
-    const cancelButton = createButton(document, 'Cancel');
-    const saveButton = createButton(document, 'Save');
+    const cancelButton = button('취소', 'Cancel');
+    const saveButton = button('저장', 'Save');
     saveButton.setAttribute('type', 'submit');
     setStyles(cancelButton, 'padding:8px 14px;border:0;border-radius:6px;cursor:pointer;');
     setStyles(saveButton, 'padding:8px 14px;border:0;border-radius:6px;background:#4CAF50;color:white;cursor:pointer;');
@@ -166,11 +202,11 @@ export function mountProfilePanel({
 
     form.append(
       title,
-      createLabel(document, 'Display name', 'profile-display-name'),
+      fieldLabel('표시 이름', 'Display name', 'profile-display-name'),
       nameInput,
-      createLabel(document, 'Avatar', 'profile-avatar'),
+      fieldLabel('아바타', 'Avatar', 'profile-avatar'),
       avatarSelect,
-      createLabel(document, 'Color', 'profile-color'),
+      fieldLabel('색상', 'Color', 'profile-color'),
       colorInput,
       actions,
     );
@@ -187,7 +223,11 @@ export function mountProfilePanel({
         color: colorInput.value,
       };
       const finish = saved => { saving = false; updateProfile(saved ?? draft); closeEditor(); };
-      const failure = error => { errorMessage.textContent = `Unable to save. ${error.message}`; form.append(errorMessage); };
+      const failure = error => {
+        errorText = () => t('저장할 수 없습니다. {message}', 'Unable to save. {message}', { message: error.message });
+        renderError();
+        form.append(errorMessage);
+      };
       try {
         const result = onSave(draft);
         if (result?.then) {
@@ -245,15 +285,20 @@ export function mountProfilePanel({
   visitorButton.addEventListener('click', open);
   editButton.addEventListener('click', openEditor);
   newVisitorButton.addEventListener('click', () => {
-    void replaceVisitor('Unable to create a new visitor. Retry when ready.');
+    void replaceVisitor(() => t('새 방문자를 만들 수 없습니다. 준비되면 다시 시도하세요.', 'Unable to create a new visitor. Retry when ready.'));
   });
   retryButton.addEventListener('click', () => {
-    void replaceVisitor('Unable to retry the visitor connection. Try again when ready.');
+    void replaceVisitor(() => t('방문자 연결을 다시 시도할 수 없습니다. 준비되면 다시 시도하세요.', 'Unable to retry the visitor connection. Try again when ready.'));
   });
 
   updateProfile(currentProfile);
   const toolbar = document.getElementById?.('room-toolbar') ?? document.body;
   toolbar.appendChild(container);
+  const unsubscribeLocale = subscribeLocale(() => {
+    labels.forEach(update => update());
+    renderProfile();
+    renderError();
+  });
 
   return {
     open,
@@ -261,6 +306,7 @@ export function mountProfilePanel({
     showConnectionError,
     updateProfile,
     destroy() {
+      unsubscribeLocale();
       container.remove();
       dialog?.remove();
     },

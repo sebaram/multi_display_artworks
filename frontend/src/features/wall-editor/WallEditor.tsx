@@ -1,3 +1,5 @@
+import { useI18n } from "../../app/i18n";
+import { displayError } from "../../app/error-message";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUnsavedChanges } from "../../app/navigation";
 import { api, write, ApiError } from "../../api/client";
@@ -61,12 +63,42 @@ type Manifest = {
 };
 const blank = () => normalizeWallLook();
 const encoded = (id: string) => encodeURIComponent(id);
-const errorText = (e: unknown) =>
-  e instanceof ApiError && e.status === 409
-    ? "다른 곳에서 변경되었습니다 (409). 현재 초안은 유지됩니다. 최신 내용을 확인한 후 다시 시도하세요."
-    : e instanceof Error
-      ? e.message
-      : String(e);
+const objectLabels: Record<string, string> = {
+  logo: "MV 조형물",
+  ribbons: "현실 / 가상 리본",
+  orbits: "궤도 조형물",
+  network: "연구 네트워크",
+  sphere: "구 조형물",
+  arch: "건축 아치",
+  presence: "공존 · 얽힌 리본",
+  registration: "공유 좌표 · 움직이는 포털",
+  feedback: "상호 반응 · 파동 교환",
+  cocreation: "공동 창작 · 펼쳐지는 파빌리온",
+  text: "텍스트 요소",
+};
+type UiMessage = [string, string];
+class UiError extends Error {
+  constructor(readonly text: UiMessage) {
+    super(text[1]);
+  }
+}
+const errorText = (e: unknown): UiMessage =>
+  e instanceof UiError
+    ? e.text
+    : e instanceof ApiError && e.status === 409
+      ? [
+          "다른 곳에서 변경되었습니다 (409). 현재 초안은 유지됩니다. 최신 내용을 확인한 후 다시 시도하세요.",
+          "Changed elsewhere (409). Your draft is preserved. Check the latest version and try again.",
+        ]
+      : e instanceof SyntaxError
+        ? [
+            "올바른 JSON 파일인지 확인하세요.",
+            "Check that the JSON file is valid.",
+          ]
+        : [
+            e instanceof Error ? e.message : String(e),
+            e instanceof Error ? e.message : String(e),
+          ];
 const download = (name: string, text: string) => {
   const url = URL.createObjectURL(
     new Blob([text], { type: "application/json" }),
@@ -83,6 +115,7 @@ export default function WallEditor({
 }: {
   wallId?: string;
 }) {
+  const { t } = useI18n();
   const [rooms, setRooms] = useState<RoomSummary[]>([]),
     [roomId, setRoomId] = useState(""),
     [wallId, setWallId] = useState(initialWallId || ""),
@@ -98,8 +131,8 @@ export default function WallEditor({
     [binding, setBinding] = useState<Binding | null>(null);
   const [look, setLook] = useState<WallLookV1>(blank),
     [saved, setSaved] = useState(JSON.stringify(blank())),
-    [name, setName] = useState("새 프리셋"),
-    [savedName, setSavedName] = useState("새 프리셋");
+    [name, setName] = useState(t("새 프리셋", "New preset")),
+    [savedName, setSavedName] = useState(t("새 프리셋", "New preset"));
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [muted, setMuted] = useState(true);
   const [wallWritePending, setWallWritePending] = useState(false);
@@ -112,8 +145,8 @@ export default function WallEditor({
     [selected, setSelected] = useState<string | null>(null),
     [query, setQuery] = useState(""),
     [presetQuery, setPresetQuery] = useState(""),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState(""),
+    [error, setError] = useState<UiMessage | null>(null),
+    [notice, setNotice] = useState<UiMessage | null>(null),
     [busy, setBusy] = useState(false),
     [youtube, setYoutube] = useState(""),
     [openYoutube, setOpenYoutube] = useState<string | null>(null);
@@ -141,8 +174,12 @@ export default function WallEditor({
   const dirty = JSON.stringify(look) !== saved || name !== savedName;
   useUnsavedChanges(dirty);
   const guard = useCallback(
-    () => !dirty || window.confirm("저장하지 않은 초안을 버리시겠습니까?"),
-    [dirty],
+    () =>
+      !dirty ||
+      window.confirm(
+        t("저장하지 않은 초안을 버리시겠습니까?", "Discard the unsaved draft?"),
+      ),
+    [dirty, t],
   );
   const install = useCallback((next: WallLookV1, clean = true) => {
     const normalized = normalizeWallLook(next);
@@ -178,7 +215,11 @@ export default function WallEditor({
     loadPresets();
     fetch("/wall-presets/manifest.json")
       .then((r) => {
-        if (!r.ok) throw new Error("원본 프리셋 목록을 불러오지 못했습니다.");
+        if (!r.ok)
+          throw new UiError([
+            "원본 프리셋 목록을 불러오지 못했습니다.",
+            "Could not load the source preset list.",
+          ]);
         return r.json();
       })
       .then((m: Manifest) => setSource(m.presets))
@@ -250,8 +291,8 @@ export default function WallEditor({
         setBinding(b);
         if (b) {
           install(b.config);
-          setName("적용된 디자인");
-          setSavedName("적용된 디자인");
+          setName(t("적용된 디자인", "Applied design"));
+          setSavedName(t("적용된 디자인", "Applied design"));
           setPreset(null);
         }
         setLoadedWallId(wallId);
@@ -279,7 +320,7 @@ export default function WallEditor({
         canvas: canvas.current,
         config: lookRef.current,
         assetResolver: (id) => `/api/v1/wall-assets/${encoded(id)}/content`,
-        onError: (e) => setError(`${e.code}: ${e.message}`),
+        onError: (e) => setError(errorText(`${e.code}: ${e.message}`)),
       });
       renderer.current = r;
       r.setMuted(mutedRef.current);
@@ -441,8 +482,8 @@ export default function WallEditor({
   });
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
-    setError("");
-    setNotice("");
+    setError(null);
+    setNotice(null);
     try {
       await fn();
     } catch (e) {
@@ -462,7 +503,11 @@ export default function WallEditor({
     if (!guard()) return;
     void run(async () => {
       const r = await fetch(`/wall-presets/${s.file}`);
-      if (!r.ok) throw Error("원본 프리셋을 불러오지 못했습니다.");
+      if (!r.ok)
+        throw new UiError([
+          "원본 프리셋을 불러오지 못했습니다.",
+          "Could not load the source preset.",
+        ]);
       const p = await r.json();
       install(p.config);
       setName(s.name);
@@ -485,7 +530,10 @@ export default function WallEditor({
       setSaved(JSON.stringify(look));
       setSavedName(name);
       await loadPresets();
-      setNotice("프리셋을 저장했습니다. 월에는 아직 적용되지 않았습니다.");
+      setNotice([
+        "프리셋을 저장했습니다. 월에는 아직 적용되지 않았습니다.",
+        "Preset saved. It has not been applied to the wall yet.",
+      ]);
     });
   const apply = () => {
     if (!wallReady || targetWall.current !== wallId) return;
@@ -505,7 +553,10 @@ export default function WallEditor({
         )
           return;
         setBinding(result);
-        setNotice("현재 초안을 월에 적용했습니다.");
+        setNotice([
+          "현재 초안을 월에 적용했습니다.",
+          "Applied the current draft to the wall.",
+        ]);
       } catch (e) {
         if (
           targetWall.current === target &&
@@ -519,7 +570,10 @@ export default function WallEditor({
     if (!wallReady || !binding || targetWall.current !== wallId) return;
     if (
       !window.confirm(
-        "적용된 디자인을 제거하고 기존 배경으로 되돌리시겠습니까?",
+        t(
+          "적용된 디자인을 제거하고 기존 배경으로 되돌리시겠습니까?",
+          "Remove the applied design and restore the previous background?",
+        ),
       )
     )
       return;
@@ -539,7 +593,10 @@ export default function WallEditor({
         )
           return;
         setBinding(null);
-        setNotice("기존 배경으로 되돌렸습니다.");
+        setNotice([
+          "기존 배경으로 되돌렸습니다.",
+          "Restored the previous background.",
+        ]);
       } catch (e) {
         if (
           targetWall.current === target &&
@@ -585,12 +642,23 @@ export default function WallEditor({
   const thumb = () =>
     run(async () => {
       if (!preset || preset.read_only)
-        throw Error("썸네일을 연결하려면 먼저 사용자 프리셋을 저장하세요.");
-      if (!canvas.current) throw Error("미리보기를 사용할 수 없습니다.");
+        throw new UiError([
+          "썸네일을 연결하려면 먼저 사용자 프리셋을 저장하세요.",
+          "Save a custom preset before attaching a thumbnail.",
+        ]);
+      if (!canvas.current)
+        throw new UiError([
+          "미리보기를 사용할 수 없습니다.",
+          "Preview is unavailable.",
+        ]);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.current!.toBlob(resolve, "image/png"),
       );
-      if (!blob) throw Error("썸네일 생성에 실패했습니다.");
+      if (!blob)
+        throw new UiError([
+          "썸네일 생성에 실패했습니다.",
+          "Could not create a thumbnail.",
+        ]);
       const form = new FormData();
       form.append("file", blob, "thumbnail.png");
       const asset = await api<{ id: string }>("/api/v1/wall-assets", {
@@ -604,7 +672,7 @@ export default function WallEditor({
       )) as Preset;
       setPreset(result);
       await loadPresets();
-      setNotice("썸네일을 저장했습니다.");
+      setNotice(["썸네일을 저장했습니다.", "Thumbnail saved."]);
     });
   const layerList = useMemo(
     () =>
@@ -630,8 +698,9 @@ export default function WallEditor({
     value: number | undefined,
     onChange: (v: number) => void,
     step = 1,
+    key?: string,
   ) => (
-    <label key={label}>
+    <label key={key}>
       {label}
       <input
         type="number"
@@ -645,55 +714,65 @@ export default function WallEditor({
     <main id="wall-editor" className="wall-studio" tabIndex={-1}>
       <header>
         <div>
-          <h1>월 디자인 스튜디오</h1>
-          <p>작품 배치와 월 크기는 변경하지 않습니다.</p>
+          <h1>{t("월 디자인 스튜디오", "Wall design studio")}</h1>
+          <p>
+            {t(
+              "작품 배치와 월 크기는 변경하지 않습니다.",
+              "Artwork placement and wall dimensions stay unchanged.",
+            )}
+          </p>
         </div>
         <div className="wall-actions">
           <button
             onClick={() => doUndo()}
             disabled={busy || wallLoading || !history.current.canUndo}
           >
-            실행 취소
+            {t("실행 취소", "Undo")}
           </button>
           <button
             onClick={() => doUndo(true)}
             disabled={busy || wallLoading || !history.current.canRedo}
           >
-            다시 실행
+            {t("다시 실행", "Redo")}
           </button>
           <button
             disabled={busy || wallLoading || !dirty}
             onClick={() => {
               if (
-                window.confirm("초안을 마지막 저장 상태로 되돌리시겠습니까?")
+                window.confirm(
+                  t(
+                    "초안을 마지막 저장 상태로 되돌리시겠습니까?",
+                    "Restore the draft to its last saved state?",
+                  ),
+                )
               ) {
                 install(JSON.parse(saved));
                 setName(savedName);
               }
             }}
           >
-            초안 되돌리기
+            {t("초안 되돌리기", "Revert draft")}
           </button>
           <button disabled={busy || wallLoading} onClick={() => save()}>
-            저장
+            {t("저장", "Save")}
           </button>
           <button disabled={busy || wallLoading} onClick={() => save(true)}>
-            복제 저장
+            {t("복제 저장", "Save a copy")}
           </button>
           <button disabled={busy || !wallReady} onClick={apply}>
-            월에 적용
+            {t("월에 적용", "Apply to wall")}
           </button>
           <button
             disabled={!wallReady || !binding || busy}
             onClick={resetBinding}
           >
-            적용 제거
+            {t("적용 제거", "Remove design")}
           </button>
         </div>
       </header>
       <div className="wall-context">
         <label>
-          방
+          {t("방", "Room")}
           <select
             disabled={busy && !wallWritePending}
             value={roomId}
@@ -709,7 +788,7 @@ export default function WallEditor({
               setWallId("");
             }}
           >
-            <option value="">방 선택</option>
+            <option value="">{t("방 선택", "Select a room")}</option>
             {rooms.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name || r.id}
@@ -718,13 +797,13 @@ export default function WallEditor({
           </select>
         </label>
         <label>
-          월
+          {t("월", "Wall")}
           <select
             disabled={busy && !wallWritePending}
             value={wallId}
             onChange={(e) => changeWall(e.target.value)}
           >
-            <option value="">월 선택</option>
+            <option value="">{t("월 선택", "Select a wall")}</option>
             {(rooms.find((r) => r.id === roomId)?.walls || []).map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name || w.id}
@@ -733,34 +812,39 @@ export default function WallEditor({
           </select>
         </label>
         <span>
-          {dirty ? "● 저장되지 않은 초안" : "저장된 상태"} ·{" "}
+          {dirty
+            ? t("● 저장되지 않은 초안", "● Unsaved draft")
+            : t("저장된 상태", "Saved")}{" "}
+          ·{" "}
           {wallLoadFailed
-            ? "월 정보를 불러오지 못했습니다"
+            ? t("월 정보를 불러오지 못했습니다", "Could not load the wall")
             : wallLoading
-              ? "월 정보 불러오는 중…"
+              ? t("월 정보 불러오는 중…", "Loading wall…")
               : binding
-                ? `적용 버전 ${binding.revision}`
-                : "적용된 디자인 없음"}
+                ? t("적용 버전 {revision}", "Applied revision {revision}", {
+                    revision: binding.revision,
+                  })
+                : t("적용된 디자인 없음", "No applied design")}
         </span>
       </div>
       {wallLoadFailed && (
         <button onClick={() => setWallLoadAttempt((n) => n + 1)}>
-          월 정보 다시 불러오기
+          {t("월 정보 다시 불러오기", "Reload wall")}
         </button>
       )}
       {error && (
         <p role="alert" className="wall-error">
-          {error}
+          {displayError(t(...error))}
         </p>
       )}
-      {notice && <p role="status">{notice}</p>}
+      {notice && <p role="status">{t(...notice)}</p>}
       <fieldset className="wall-grid" disabled={wallLoading || busy}>
         <aside>
           <section>
-            <h2>프리셋</h2>
+            <h2>{t("프리셋", "Presets")}</h2>
             <input
-              aria-label="프리셋 검색"
-              placeholder="프리셋 검색"
+              aria-label={t("프리셋 검색", "Search presets")}
+              placeholder={t("프리셋 검색", "Search presets")}
               value={presetQuery}
               onChange={(e) => setPresetQuery(e.target.value)}
             />
@@ -779,7 +863,11 @@ export default function WallEditor({
                       />
                     )}
                     <span>{p.name}</span>
-                    <small>{p.read_only ? "원본" : "사용자"}</small>
+                    <small>
+                      {p.read_only
+                        ? t("원본", "Source")
+                        : t("사용자", "Custom")}
+                    </small>
                   </button>
                 ))}
               {source
@@ -794,17 +882,17 @@ export default function WallEditor({
                       <img src={thumbnails[s.source_key]} alt="" />
                     )}
                     <span>{s.name}</span>
-                    <small>원본</small>
+                    <small>{t("원본", "Source")}</small>
                   </button>
                 ))}
             </div>
             <label>
-              이름
+              {t("이름", "Name")}
               <input value={name} onChange={(e) => setName(e.target.value)} />
             </label>
             <div className="wall-actions">
               <button onClick={thumb} disabled={busy}>
-                썸네일 생성
+                {t("썸네일 생성", "Create thumbnail")}
               </button>
               <button
                 onClick={() =>
@@ -814,10 +902,10 @@ export default function WallEditor({
                   )
                 }
               >
-                JSON 내보내기
+                {t("JSON 내보내기", "Export JSON")}
               </button>
               <label className="button">
-                JSON 가져오기
+                {t("JSON 가져오기", "Import JSON")}
                 <input
                   type="file"
                   accept="application/json,.json"
@@ -835,7 +923,9 @@ export default function WallEditor({
                   void run(async () => {
                     if (
                       !preset ||
-                      !window.confirm("프리셋을 삭제하시겠습니까?")
+                      !window.confirm(
+                        t("프리셋을 삭제하시겠습니까?", "Delete this preset?"),
+                      )
                     )
                       return;
                     await write(
@@ -844,19 +934,22 @@ export default function WallEditor({
                     );
                     setPreset(null);
                     await loadPresets();
-                    setNotice("프리셋을 삭제했습니다. 적용된 월은 유지됩니다.");
+                    setNotice([
+                      "프리셋을 삭제했습니다. 적용된 월은 유지됩니다.",
+                      "Preset deleted. Applied walls are preserved.",
+                    ]);
                   })
                 }
               >
-                삭제
+                {t("삭제", "Delete")}
               </button>
             </div>
           </section>
           <section>
-            <h2>레이어</h2>
+            <h2>{t("레이어", "Layers")}</h2>
             <input
-              aria-label="레이어 검색"
-              placeholder="레이어 검색"
+              aria-label={t("레이어 검색", "Search layers")}
+              placeholder={t("레이어 검색", "Search layers")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -894,21 +987,23 @@ export default function WallEditor({
               ))}
             </div>
             <p>
-              Ctrl/Shift를 누르고 여러 레이어를 선택하세요. 그룹 해제와 복원은
-              원본 계층에 적용됩니다.
+              {t(
+                "Ctrl/Shift를 누르고 여러 레이어를 선택하세요. 그룹 해제와 복원은 원본 계층에 적용됩니다.",
+                "Hold Ctrl/Shift to select multiple layers. Ungroup and restore apply to the source hierarchy.",
+              )}
             </p>
             <div className="wall-actions">
               <button
                 disabled={!selection.length}
                 onClick={() => setGrouping(true)}
               >
-                그룹 해제
+                {t("그룹 해제", "Ungroup")}
               </button>
               <button
                 disabled={!selection.length}
                 onClick={() => setGrouping(false)}
               >
-                그룹 복원
+                {t("그룹 복원", "Restore group")}
               </button>
               <button
                 disabled={
@@ -918,7 +1013,7 @@ export default function WallEditor({
                 }
                 onClick={() => selected && reorder(selected, -1)}
               >
-                사용자 오브젝트 위로
+                {t("사용자 오브젝트 위로", "Move custom object up")}
               </button>
               <button
                 disabled={
@@ -928,7 +1023,7 @@ export default function WallEditor({
                 }
                 onClick={() => selected && reorder(selected, 1)}
               >
-                사용자 오브젝트 아래로
+                {t("사용자 오브젝트 아래로", "Move custom object down")}
               </button>
             </div>
             {menu && (
@@ -943,7 +1038,7 @@ export default function WallEditor({
                     setMenu(null);
                   }}
                 >
-                  복사
+                  {t("복사", "Copy")}
                 </button>
                 <button
                   onClick={() => {
@@ -951,7 +1046,7 @@ export default function WallEditor({
                     setMenu(null);
                   }}
                 >
-                  붙여넣기
+                  {t("붙여넣기", "Paste")}
                 </button>
                 <button
                   onClick={() => {
@@ -959,7 +1054,7 @@ export default function WallEditor({
                     setMenu(null);
                   }}
                 >
-                  삭제
+                  {t("삭제", "Delete")}
                 </button>
                 <button
                   onClick={() => {
@@ -969,7 +1064,7 @@ export default function WallEditor({
                     setMenu(null);
                   }}
                 >
-                  표시 전환
+                  {t("표시 전환", "Toggle visibility")}
                 </button>
                 <button
                   onClick={() => {
@@ -978,7 +1073,7 @@ export default function WallEditor({
                     setMenu(null);
                   }}
                 >
-                  복제
+                  {t("복제", "Duplicate")}
                 </button>
                 <button
                   onClick={() => {
@@ -986,7 +1081,7 @@ export default function WallEditor({
                     setMenu(null);
                   }}
                 >
-                  그룹 해제
+                  {t("그룹 해제", "Ungroup")}
                 </button>
                 <button
                   onClick={() => {
@@ -994,13 +1089,15 @@ export default function WallEditor({
                     setMenu(null);
                   }}
                 >
-                  그룹 복원
+                  {t("그룹 복원", "Restore group")}
                 </button>
-                <button onClick={() => setMenu(null)}>닫기</button>
+                <button onClick={() => setMenu(null)}>
+                  {t("닫기", "Close")}
+                </button>
               </div>
             )}
             <label>
-              오브젝트 추가
+              {t("오브젝트 추가", "Add object")}
               <select
                 defaultValue=""
                 onChange={(e) => {
@@ -1015,10 +1112,10 @@ export default function WallEditor({
                   }
                 }}
               >
-                <option value="">선택…</option>
+                <option value="">{t("선택…", "Select…")}</option>
                 {objectTypes.map(([id, label]) => (
                   <option value={id} key={id}>
-                    {label}
+                    {t(objectLabels[id] || label, label)}
                   </option>
                 ))}
               </select>
@@ -1031,7 +1128,9 @@ export default function WallEditor({
                 setSelected(next.activeElement || null);
               }}
             >
-              영상 추가 ({look.state.videoLayers.length}/8)
+              {t("영상 추가 ({count}/8)", "Add video ({count}/8)", {
+                count: look.state.videoLayers.length,
+              })}
             </button>
           </section>
         </aside>
@@ -1047,7 +1146,7 @@ export default function WallEditor({
           >
             <canvas
               ref={canvas}
-              aria-label="월 디자인 미리보기"
+              aria-label={t("월 디자인 미리보기", "Wall design preview")}
               onPointerDown={(e) => {
                 if (wallLoading || busy) return;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -1120,12 +1219,16 @@ export default function WallEditor({
             />
           </div>
           <p>
-            캔버스에서 선택하고 드래그하거나 방향키로 이동하세요. Shift +
-            방향키는 더 크게 이동합니다.
+            {t(
+              "캔버스에서 선택하고 드래그하거나 방향키로 이동하세요. Shift + 방향키는 더 크게 이동합니다.",
+              "Select and drag on the canvas, or move with the arrow keys. Hold Shift for larger steps.",
+            )}
           </p>
           <p>
-            공유 영상 재생 제어는 실시간 연결이 준비되면 사용할 수 있습니다.
-            YouTube는 별도 플레이어에서 열립니다.
+            {t(
+              "공유 영상 재생 제어는 실시간 연결이 준비되면 사용할 수 있습니다. YouTube는 별도 플레이어에서 열립니다.",
+              "Shared video playback controls become available when the live connection is ready. YouTube opens in a separate player.",
+            )}
           </p>
           {look.state.videoLayers.some((v) => v.assetId) && (
             <button
@@ -1136,7 +1239,9 @@ export default function WallEditor({
                 setMuted(next);
               }}
             >
-              {muted ? "이 기기 영상 소리 켜기" : "이 기기 영상 소리 끄기"}
+              {muted
+                ? t("이 기기 영상 소리 켜기", "Unmute video on this device")
+                : t("이 기기 영상 소리 끄기", "Mute video on this device")}
             </button>
           )}
           {look.state.videoLayers
@@ -1153,34 +1258,38 @@ export default function WallEditor({
                 />
               ) : (
                 <button key={v.id} onClick={() => setOpenYoutube(v.id)}>
-                  {v.name || "YouTube"} 별도 플레이어 열기
+                  {t(
+                    "{name} 별도 플레이어 열기",
+                    "Open {name} in a separate player",
+                    { name: v.name || "YouTube" },
+                  )}
                 </button>
               ),
             )}
         </section>
         <aside>
           <section>
-            <h2>선택 속성</h2>
+            <h2>{t("선택 속성", "Selection properties")}</h2>
             {selectedElement || video ? (
               <>
                 <div className="wall-actions">
-                  <button onClick={copy}>복사</button>
-                  <button onClick={paste}>붙여넣기</button>
+                  <button onClick={copy}>{t("복사", "Copy")}</button>
+                  <button onClick={paste}>{t("붙여넣기", "Paste")}</button>
                   <button
                     onClick={() => {
                       copy();
                       setTimeout(paste, 0);
                     }}
                   >
-                    복제
+                    {t("복제", "Duplicate")}
                   </button>
-                  <button onClick={remove}>삭제</button>
+                  <button onClick={remove}>{t("삭제", "Delete")}</button>
                 </div>
                 {video ? (
                   <>
                     <h3>{video.name || video.id}</h3>
                     <label>
-                      표시
+                      {t("표시", "Visible")}
                       <input
                         type="checkbox"
                         checked={video.enabled !== false}
@@ -1192,31 +1301,31 @@ export default function WallEditor({
                     {num("X (%)", video.x, (v) => patchVideo({ x: v }), 0.1)}
                     {num("Y (%)", video.y, (v) => patchVideo({ y: v }), 0.1)}
                     {num(
-                      "너비 (%)",
+                      t("너비 (%)", "Width (%)"),
                       video.width,
                       (v) => patchVideo({ width: v }),
                       0.1,
                     )}
                     {num(
-                      "재생 속도",
+                      t("재생 속도", "Playback speed"),
                       video.motionSpeed ?? 1,
                       (v) => patchVideo({ motionSpeed: v }),
                       0.1,
                     )}
                     {num(
-                      "영상 모션 기준",
+                      t("영상 모션 기준", "Video motion anchor"),
                       video.motionAnchor ?? 0,
                       (v) => patchVideo({ motionAnchor: v }),
                       0.1,
                     )}
                     {num(
-                      "영상 모션 오프셋",
+                      t("영상 모션 오프셋", "Video motion offset"),
                       video.motionOffset ?? 0,
                       (v) => patchVideo({ motionOffset: v }),
                       0.1,
                     )}
                     <fieldset>
-                      <legend>표시 화면</legend>
+                      <legend>{t("표시 화면", "Target screens")}</legend>
                       {look.state.screens.map((screen) => (
                         <label key={screen.id}>
                           <input
@@ -1246,7 +1355,7 @@ export default function WallEditor({
                       ))}
                     </fieldset>
                     <label>
-                      영상 업로드
+                      {t("영상 업로드", "Upload video")}
                       <input
                         type="file"
                         accept="video/*"
@@ -1258,7 +1367,7 @@ export default function WallEditor({
                       />
                     </label>
                     <label>
-                      YouTube URL 또는 ID
+                      {t("YouTube URL 또는 ID", "YouTube URL or ID")}
                       <input
                         value={youtube}
                         onChange={(e) => setYoutube(e.target.value)}
@@ -1268,7 +1377,10 @@ export default function WallEditor({
                       onClick={() => {
                         const parsed = parseYoutube(youtube);
                         if (!parsed) {
-                          setError("올바른 YouTube 주소를 입력하세요.");
+                          setError([
+                            "올바른 YouTube 주소를 입력하세요.",
+                            "Enter a valid YouTube URL.",
+                          ]);
                           return;
                         }
                         changeState((s) =>
@@ -1282,13 +1394,15 @@ export default function WallEditor({
                         setYoutube("");
                       }}
                     >
-                      YouTube 선택
+                      {t("YouTube 선택", "Select YouTube")}
                     </button>
                     <p>
-                      현재 소스:{" "}
+                      {t("현재 소스:", "Current source:")}{" "}
                       {video.youtube
                         ? "YouTube"
-                        : video.fileName || video.assetId || "선택 안 됨"}
+                        : video.fileName ||
+                          video.assetId ||
+                          t("선택 안 됨", "None selected")}
                     </p>
                   </>
                 ) : (
@@ -1296,7 +1410,7 @@ export default function WallEditor({
                     <>
                       <h3>{selectedElement.name}</h3>
                       <label>
-                        표시
+                        {t("표시", "Visible")}
                         <input
                           type="checkbox"
                           checked={selectedElement.visible !== false}
@@ -1316,19 +1430,19 @@ export default function WallEditor({
                         0.1,
                       )}
                       {num(
-                        "크기",
+                        t("크기", "Size"),
                         selectedElement.size ?? 1,
                         (v) => patch({ size: v }),
                         0.05,
                       )}
                       {num(
-                        "회전 (°)",
+                        t("회전 (°)", "Rotation (°)"),
                         selectedElement.rotation,
                         (v) => patch({ rotation: v }),
                         1,
                       )}
                       <label>
-                        그룹 해제
+                        {t("그룹 해제", "Ungroup")}
                         <input
                           type="checkbox"
                           checked={!!selectedElement.ungrouped}
@@ -1337,41 +1451,41 @@ export default function WallEditor({
                           }
                         />
                       </label>
-                      {num("시드", selectedElement.seed, (v) =>
+                      {num(t("시드", "Seed"), selectedElement.seed, (v) =>
                         patch({ seed: v }),
                       )}
                       {num(
-                        "무작위성",
+                        t("무작위성", "Randomness"),
                         selectedElement.randomness,
                         (v) => patch({ randomness: v }),
                         0.1,
                       )}
                       {num(
-                        "모션 속도",
+                        t("모션 속도", "Motion speed"),
                         selectedElement.motionSpeed ?? 1,
                         (v) => patch({ motionSpeed: v }),
                         0.1,
                       )}
                       {num(
-                        "모션 크기",
+                        t("모션 크기", "Motion amount"),
                         selectedElement.motionAmount ?? 1,
                         (v) => patch({ motionAmount: v }),
                         0.1,
                       )}
                       {num(
-                        "모션 기준",
+                        t("모션 기준", "Motion anchor"),
                         selectedElement.motionAnchor ?? 0,
                         (v) => patch({ motionAnchor: v }),
                         0.1,
                       )}
                       {num(
-                        "모션 오프셋",
+                        t("모션 오프셋", "Motion offset"),
                         selectedElement.motionOffset ?? 0,
                         (v) => patch({ motionOffset: v }),
                         0.1,
                       )}
                       <label>
-                        오브젝트 화면
+                        {t("오브젝트 화면", "Object screen")}
                         <select
                           value={selectedElement.screen || look.logical_screen}
                           onChange={(e) => patch({ screen: e.target.value })}
@@ -1385,13 +1499,13 @@ export default function WallEditor({
                       </label>
                       {selectedElement.text && (
                         <>
-                          <p>텍스트 서식</p>
+                          <p>{t("텍스트 서식", "Text formatting")}</p>
                           <div className="wall-actions">
                             {[
-                              ["굵게", "strong"],
-                              ["기울임", "em"],
-                              ["밑줄", "u"],
-                              ["취소선", "s"],
+                              [t("굵게", "Bold"), "strong"],
+                              [t("기울임", "Italic"), "em"],
+                              [t("밑줄", "Underline"), "u"],
+                              [t("취소선", "Strikethrough"), "s"],
                             ].map(([label, tag]) => (
                               <button
                                 key={tag}
@@ -1408,7 +1522,7 @@ export default function WallEditor({
                             ))}
                           </div>
                           <label>
-                            텍스트 (서식 HTML)
+                            {t("텍스트 (서식 HTML)", "Text (formatted HTML)")}
                             <textarea
                               value={selectedElement.textHtml || ""}
                               onChange={(e) =>
@@ -1419,7 +1533,7 @@ export default function WallEditor({
                             />
                           </label>
                           <label>
-                            글꼴
+                            {t("글꼴", "Font")}
                             <select
                               value={selectedElement.textFont || "sans"}
                               onChange={(e) =>
@@ -1430,22 +1544,26 @@ export default function WallEditor({
                               }
                             >
                               {[
-                                "sans",
-                                "host",
-                                "arial",
-                                "serif",
-                                "mono",
-                                "malgun",
-                              ].map((f) => (
-                                <option key={f}>{f}</option>
+                                ["sans", t("산세리프", "Sans serif")],
+                                ["host", t("기본 글꼴", "Default font")],
+                                ["arial", "Arial"],
+                                ["serif", t("세리프", "Serif")],
+                                ["mono", t("고정폭", "Monospace")],
+                                ["malgun", t("맑은 고딕", "Malgun Gothic")],
+                              ].map(([font, label]) => (
+                                <option key={font} value={font}>
+                                  {label}
+                                </option>
                               ))}
                             </select>
                           </label>
-                          {num("글자 크기", selectedElement.textSize, (v) =>
-                            patch({ textSize: v }),
+                          {num(
+                            t("글자 크기", "Font size"),
+                            selectedElement.textSize,
+                            (v) => patch({ textSize: v }),
                           )}
                           <label>
-                            색상
+                            {t("색상", "Color")}
                             <input
                               type="color"
                               value={selectedElement.textColor || "#ffffff"}
@@ -1455,7 +1573,7 @@ export default function WallEditor({
                             />
                           </label>
                           <label>
-                            정렬
+                            {t("정렬", "Alignment")}
                             <select
                               value={selectedElement.textAlign || "left"}
                               onChange={(e) =>
@@ -1465,13 +1583,17 @@ export default function WallEditor({
                                 })
                               }
                             >
-                              <option value="left">왼쪽</option>
-                              <option value="center">가운데</option>
-                              <option value="right">오른쪽</option>
+                              <option value="left">{t("왼쪽", "Left")}</option>
+                              <option value="center">
+                                {t("가운데", "Center")}
+                              </option>
+                              <option value="right">
+                                {t("오른쪽", "Right")}
+                              </option>
                             </select>
                           </label>
                           <label>
-                            기울임
+                            {t("기울임", "Italic")}
                             <input
                               type="checkbox"
                               checked={!!selectedElement.textItalic}
@@ -1481,31 +1603,31 @@ export default function WallEditor({
                             />
                           </label>
                           {num(
-                            "두께",
+                            t("두께", "Weight"),
                             selectedElement.textWeight ?? 400,
                             (v) => patch({ textWeight: v }),
                             100,
                           )}
                           {num(
-                            "줄 높이",
+                            t("줄 높이", "Line height"),
                             selectedElement.textLineHeight ?? 1,
                             (v) => patch({ textLineHeight: v }),
                             0.1,
                           )}
                           {num(
-                            "텍스트 너비",
+                            t("텍스트 너비", "Text width"),
                             selectedElement.textWidth ?? 50,
                             (v) => patch({ textWidth: v }),
                             1,
                           )}
                           {num(
-                            "자간",
+                            t("자간", "Letter spacing"),
                             selectedElement.textSpacing ?? 0,
                             (v) => patch({ textSpacing: v }),
                             0.1,
                           )}
                           {num(
-                            "불투명도",
+                            t("불투명도", "Opacity"),
                             selectedElement.textOpacity ?? 1,
                             (v) => patch({ textOpacity: v }),
                             0.1,
@@ -1517,13 +1639,13 @@ export default function WallEditor({
                 )}
               </>
             ) : (
-              <p>레이어를 선택하세요.</p>
+              <p>{t("레이어를 선택하세요.", "Select a layer.")}</p>
             )}
           </section>
           <section>
-            <h2>화면과 모양</h2>
+            <h2>{t("화면과 모양", "Screens and appearance")}</h2>
             <label>
-              논리 화면
+              {t("논리 화면", "Logical screen")}
               <select
                 value={look.logical_screen}
                 onChange={(e) =>
@@ -1538,7 +1660,7 @@ export default function WallEditor({
               </select>
             </label>
             <label>
-              배경
+              {t("배경", "Background")}
               <select
                 value={appearanceFor(look.state).mode}
                 onChange={(e) =>
@@ -1549,14 +1671,16 @@ export default function WallEditor({
                   )
                 }
               >
-                <option value="preset">원본</option>
-                <option value="solid">단색</option>
-                <option value="gradient">그라디언트</option>
+                <option value="preset">{t("원본", "Source")}</option>
+                <option value="solid">{t("단색", "Solid")}</option>
+                <option value="gradient">{t("그라디언트", "Gradient")}</option>
               </select>
             </label>
             {(["backgroundColor", "glowColor"] as const).map((k, i) => (
               <label key={k}>
-                {i ? "빛 색상" : "배경 색상"}
+                {i
+                  ? t("빛 색상", "Glow color")
+                  : t("배경 색상", "Background color")}
                 <input
                   type="color"
                   value={appearanceFor(look.state)[k]}
@@ -1570,27 +1694,30 @@ export default function WallEditor({
             ))}
             {(["glow", "lighting", "floor"] as const).map((k, i) =>
               num(
-                ["빛", "조명", "바닥"][i],
+                [t("빛", "Glow"), t("조명", "Lighting"), t("바닥", "Floor")][i],
                 appearanceFor(look.state)[k],
                 (v) => changeState((s) => patchAppearance(s, { [k]: v })),
                 0.1,
+                k,
               ),
             )}
             {num(
-              "밝기",
+              t("밝기", "Brightness"),
               look.state.brightness,
               (v) => changeState((s) => ({ ...s, brightness: v })),
               0.1,
             )}
             {num(
-              "전체 속도",
+              t("전체 속도", "Overall speed"),
               look.state.speed,
               (v) => changeState((s) => ({ ...s, speed: v })),
               0.1,
             )}
-            {num("시드", look.seed, (v) => change((l) => ({ ...l, seed: v })))}
+            {num(t("시드", "Seed"), look.seed, (v) =>
+              change((l) => ({ ...l, seed: v })),
+            )}
             <label>
-              애니메이션 일시정지
+              {t("애니메이션 일시정지", "Pause animation")}
               <input
                 type="checkbox"
                 checked={look.state.paused}
@@ -1600,7 +1727,7 @@ export default function WallEditor({
               />
             </label>
             <label>
-              인터랙션
+              {t("인터랙션", "Interaction")}
               <input
                 type="checkbox"
                 checked={look.state.interactive}

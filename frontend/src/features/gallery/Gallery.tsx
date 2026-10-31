@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { RoomSummary } from "../../api/types";
 import { useApi, Status, Empty } from "../../app/ui";
+import { useI18n, translate as t } from "../../app/i18n";
 export default function Gallery() {
+  useI18n();
   const { data, loading, error } = useApi<RoomSummary[]>("/api/v1/rooms");
   const [query, setQuery] = useState("");
   const rooms = data?.filter((r) =>
@@ -14,25 +16,36 @@ export default function Gallery() {
       <section className="catalog-heading">
         <div>
           <h1>
-            공간을 넘어,
+            {t("공간을 넘어,", "Beyond spaces,")}
             <br />
-            함께 만나는 전시.
+            {t("함께 만나는 전시.", "exhibitions we share.")}
           </h1>
-          <p>작품과 사람, 새로운 관점을 연결하는 온라인 갤러리</p>
+          <p>
+            {t(
+              "작품과 사람, 새로운 관점을 연결하는 온라인 갤러리",
+              "An online gallery connecting art, people and new perspectives",
+            )}
+          </p>
         </div>
         <label className="search">
-          전시 검색
+          {t("전시 검색", "Search exhibitions")}
           <input
             type="search"
-            placeholder="전시 이름이나 설명"
+            placeholder={t(
+              "전시 이름이나 설명",
+              "Exhibition name or description",
+            )}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
       </section>
       <div className="section-heading">
-        <h2>지금 열려 있는 공간</h2>
-        <span>{rooms?.length ?? 0}개 전시</span>
+        <h2>{t("지금 열려 있는 공간", "Spaces open now")}</h2>
+        <span>
+          {rooms?.length ?? 0}
+          {t("개 전시", " exhibitions")}
+        </span>
       </div>
       <Status loading={loading} error={error} />
       <div className="room-grid">
@@ -41,17 +54,25 @@ export default function Gallery() {
             <Link
               className={`room-cover cover-${index % 4}`}
               to={`/room?room_id=${room.id}`}
-              aria-label={`${room.name} 입장`}
+              aria-label={t("{name} 입장", "Enter {name}", {
+                name: room.name || room.id,
+              })}
             >
               <span className="cover-number">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div className="architectural-shape" />
-              <span className="cover-enter">전시 입장 ↗</span>
+              <span className="cover-enter">
+                {t("전시 입장 ↗", "Enter exhibition ↗")}
+              </span>
             </Link>
             <div className="room-card-body">
               <div className="eyebrow">
-                VIRTUAL EXHIBITION · {room.walls.length} WALLS
+                {t(
+                  "가상 전시 · {count}개 월",
+                  "VIRTUAL EXHIBITION · {count} WALLS",
+                  { count: room.walls.length },
+                )}
               </div>
               <h3>
                 <Link to={`/room?room_id=${room.id}`}>{room.name}</Link>
@@ -71,16 +92,26 @@ export default function Gallery() {
       {rooms?.length === 0 && (
         <Empty>
           {query
-            ? "검색 결과가 없습니다. 다른 검색어를 입력하세요."
-            : "아직 공개된 전시가 없습니다."}
+            ? t(
+                "검색 결과가 없습니다. 다른 검색어를 입력하세요.",
+                "No results. Try a different search.",
+              )
+            : t("아직 공개된 전시가 없습니다.", "No exhibitions are open yet.")}
         </Empty>
       )}
       <footer className="catalog-footer">
-        <span>당신의 시선으로 완성되는 공간</span>
+        <span>
+          {t(
+            "당신의 시선으로 완성되는 공간",
+            "A space shaped by your perspective",
+          )}
+        </span>
         <a href="/vendor/NOTICE.md" target="_blank" rel="noopener noreferrer">
-          오픈소스·아바타 출처
+          {t("오픈소스·아바타 출처", "Open source and avatar credits")}
         </a>
-        <Link to="/tools">AR · 실험 도구 ↗</Link>
+        <Link to="/tools">
+          {t("AR · 실험 도구 ↗", "AR · Research tools ↗")}
+        </Link>
       </footer>
     </main>
   );

@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { translate as t, subscribeLocale } from '../app/i18n';
 import { api } from "../api/client";
 import { createLifetime } from "./lifetime";
 import { safeMediaUrl } from "./mountRoom";
@@ -11,7 +12,7 @@ export function loadAR() {
     script.onload = () => resolve();
     script.onerror = () => {
       arRuntime = undefined;
-      reject(Error("AR 카메라 런타임을 불러오지 못했습니다."));
+      reject(Error(t('AR 카메라 런타임을 불러오지 못했습니다.', 'Could not load the AR camera runtime.')));
     };
     document.head.append(script);
   }));
@@ -30,6 +31,15 @@ export function mountAR({
   onStatus?: (message: string) => void;
 }) {
   const life = createLifetime();
+  let renderStatus: (() => string) | undefined;
+  const status = (message: () => string) => {
+    if (life.disposed) return;
+    renderStatus = message;
+    onStatus?.(message());
+  };
+  life.add(subscribeLocale(() => {
+    if (!life.disposed && renderStatus) onStatus?.(renderStatus());
+  }));
   const bodyStyle = document.body.getAttribute("style");
   let socket: ReturnType<typeof io> | undefined;
   let active: HTMLElement | undefined;
@@ -46,9 +56,9 @@ export function mountAR({
         room_id: roomId,
         device: phone ? "phone" : "vision_pro",
       });
-      onStatus?.("AR 기기 연결됨");
+      status(() => t('AR 기기 연결됨', 'AR device connected'));
     });
-    socket.on("disconnect", () => onStatus?.("AR 연결 끊김 · 재연결 중"));
+    socket.on("disconnect", () => status(() => t('AR 연결 끊김 · 재연결 중', 'AR disconnected · Reconnecting')));
     if (phone)
       socket.on("joined", () => {
         socket?.emit("set_marker_config", { room_id: roomId, markers });
@@ -63,7 +73,7 @@ export function mountAR({
         .catch(() => {});
       const apply = (data: any) => {
         if (!data.found) {
-          onStatus?.("폰에서 마커를 찾고 있습니다.");
+          status(() => t('폰에서 마커를 찾고 있습니다.', 'Looking for a marker on the phone.'));
           return;
         }
         const config = markers.find((marker) => marker.id === data.marker_id);
@@ -78,7 +88,8 @@ export function mountAR({
         const camera = scene.querySelector("#camera");
         camera?.setAttribute("position", lastTarget.target_position);
         camera?.setAttribute("rotation", lastTarget.target_rotation || "0 0 0");
-        onStatus?.(`${lastTarget.marker_name || "마커"} 위치로 이동했습니다.`);
+        const markerName = lastTarget.marker_name;
+        status(() => t('{name} 위치로 이동했습니다.', 'Moved to {name}.', { name: markerName || t('마커', 'Marker') }));
       };
       socket.on("pose_update", apply);
       socket.on("sync_state", (data: any) => {
@@ -120,7 +131,7 @@ export function mountAR({
           }
           const found = () => {
             active = anchor;
-            onStatus?.(`${config.name} 감지됨`);
+            status(() => t('{name} 감지됨', '{name} detected', { name: config.name }));
             if (marker) {
               scene
                 .querySelector("#camera")
@@ -133,7 +144,7 @@ export function mountAR({
           };
           const lost = () => {
             if (active === anchor) active = undefined;
-            onStatus?.("마커를 비춰 주세요.");
+            status(() => t('마커를 비춰 주세요.', 'Point the camera at a marker.'));
             socket?.emit("marker_update", {
               room_id: roomId,
               marker_id: config.id,
@@ -149,23 +160,22 @@ export function mountAR({
             anchor.remove();
           });
         }
-        onStatus?.(
-          configs.length
-            ? `${configs.length}개 마커 준비됨 · 카메라에 마커를 비춰 주세요.`
-            : "이 방에 등록된 마커가 없습니다. 스튜디오에서 마커를 등록하세요.",
-        );
+        status(() => configs.length
+          ? t('{count}개 마커 준비됨 · 카메라에 마커를 비춰 주세요.', '{count} markers ready · Point the camera at a marker.', { count: configs.length })
+          : t('이 방에 등록된 마커가 없습니다. 스튜디오에서 마커를 등록하세요.', 'No markers are registered in this room. Add one in the studio.'));
       })
       .catch((error) => {
-        if (!life.disposed) onStatus?.(error.message);
+        if (!life.disposed) status(() => error.message);
       });
     const timer = window.setInterval(() => {
       if (active) send("pose", active);
     }, 100);
     life.add(() => clearInterval(timer));
-    const error = (event: any) =>
-      onStatus?.(
-        `카메라를 시작하지 못했습니다. ${event.detail?.error?.message || "카메라 권한을 확인하세요."}`,
-      );
+    const error = (event: any) => {
+      const message = event.detail?.error?.message;
+      status(() => t('카메라를 시작하지 못했습니다. {message}', 'Could not start the camera. {message}',
+        { message: message || t('카메라 권한을 확인하세요.', 'Check camera permissions.') }));
+    };
     scene.addEventListener("camera-error", error);
     life.add(() => scene.removeEventListener("camera-error", error));
   }

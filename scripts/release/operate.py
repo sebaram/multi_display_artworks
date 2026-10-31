@@ -222,6 +222,22 @@ def import_candidate_presets(container):
     command(["docker", "exec", container, "python", "-c", code])
 
 
+def dump_mongo(env, output):
+    result = subprocess.run(["docker", "exec", "-i", MONGO, "mongodump", "--config=/dev/stdin", "--archive", "--gzip", "--db", env["MONGODB_DB"]],
+                            input=json.dumps({"uri": env["MONGODB_URI"]}).encode(), stdout=output, stderr=subprocess.PIPE)
+    if result.returncode:
+        from urllib.parse import urlsplit, unquote, quote_plus
+        uri = env["MONGODB_URI"]
+        parsed = urlsplit(uri)
+        reason = result.stderr.decode(errors="replace")
+        for secret in (uri, parsed.username, parsed.password, unquote(parsed.username or ""), unquote(parsed.password or "")):
+            if secret:
+                for variant in (secret, quote_plus(secret)):
+                    reason = reason.replace(variant, "[redacted]")
+        reason = re.sub(r"mongodb(?:\+srv)?://\S+", "[redacted-uri]", reason)
+        raise ReleaseError("Mongo dump failed: " + reason[:1500])
+
+
 def preflight(expected_image, candidate, candidate_sha, *, allow_missing_wall_media=False):
     require(IMAGE_ID.fullmatch(expected_image) is not None and IMAGE_ID.fullmatch(candidate) is not None,
             "Both production and candidate must use immutable sha256 image IDs")
@@ -262,6 +278,9 @@ def preflight(expected_image, candidate, candidate_sha, *, allow_missing_wall_me
     if (DATA / "wall_media").exists():
         uid_write_probe(DATA / "wall_media")
     probe_candidate_database(candidate)
+    # Validate this host's tool/config before interrupting the app for a paired copy.
+    with open(os.devnull, "wb") as sink:
+        dump_mongo(env, sink)
     return app, mongo, env
 
 
@@ -323,8 +342,7 @@ def snapshot(directory, app, env, *, restart):
         require(not inspect("container", app["Id"])["State"]["Running"], "App did not stop; snapshot refused")
         print("App writes stopped; taking paired Mongo/media snapshot.", flush=True)
         with (directory / "mongo.archive.gz").open("xb") as output:
-            command(["docker", "exec", "-i", MONGO, "mongodump", "--config=/dev/stdin", "--archive", "--gzip", "--db", env["MONGODB_DB"]],
-                    data=json.dumps({"uri": env["MONGODB_URI"]}).encode(), output=output)
+            dump_mongo(env, output)
         save(directory / "collections.json", mongo_summary(env))
         validate_media()
         with tarfile.open(directory / "media.tar", "x") as archive:

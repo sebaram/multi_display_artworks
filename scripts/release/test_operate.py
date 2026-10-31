@@ -54,6 +54,17 @@ class SafetyChecks(unittest.TestCase):
         self.assertNotIn("seed", args[-1])
         self.assertNotIn("drop", args[-1])
 
+    def test_mongo_dump_failure_redacts_uri_and_decoded_credentials(self):
+        env = {"MONGODB_URI": "mongodb://operator:secret%40value@mongo_container/metamuseum?authSource=admin", "MONGODB_DB": "metamuseum"}
+        failure = SimpleNamespace(returncode=1, stderr=("error: " + env["MONGODB_URI"] + " operator secret@value").encode())
+        with patch.object(self.release.subprocess, "run", return_value=failure), self.assertRaises(self.release.ReleaseError) as raised:
+            self.release.dump_mongo(env, None)
+        message = str(raised.exception)
+        self.assertNotIn(env["MONGODB_URI"], message)
+        self.assertNotIn("secret@value", message)
+        self.assertNotIn("operator", message)
+        self.assertIn("Mongo dump failed", message)
+
     def test_staging_refuses_symlink_into_live_media(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as root:
             live = Path(root) / "data"

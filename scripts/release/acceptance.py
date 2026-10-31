@@ -9,6 +9,8 @@ import hashlib
 import http.client
 import json
 import os
+import re
+import subprocess
 from pathlib import Path
 import secrets
 import sys
@@ -94,10 +96,17 @@ def mongo_digest(container, database):
     script = """const d=db.getSiblingDB(DBNAME); const crypto=require('crypto');
 function ordered(v){if(Array.isArray(v))return v.map(ordered);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,ordered(v[k])]));return v;}
 const out={};for(const n of d.getCollectionNames().sort()){const c=d.getCollection(n),h=crypto.createHash('sha256');let count=0;
-for(const doc of c.find().sort({_id:1})){h.update(JSON.stringify(ordered(EJSON.serialize(doc,{relaxed:false}))));h.update('\\n');count++;}
+const cursor=c.find().sort({_id:1});while(cursor.hasNext()){const doc=cursor.next();h.update(JSON.stringify(ordered(EJSON.serialize(doc,{relaxed:false}))));h.update('\\n');count++;}
 out[n]={count,sha256:h.digest('hex'),indexes:c.getIndexes().map(i=>JSON.stringify(ordered(EJSON.serialize(i,{relaxed:false})))).sort()};}print(JSON.stringify(out));
 """.replace("DBNAME", json.dumps(database))
-    return json.loads(command(["docker", "exec", "-i", container, "mongosh", "--quiet", "--file", "/dev/stdin"], data=script.encode()))
+    result = subprocess.run(["docker", "exec", "-i", container, "mongosh", "--quiet", "--file", "/dev/stdin"],
+                            input=script.encode(), capture_output=True)
+    if result.returncode:
+        error = result.stderr.decode(errors="replace")
+        classes = sorted(set(re.findall(r"\b([A-Za-z][A-Za-z0-9]*Error):", error)))
+        symbols = [name for name in ("EJSON.serialize", "crypto.createHash", "getCollectionNames", "getIndexes", "ordered", "require") if name in error]
+        raise ReleaseError("Mongo digest failed; classes=" + ",".join(classes) + "; symbols=" + ",".join(symbols))
+    return json.loads(result.stdout)
 
 
 def media_read(host, port, path):

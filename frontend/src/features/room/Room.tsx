@@ -771,6 +771,7 @@ export default function Room({
                       "PATCH",
                       body,
                     )),
+                    wall: draft.wall,
                   };
                   instance.current?.update([saved]);
                   setStatus("저장했습니다.");

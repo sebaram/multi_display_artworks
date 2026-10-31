@@ -46,6 +46,57 @@ def test_relationships_survive_move_and_delete(client, csrf):
     assert image['id'] not in client.get('/api/v1/admin/walls/' + other['id']).json()['images']
 
 
+@pytest.mark.parametrize('reverse_link', ['missing', 'stale'])
+def test_explicit_move_uses_containing_lists_and_unrelated_edit_preserves_them(client, csrf, database, reverse_link):
+    from metamuseum import models as m
+    headers = login(client, csrf)
+    model = m.GLTFmodel.objects.first()
+    old = model.wall
+    target = m.Wall.objects(pk__ne=old.pk).first()
+    database.wall.update_one({'_id': old.pk}, {'$set': {'width': 10, 'height': 10}})
+    database.wall.update_one({'_id': target.pk}, {'$set': {'width': 1, 'height': 1}})
+    database.g_l_t_fmodel.update_one({'_id': model.pk}, {'$set': {'wall': None if reverse_link == 'missing' else target.pk,
+                                                                             'position_x': 2, 'position': '2 0.25 0.1'}})
+    url = '/api/v1/admin/gltfs/' + str(model.pk)
+    assert client.patch(url, headers=headers, json={'description': 'Metadata only'}).status_code == 200
+    old.reload();target.reload()
+    assert model.pk in [item.pk for item in old.gltfs]
+    assert model.pk not in [item.pk for item in target.gltfs]
+    stored = database.g_l_t_fmodel.find_one({'_id': model.pk})
+    assert stored['wall'] == (None if reverse_link == 'missing' else target.pk) and stored['position_x'] == 2
+    assert client.patch(url, headers=headers, json={'position_x': 100}).status_code == 422
+    assert client.patch(url, headers=headers, json={'wall': str(target.pk), 'position_x': .2, 'position_y': .2,
+                                                   'position': '0.2 0.2 0.1'}).status_code == 200
+    old.reload();target.reload()
+    assert model.pk not in [item.pk for item in old.gltfs]
+    assert model.pk in [item.pk for item in target.gltfs]
+
+
+def test_deleting_legacy_child_cleans_parent_list_and_nonempty_wall_is_guarded(client, csrf, database):
+    from metamuseum import models as m
+    headers = login(client, csrf)
+    model = m.GLTFmodel.objects.first()
+    wall = model.wall
+    database.g_l_t_fmodel.update_one({'_id': model.pk}, {'$unset': {'wall': ''}})
+    assert client.delete('/api/v1/admin/walls/' + str(wall.pk), headers=headers).status_code == 409
+    assert client.delete('/api/v1/admin/gltfs/' + str(model.pk), headers=headers).status_code == 204
+    wall.reload()
+    assert wall.gltfs == []
+
+
+def test_unlisted_forward_child_does_not_appear_after_metadata_edit(client, csrf, database):
+    from bson import ObjectId
+    headers = login(client, csrf)
+    unlisted = database.image.find_one()
+    unlisted.update(_id=ObjectId(), name='unlisted-metadata-target')
+    database.image.insert_one(unlisted)
+    wall_id = str(unlisted['wall'])
+    assert client.patch('/api/v1/admin/images/' + str(unlisted['_id']), headers=headers,
+                        json={'description': 'Metadata only'}).status_code == 200
+    wall = client.get('/api/v1/admin/walls/' + wall_id).json()
+    assert str(unlisted['_id']) not in wall['images']
+
+
 def test_transforms_validate_finite_bounds_and_units(client, csrf):
     h = login(client, csrf)
     wall = client.get('/api/v1/admin/walls').json()['items'][0]

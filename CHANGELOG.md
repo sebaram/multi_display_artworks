@@ -12,6 +12,7 @@ The FastAPI/React release source uses version 2.0.0. Actual deployment, image/so
 - Add four original humanoid presets, customizable appearance, owner-side motion/IK and relayed final joints; preserve legacy avatar choices. Untracked legs use estimated motion.
 - Add desktop and mobile input, tab-local visitor presence, eleven resource editors, CSRF protection, reference validation and masked provider secrets.
 - Retain image, GLTF and Gaussian splat galleries, managed RTSP/HLS, separate webpage/YouTube players, WebRTC voice and configured AR/gesture/AI/STT integrations.
+- Preserve ordered room/wall membership from parent lists even when old child reverse links are missing or stale; keep explicit moves, deletes, layout context and inspector ownership consistent with those lists.
 
 ### Compatibility and operations
 

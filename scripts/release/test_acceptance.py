@@ -19,6 +19,19 @@ spec.loader.exec_module(release)
 
 
 class AcceptanceGuards(unittest.TestCase):
+    def test_worker_rejects_dropped_or_injected_parent_membership(self):
+        namespace = {"check": lambda value, label: self.assertTrue(value, label)}
+        node = next(node for node in ast.parse(release.WORKER).body if isinstance(node, ast.FunctionDef) and node.name == "check_membership")
+        exec(compile(ast.Module(body=[node], type_ignores=[]), "worker-membership", "exec"), namespace)
+        check = namespace["check_membership"]
+        parent = {"images": [], "gltfs": [SimpleNamespace(id="listed-model")]}
+        check(parent, ("images", "gltfs"), [{"id": "listed-model"}], "wall_membership")
+        for children in ([], [{"id": "unlisted-image"}], [{"id": "listed-model"}, {"id": "unlisted-image"}]):
+            with self.subTest(children=children), self.assertRaises(AssertionError):
+                check(parent, ("images", "gltfs"), children, "wall_membership")
+        with self.assertRaises(AssertionError):
+            check({"walls": ["second", "first"]}, ("walls",), [{"id": "first"}, {"id": "second"}], "room_order")
+
     def test_worker_probes_relative_static_media_without_allowing_external_or_unsafe_urls(self):
         readonly = next(node for node in ast.parse(release.WORKER).body
                         if isinstance(node, ast.FunctionDef) and node.name == "readonly")

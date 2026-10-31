@@ -4,7 +4,7 @@ from datetime import datetime
 
 from bson import ObjectId
 from fastapi import HTTPException
-from mongoengine import (BooleanField, DateTimeField, DictField, FloatField, IntField,
+from mongoengine import (BooleanField, DateTimeField, DictField, Document, FloatField, IntField,
                          ListField, NotUniqueError, ReferenceField, StringField, ValidationError)
 from pydantic import ConfigDict, ValidationError as DTOValidationError, create_model
 
@@ -146,7 +146,7 @@ def validate_payload(resource, data):
                                  'fields':[str(e['loc'][0]) for e in error.errors()]}) from None
 
 
-def validate_geometry(document):
+def validate_geometry(document, *, element_walls=None):
     for name in document._fields:
         value = getattr(document, name)
         if isinstance(value, (float, int)) and not isinstance(value, bool):
@@ -173,18 +173,31 @@ def validate_geometry(document):
         raise HTTPException(422, 'invalid_effect_type')
     if isinstance(document, m.Marker) and document.target_preset and document.target_preset.room.pk != document.room.pk:
         raise HTTPException(422, 'preset_room_mismatch')
-    if isinstance(document, m.WallElement) and document.wall:
-        wall = document.wall
-        if abs(document.position_x or 0) > wall.width / 2 or abs(document.position_y or 0) > wall.height / 2:
-            raise HTTPException(422, 'element_outside_wall_bounds')
+    if isinstance(document, m.WallElement):
+        if element_walls is None:
+            wall = document.wall
+            element_walls = [wall] if wall is not None else []
+        for wall in element_walls:
+            if abs(document.position_x or 0) > wall.width / 2 or abs(document.position_y or 0) > wall.height / 2:
+                raise HTTPException(422, 'element_outside_wall_bounds')
 
 
-def parent_link(document):
+def parent_relationship(document):
     if isinstance(document, m.Wall):
-        return document.room, 'walls'
-    if isinstance(document, m.WallElement) and document.wall:
-        return document.wall, ELEMENTS[document.wall_element_type]
-    return None, None
+        return m.Room, 'walls', 'room'
+    if isinstance(document, m.WallElement):
+        return m.Wall, ELEMENTS[document.wall_element_type], 'wall'
+    return None
+
+
+def unlink_memberships(document, keep=None):
+    relationship = parent_relationship(document)
+    if relationship:
+        model, field, _ = relationship
+        query = {field: document}
+        if keep is not None:
+            query['pk__ne'] = keep.pk
+        model.objects(**query).update(**{'pull__' + field: document, 'set__updated_time': datetime.utcnow()})
 
 
 def touch(document):
@@ -195,7 +208,6 @@ def touch(document):
 def save(resource, data, identifier=None):
     values = validate_payload(resource, data)
     document = get(resource, identifier) if identifier else model_for(resource)()
-    previous_parent, previous_field = parent_link(document) if identifier else (None, None)
     for name, value in values.items():
         field = document._fields[name]
         if value is None and (field.required or isinstance(field, (IntField, FloatField))):
@@ -214,31 +226,43 @@ def save(resource, data, identifier=None):
         document.updated_time = datetime.utcnow()
     try:
         document.validate(clean=False)
-        validate_geometry(document)
+        bounds_walls = None
+        if isinstance(document, m.WallElement):
+            bounds_walls = list(m.Wall.objects(**{ELEMENTS[document.wall_element_type]: document})) if identifier and 'wall' not in values else []
+            if not bounds_walls:
+                wall = document.wall
+                bounds_walls = [wall] if wall is not None else []
+        validate_geometry(document, element_walls=bounds_walls)
         if isinstance(document, m.LocationPreset):
             if m.Marker.objects(target_preset=document, room__ne=document.room).first():
                 raise HTTPException(409, 'preset_is_referenced_in_another_room')
-        # Legacy clean() silently clamps coordinates; API validation above rejects bad input.
-        document.save()
+        if isinstance(document, m.WallElement):
+            # Avoid the legacy clean override applying a stale reverse wall after validation.
+            Document.save(document, clean=False)
+        else:
+            document.save()
     except NotUniqueError:
         raise HTTPException(409, 'unique_conflict') from None
     except ValidationError as error:
         raise HTTPException(422, {'message':'invalid_document', 'fields':list(error.to_dict())}) from None
     except (ValueError, TypeError, AttributeError):
         raise HTTPException(422, 'invalid_document') from None
-    parent, field = parent_link(document)
-    if previous_parent is not None and (parent is None or previous_parent.pk != parent.pk):
-        previous_parent.update(**{'pull__' + previous_field: document})
-        touch(previous_parent)
-    if parent is not None:
-        parent.update(**{'add_to_set__' + field: document})
-        touch(parent)
+    relationship = parent_relationship(document)
+    if relationship and (not identifier or relationship[2] in values):
+        _, field, attribute = relationship
+        parent = getattr(document, attribute)
+        unlink_memberships(document, keep=parent)
+        if parent is not None:
+            parent.update(**{'add_to_set__' + field: document, 'set__updated_time': datetime.utcnow()})
     if isinstance(document, m.LocationPreset) and document.is_default:
         m.LocationPreset.objects(room=document.room, pk__ne=document.pk).update(set__is_default=False)
     return document
 
 
 def ensure_deletable(document):
+    if (isinstance(document, m.Room) and walls(document) or
+            isinstance(document, m.Wall) and wall_elements(document)):
+        raise HTTPException(409, 'document_is_referenced')
     for model in RESOURCES.values():
         for name, field in model._fields.items():
             if isinstance(field, ReferenceField) and field.document_type == type(document):
@@ -249,23 +273,21 @@ def ensure_deletable(document):
 def delete(resource, identifier):
     document = get(resource, identifier)
     ensure_deletable(document)
-    parent, field = parent_link(document)
     document.delete()
-    if parent is not None:
-        parent.update(**{'pull__' + field: document})
-        touch(parent)
+    unlink_memberships(document)
 
 
-def ordered_documents(parent, field, child_model, parent_field):
-    # Keep persisted order, but include old records whose forward reference alone exists.
-    ids = [ref.id for ref in parent._data.get(field, [])]
-    documents = list(child_model.objects(**{parent_field: parent}))
-    by_id = {item.pk: item for item in documents}
-    return [by_id.pop(pk) for pk in ids if pk in by_id] + list(by_id.values())
+def ordered_documents(parent, field, child_model):
+    # Legacy rendering follows stored parent lists; child reverse links can be stale.
+    ids = [ref.pk if hasattr(ref, 'pk') else ref.id for ref in parent._data.get(field, [])]
+    if not ids:
+        return []
+    by_id = {item.pk: item for item in child_model.objects(pk__in=ids)}
+    return [by_id[pk] for pk in ids if pk in by_id]
 
 
 def walls(room):
-    return ordered_documents(room, 'walls', m.Wall, 'room')
+    return ordered_documents(room, 'walls', m.Wall)
 
 
 def summary(room):
@@ -274,10 +296,13 @@ def summary(room):
                 created_time=scalar(room.created_time))
 
 
+def wall_elements(wall):
+    return [item for slug in ELEMENTS.values() for item in ordered_documents(wall, slug, RESOURCES[slug])]
+
+
 def wall_dto(wall):
     result = dto(wall)
-    result['elements'] = [dto(item) for kind, slug in ELEMENTS.items()
-                          for item in ordered_documents(wall, slug, RESOURCES[slug], 'wall')]
+    result['elements'] = [dict(dto(item), wall=str(wall.pk)) for item in wall_elements(wall)]
     from .wall_designs import get_binding
     result['design'] = get_binding(str(wall.pk))
     return result

@@ -170,10 +170,11 @@ def admin(client, csrf):
 
 def test_layout_move_updates_both_relationships(client, csrf):
     from metamuseum import models as m
+    from metamuseum.services import gallery
     headers = admin(client, csrf)
     wall = m.Wall.objects.first()
-    target = m.Wall(name='layout-target', description='target', room=wall.room, position='0 0 0',
-                    rotation='0 0 0', width=10, height=10, depth=.1).save()
+    target = gallery.save('walls', dict(name='layout-target', description='target', room=str(wall.room.pk),
+                                      position='0 0 0', rotation='0 0 0', width=10, height=10, depth=.1))
     image = m.Image.objects(wall=wall).first()
     body = {'room_id': str(wall.room.pk), 'arrangements': [dict(element_id=str(image.pk),
             wall_name=target.name, position_x=1.0, position_y=1.0, position_z=0.0)]}
@@ -184,6 +185,26 @@ def test_layout_move_updates_both_relationships(client, csrf):
     assert image.pk not in [item.pk for item in wall.images]
     assert image.pk in [item.pk for item in target.images]
     assert image.position == '1.0 1.0 0.0'
+
+
+def test_layout_context_uses_visible_membership_with_missing_reverse_link(client, database):
+    from bson import ObjectId
+    from metamuseum import models as m
+    from metamuseum.services import providers
+    model = m.GLTFmodel.objects.first()
+    wall = model.wall
+    room = wall.room
+    database.g_l_t_fmodel.update_one({'_id': model.pk}, {'$unset': {'wall': ''}})
+    hidden = database.image.find_one()
+    hidden.update(_id=ObjectId(), name='not-displayed-by-parent', wall=wall.pk)
+    database.image.insert_one(hidden)
+    _, _, visible = providers.context(str(room.pk))
+    assert model.pk in [item.pk for item in visible]
+    assert hidden['_id'] not in [item.pk for item in visible]
+    prompt = json.loads(providers.prompt_context(str(room.pk), 'Arrange visible artworks'))
+    assert next(item for item in prompt['elements'] if item['id'] == str(model.pk))['wall_name'] == wall.name
+    providers.validate_layout({'arrangements': [dict(element_id=str(model.pk), wall_name=wall.name,
+                               position_x=0, position_y=0, position_z=0)]}, str(room.pk))
 
 
 def test_effects_are_arrays_and_expire(client, csrf):

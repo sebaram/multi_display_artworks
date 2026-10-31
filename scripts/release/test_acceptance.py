@@ -9,6 +9,8 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
+from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).parent))
 spec = importlib.util.spec_from_file_location("release_acceptance", Path(__file__).with_name("acceptance.py"))
@@ -17,6 +19,34 @@ spec.loader.exec_module(release)
 
 
 class AcceptanceGuards(unittest.TestCase):
+    def test_worker_probes_relative_static_media_without_allowing_external_or_unsafe_urls(self):
+        readonly = next(node for node in ast.parse(release.WORKER).body
+                        if isinstance(node, ast.FunctionDef) and node.name == "readonly")
+        media_loop = next(node for node in readonly.body if isinstance(node, ast.For)
+                          and isinstance(node.target, ast.Tuple) and node.target.elts[0].id == "collection")
+        code = compile(ast.Module(body=[media_loop], type_ignores=[]), "worker-media-paths", "exec")
+        def probe(value):
+            record = {"_id": "legacy-id", "image_url": value, "splat_url": value, "gltf_url": value}
+            before = dict(record)
+            def check(condition, label):
+                if not condition: raise RuntimeError(label)
+            namespace = {"db": {name: SimpleNamespace(find_one=lambda query: record)
+                                for name in ("image", "gaussian_splat", "g_l_t_fmodel")},
+                         "http": SimpleNamespace(request=lambda *args: None),
+                         "urlsplit": urlsplit, "check": check, "paths": []}
+            try:
+                exec(code, namespace)
+                return namespace["paths"]
+            finally:
+                self.assertEqual(record, before)
+        for value in ("static/image/dance_i.jpg", "/static/image/dance_i.jpg"):
+            with self.subTest(value=value):
+                self.assertEqual(probe(value), ["/static/image/dance_i.jpg"] * 3)
+        for value in ("https://elsewhere.invalid/static/image.jpg", "//elsewhere.invalid/static/image.jpg",
+                      "/static/../private", "static/image.jpg?token=secret", "/static/image.jpg?token=secret"):
+            with self.subTest(value=value), self.assertRaisesRegex(RuntimeError, "original_media_not_local"):
+                probe(value)
+
     def test_close_validates_both_stacks_before_removal_and_retains_data(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as root:
             directory = Path(root)

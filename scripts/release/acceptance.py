@@ -273,8 +273,10 @@ def readonly():
         record=db[collection].find_one({field:{'$type':'string','$ne':''}})
         check(record,'original_'+kind+'_missing')
         http.request('GET','/api/v1/elements/'+kind+'/'+str(record['_id']))
-        path=urlsplit(record[field]).path
-        check(path.startswith('/static/') and '..' not in path.split('/'),'original_media_not_local')
+        parsed=urlsplit(record[field]);path=parsed.path
+        if path.startswith('static/'):path='/'+path
+        check(not parsed.scheme and not parsed.netloc and not parsed.query and
+              path.startswith('/static/') and '..' not in path.split('/'),'original_media_not_local')
         paths.append(path)
     paths+=['/static/gltf/matisse_dance.glb','/static/gltf/wheel.glb']
     a=b=None

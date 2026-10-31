@@ -387,7 +387,30 @@ def evidence_finish(directory, template, checks, report, operator, *, private=Fa
     result = dict(template, operator=operator, evidence=str(report_path), evidence_sha256=digest(report_path), checks=checks)
     # Failed evidence is useful, but never creates the gate consumed by operate.py.
     write(directory / (name + (".json" if all(checks.values()) else ".remaining." + secrets.token_hex(4) + ".json")), result)
+    if report.get("failure"):
+        print("Acceptance stopped: " + report["failure"], flush=True)
     return all(checks.values())
+
+
+def close_staging(directory):
+    manifest = read(directory / "prepared.json")
+    gate = read(directory / "operator-checks.json")
+    validate_binding(gate, manifest, directory)
+    require(all(gate.get("checks", {}).get(key) is True for key in CHECKS) and
+            digest(gate["evidence"]) == gate["evidence_sha256"], "Close only a completed staging rehearsal")
+    resources = []
+    # Validate both stacks before removing either; all persistent bind copies remain.
+    for role in ("candidate", "legacy"):
+        resource = read(directory / ("staging-" + role) / "resources.json")
+        validate_stage(directory, role, resource, inspect("container", resource["app_container"]),
+                       inspect("container", resource["mongo_container"]), inspect("network", resource["network"]),
+                       manifest["candidate_image" if role == "candidate" else "production_image"])
+        resources.append(resource)
+    for resource in resources:
+        command(["docker", "rm", "-f", resource["app_container"], resource["mongo_container"]])
+        command(["docker", "network", "rm", resource["network"]])
+    write(directory / "staging-closed.json", {"paired_data_and_backups_retained": True})
+    print("Completed staging containers closed; all paired data and backups retained.", flush=True)
 
 
 def stage_acceptance(directory, operator):
@@ -494,16 +517,20 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);sub=parser.add_subparsers(dest="mode",required=True)
     staging=sub.add_parser("staging");staging.add_argument("--release-dir",type=Path,required=True)
     private=sub.add_parser("private");private.add_argument("--attempt-dir",type=Path,required=True)
-    for item in (staging,private):item.add_argument("--operator",required=True)
+    close=sub.add_parser("close-staging");close.add_argument("--release-dir",type=Path,required=True)
+    for item in (staging,private,close):item.add_argument("--operator",required=True)
     args=parser.parse_args()
     try:
         require(sys.platform.startswith("linux"),
                 "Run this host-only helper on the Linux Docker host")
-        directory=args.release_dir if args.mode=="staging" else args.attempt_dir
+        directory=args.attempt_dir if args.mode=="private" else args.release_dir
         require_path(directory);require(directory.is_absolute(),"Use the absolute private release/attempt directory")
         require(directory.stat().st_uid in (0,os.geteuid()) and directory.stat().st_mode & 0o077 == 0,
                 "Release/attempt directory must be private and owned by this operator or root")
         require(bool(args.operator.strip()),"An operator identity is required")
+        if args.mode=="close-staging":
+            close_staging(directory)
+            return 0
         gate=directory/("operator-checks.json" if args.mode=="staging" else "private-operator-checks.json")
         require(not gate.exists(),"This acceptance gate already exists; keep its completed evidence immutable")
         complete=(stage_acceptance if args.mode=="staging" else private_acceptance)(directory,args.operator)

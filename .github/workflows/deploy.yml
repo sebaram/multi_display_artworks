@@ -8,7 +8,7 @@ on:
       operation:
         description: Explicit manual operation; hold closes public ingress until promote or rollback
         type: choice
-        options: [validate, inventory, prepare, accept-staging, hold, accept-private, promote, rollback]
+        options: [validate, inventory, prepare, accept-staging, close-staging, hold, accept-private, promote, rollback]
         default: inventory
       release_id:
         description: New lowercase release slug for prepare; same slug for later operations

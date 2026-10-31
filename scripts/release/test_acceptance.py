@@ -17,6 +17,36 @@ spec.loader.exec_module(release)
 
 
 class AcceptanceGuards(unittest.TestCase):
+    def test_close_validates_both_stacks_before_removal_and_retains_data(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as root:
+            directory = Path(root)
+            manifest = {"candidate_image": "candidate-image", "production_image": "old-image"}
+            gate = {"checks": {key: True for key in release.CHECKS}, "evidence": "private", "evidence_sha256": "digest"}
+            resources = {role: {"app_container": role + "-app", "mongo_container": role + "-mongo", "network": role + "-net"}
+                         for role in ("candidate", "legacy")}
+            def load(path):
+                if path.name == "prepared.json": return manifest
+                if path.name == "operator-checks.json": return gate
+                return resources[path.parent.name.removeprefix("staging-")]
+            calls = []
+            with patch.object(release, "read", side_effect=load), patch.object(release, "validate_binding"), \
+                 patch.object(release, "digest", return_value="digest"), patch.object(release, "inspect", return_value={}), \
+                 patch.object(release, "validate_stage") as validate, \
+                 patch.object(release, "command", side_effect=lambda args: calls.append(args)), patch.object(release, "write"):
+                validate.side_effect = [None, release.ReleaseError("legacy is not isolated")]
+                with self.assertRaises(release.ReleaseError): release.close_staging(directory)
+                self.assertEqual(calls, [])
+                validate.side_effect = None
+                release.close_staging(directory)
+                self.assertEqual(calls, [["docker", "rm", "-f", "candidate-app", "candidate-mongo"],
+                                         ["docker", "network", "rm", "candidate-net"],
+                                         ["docker", "rm", "-f", "legacy-app", "legacy-mongo"],
+                                         ["docker", "network", "rm", "legacy-net"]])
+                calls.clear()
+                gate["checks"][release.CHECKS[0]] = False
+                with self.assertRaises(release.ReleaseError): release.close_staging(directory)
+                self.assertEqual(calls, [])
+
     def test_document_or_reference_order_change_and_removed_index_fail(self):
         original = {"users": {"count": 2, "sha256": "original-bson-digest", "indexes": ["email-unique"]}}
         release.compare_originals(original, copy.deepcopy(original))

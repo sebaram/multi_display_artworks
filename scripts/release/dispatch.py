@@ -11,7 +11,7 @@ import urllib.request
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OPERATIONS = ("inventory", "prepare", "accept-staging", "hold", "accept-private", "promote", "rollback")
+OPERATIONS = ("inventory", "prepare", "accept-staging", "close-staging", "hold", "accept-private", "promote", "rollback")
 
 
 class DispatchError(Exception):
@@ -162,9 +162,9 @@ def execute(args):
         helper("operate.py", ["prepare", "--release-dir", directory, "--expected-production-image", baseline["running_image_id"],
                               "--candidate-image", image, "--candidate-sha", sha, "--production-sha", old_sha,
                               "--production-sha-evidence", evidence, "--confirm-exclusive-app-writer"])
-    elif args.operation in ("accept-staging", "accept-private"):
+    elif args.operation in ("accept-staging", "accept-private", "close-staging"):
         require(args.operator, "Acceptance requires the initiating operator identity")
-        helper("acceptance.py", ["private" if needs_attempt else "staging", "--attempt-dir" if needs_attempt else "--release-dir",
+        helper("acceptance.py", ["close-staging" if args.operation == "close-staging" else "private" if needs_attempt else "staging", "--attempt-dir" if needs_attempt else "--release-dir",
                                  attempt if needs_attempt else directory, "--operator", args.operator])
     elif args.operation == "hold":
         verify_checkout(args.candidate_dir, sha)

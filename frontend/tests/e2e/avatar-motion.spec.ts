@@ -170,7 +170,7 @@ test("owner walking, head independence, planted feet, teleport, stationary late 
   await observer.close();
 });
 
-test("390px coarse-pointer movement pad drives the owner body shown to a peer", async ({
+test("390px coarse-pointer analog joystick drives the owner body shown to a peer", async ({
   browser,
 }) => {
   const mobile = await browser.newContext({
@@ -203,11 +203,12 @@ test("390px coarse-pointer movement pad drives the owner body shown to a peer", 
     )
     .toBeLessThan(0.03);
   const beforeBody = (await body(observer, owner.visitorId))!.position;
-  const forward = page.getByRole("button", { name: "앞으로", exact: true });
-  await expect(forward).toBeVisible();
-  const rect = (await forward.boundingBox())!;
+  const joystick = page.getByRole("group", { name: "이동 조이스틱", exact: true });
+  await expect(joystick).toBeVisible();
+  const rect = (await joystick.boundingBox())!;
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
   await page.mouse.down();
+  await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2 - 56);
   await page.waitForTimeout(400);
   await page.mouse.up();
   await expect
@@ -251,7 +252,7 @@ test("390px coarse-pointer movement pad drives the owner body shown to a peer", 
     ),
   ).toBe(true);
   await observer.screenshot({
-    path: "test-results/avatar-motion-touch-pad.png",
+    path: "test-results/avatar-motion-touch-joystick.png",
   });
   await mobile.close();
 });

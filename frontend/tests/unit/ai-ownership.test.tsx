@@ -70,6 +70,7 @@ function mount() {
   mocks.mount.mockImplementation((args) => {
     const instance = {
       scene: {},
+      move() {},
       update: vi.fn(),
       dispose: vi.fn(),
       playbackCommand: vi.fn(),

@@ -142,7 +142,7 @@ export function mountRoom({
     position: bootstrap.spawn_preset?.position || "0 1.6 5",
     rotation: bootstrap.spawn_preset?.rotation || "0 0 0",
     "wasd-controls": "acceleration: 18",
-    "look-controls": "pointerLockEnabled: false",
+    "look-controls": `pointerLockEnabled: false; touchEnabled: ${!!(bootstrap.isArMarker || bootstrap.isArCompanion)}`,
   });
   if (bootstrap.boundary && !bootstrap.isArCompanion && !bootstrap.isArMarker)
     camera.setAttribute(
@@ -527,6 +527,41 @@ export function mountRoom({
     if (!bootstrap.isArMarker && !bootstrap.isArCompanion)
       camera.setAttribute("look-controls", "enabled: true");
   }
+  // A-Frame's touch handler uses touches[0], which can belong to the joystick.
+  let lookPointer: { id: number; x: number } | undefined;
+  const canTouchLook = () => !bootstrap.isArMarker && !bootstrap.isArCompanion &&
+    !(scene as any).is?.("vr-mode") && !(scene as any).is?.("ar-mode") &&
+    camera.components?.["look-controls"]?.data.enabled;
+  const touchLookStart = (event: PointerEvent) => {
+    if (event.pointerType !== "touch" || event.target !== (scene as any).canvas ||
+        lookPointer || !canTouchLook()) return;
+    lookPointer = { id: event.pointerId, x: event.clientX };
+  };
+  const touchLookMove = (event: PointerEvent) => {
+    if (event.pointerId !== lookPointer?.id) return;
+    if (!canTouchLook()) { lookPointer = undefined; return; }
+    const look = camera.components["look-controls"];
+    const width = (scene as any).canvas.clientWidth || 1;
+    const direction = look.data.reverseTouchDrag ? -1 : 1;
+    look.yawObject.rotation.y += Math.PI * (event.clientX - lookPointer.x) / width * direction;
+    lookPointer.x = event.clientX;
+  };
+  const touchLookEnd = (event: PointerEvent) => {
+    if (event.pointerId === lookPointer?.id) lookPointer = undefined;
+  };
+  const resetTouchLook = () => { lookPointer = undefined; };
+  scene.addEventListener("pointerdown", touchLookStart);
+  window.addEventListener("pointermove", touchLookMove);
+  window.addEventListener("pointerup", touchLookEnd);
+  window.addEventListener("pointercancel", touchLookEnd);
+  window.addEventListener("blur", resetTouchLook);
+  life.add(() => {
+    scene.removeEventListener("pointerdown", touchLookStart);
+    window.removeEventListener("pointermove", touchLookMove);
+    window.removeEventListener("pointerup", touchLookEnd);
+    window.removeEventListener("pointercancel", touchLookEnd);
+    window.removeEventListener("blur", resetTouchLook);
+  });
   scene.addEventListener("pointermove", mouseMove);
   const movementFocus = (event: Event) => {
     // A-Frame captures WASD only on body; a native canvas click focuses #main-content.

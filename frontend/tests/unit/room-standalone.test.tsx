@@ -76,7 +76,7 @@ beforeEach(async () => {
   });
   mocks.mount.mockImplementation(({ services }) => {
     services.onReady();
-    return { scene: {}, update() {}, dispose: mocks.dispose };
+    return { scene: {}, move() {}, update() {}, dispose: mocks.dispose };
   });
 });
 afterEach(() => {

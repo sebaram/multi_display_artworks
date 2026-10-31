@@ -72,6 +72,7 @@ function mount(artworks = [element("a"), element("b")]) {
     args.services.onReady();
     return {
       scene: {},
+      move() {},
       update: mocks.update,
       dispose: mocks.dispose,
       playbackCommand: mocks.command,

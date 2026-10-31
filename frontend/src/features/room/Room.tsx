@@ -11,6 +11,7 @@ import AIPanel from "./AIPanel";
 import { loadAR, mountAR } from "../../scene/ar";
 import YouTubePanel from "./YouTubePanel";
 import SharedPlayback from "./SharedPlayback";
+import MobileJoystick from "./MobileJoystick";
 const resources: Record<string, string> = {
   image: "images",
   gaussian_splat: "splats",
@@ -424,28 +425,9 @@ export default function Room({
         {status && !draft && <p role="status">{status}</p>}
       </div>
       <div id="room-toolbar" className="room-toolbar" />
-      <div className="move-pad" aria-label="이동 컨트롤">
-        {[
-          ["앞으로", 1, 0, "↑"],
-          ["왼쪽으로", 0, -1, "←"],
-          ["뒤로", -1, 0, "↓"],
-          ["오른쪽으로", 0, 1, "→"],
-        ].map(([label, forward, right, arrow]) => (
-          <button
-            key={label}
-            aria-label={String(label)}
-            onPointerDown={(e) => {
-              e.currentTarget.setPointerCapture(e.pointerId);
-              instance.current?.move(Number(forward), Number(right));
-            }}
-            onPointerUp={() => instance.current?.move(0, 0)}
-            onPointerCancel={() => instance.current?.move(0, 0)}
-            onBlur={() => instance.current?.move(0, 0)}
-          >
-            {arrow}
-          </button>
-        ))}
-      </div>
+      <MobileJoystick key={route}
+        disabled={!ready || !!draft || list || ai || !!youtube || captureLocation || !!data?.isArMarker || !!data?.isArCompanion}
+        onMove={(forward, right) => instance.current?.move(forward, right)} />
       <div className="room-bottom">
         {session.is_admin &&
           videoWalls.map((wall) => (

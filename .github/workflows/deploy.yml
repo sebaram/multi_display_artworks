@@ -1,16 +1,23 @@
-name: Validate migration
+name: MetaMuseum validation and manual release
 on:
   push:
     branches: [master, 'codex/**']
   pull_request:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Explicit operation; production inspection is read-only
+        type: choice
+        options: [validate, inventory]
+        default: inventory
 permissions:
   contents: read
 concurrency:
-  group: metamuseum-${{ github.ref }}
+  group: metamuseum-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && (inputs.operation || 'inventory') || 'validate' }}
   cancel-in-progress: false
 jobs:
   quality:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation == 'validate'
     runs-on: ubuntu-latest
     services:
       mongo:
@@ -124,3 +131,25 @@ jobs:
           docker logs ci_smoke 2>/dev/null || true
           docker rm -f ci_smoke ci_mongo 2>/dev/null || true
           docker network rm metamuseum_ci 2>/dev/null || true
+  production-inventory:
+    if: github.event_name == 'workflow_dispatch' && (inputs.operation == 'inventory' || inputs.operation == '')
+    runs-on: [self-hosted, jy-server]
+    timeout-minutes: 15
+    concurrency:
+      group: metamuseum-production-operations
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: .release-checkout
+          persist-credentials: false
+      - name: Inspect running production without changing services or data
+        working-directory: .release-checkout
+        run: bash scripts/release.sh inventory --code-manifest > "$RUNNER_TEMP/metamuseum-inventory.json"
+      - name: Save sanitized production inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-inventory-${{ github.run_id }}
+          path: ${{ runner.temp }}/metamuseum-inventory.json
+          if-no-files-found: error
+          retention-days: 14

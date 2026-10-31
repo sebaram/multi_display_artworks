@@ -289,6 +289,8 @@ def readonly():
     for collection,field,kind in [('image','image_url','image'),('gaussian_splat','splat_url','gaussian_splat'),('g_l_t_fmodel','gltf_url','gltf')]:
         record=db[collection].find_one({field:{'$type':'string','$ne':''}})
         check(record,'original_'+kind+'_missing')
+        C['element_probe']={'id':str(record['_id']),'kind':kind,'media':record[field],
+                            'known_class':record.get('_cls') in ('Image','GaussianSplat','GLTFmodel')}
         http.request('GET','/api/v1/elements/'+kind+'/'+str(record['_id']))
         parsed=urlsplit(record[field]);path=parsed.path
         if path.startswith('static/'):path='/'+path
@@ -378,13 +380,23 @@ try:
     result={'read':readonly,'create':create,'verify':verify,'cleanup':clean,'import':defaults}[C['mode']]()
     print(json.dumps({'ok':True,'result':result}))
 except BaseException as error:
-    print(json.dumps({'ok':False,'failed_mode':C['mode'],'failed_check':str(error) if type(error) is RuntimeError else type(error).__name__}))
+    print(json.dumps({'ok':False,'failed_mode':C['mode'],'failed_check':str(error) if type(error) is RuntimeError else type(error).__name__,
+                      'element_probe':C.get('element_probe')}))
 '''
 
 
 def worker(container, mode, config):
     script = "C=" + repr(dict(config, mode=mode)) + "\n" + WORKER
     result = json.loads(command(["docker", "exec", "-i", container, "python", "-"], data=script.encode()))
+    probe=result.get('element_probe')
+    if not result.get('ok') and probe and config.get('legacy_host'):
+        connection=http.client.HTTPConnection(config['legacy_host'],5000,timeout=20)
+        try:
+            connection.request('GET','/element?wall_element_id='+probe['id']+'&type='+probe['kind'])
+            response=connection.getresponse();body=response.read(262144)
+            print('Legacy representative comparison: '+json.dumps({'legacy_status':response.status,
+                  'legacy_includes_media':probe['media'].encode() in body,'known_class':probe['known_class']}),flush=True)
+        finally:connection.close()
     require(result.get("ok") is True, "Candidate acceptance failed in " + mode + ": " + result.get("failed_check", "unknown"))
     return result["result"]
 
@@ -446,7 +458,7 @@ def stage_acceptance(directory, operator):
         candidate_host=stage_address(inspect("container",candidate["app_container"]),candidate["network"])
         legacy_host=stage_address(inspect("container",legacy["app_container"]),legacy["network"])
         env=environment(inspect("container",candidate["app_container"]))
-        config={"origin":"http://127.0.0.1:5000","stage_write":True,
+        config={"origin":"http://127.0.0.1:5000","stage_write":True,"legacy_host":legacy_host,
                 "token":"release-acceptance-"+secrets.token_hex(12),"password":secrets.token_urlsafe(40)}
         config["email"]=config["token"]+"@staging.invalid"
         before=mongo_digest(legacy["mongo_container"],env["MONGODB_DB"])

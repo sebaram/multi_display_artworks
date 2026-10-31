@@ -30,7 +30,7 @@ class AcceptanceGuards(unittest.TestCase):
             before = dict(record)
             def check(condition, label):
                 if not condition: raise RuntimeError(label)
-            namespace = {"db": {name: SimpleNamespace(find_one=lambda query: record)
+            namespace = {"C": {}, "db": {name: SimpleNamespace(find_one=lambda query: record)
                                 for name in ("image", "gaussian_splat", "g_l_t_fmodel")},
                          "http": SimpleNamespace(request=lambda *args: None),
                          "urlsplit": urlsplit, "check": check, "paths": []}

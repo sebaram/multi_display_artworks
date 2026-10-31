@@ -1,0 +1,172 @@
+.wall-studio {
+  padding: 1rem;
+  color: #e8eef8;
+  background: #101722;
+  min-height: 100vh;
+  font: 14px system-ui;
+}
+.wall-studio header,
+.wall-context,
+.wall-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.wall-studio header {
+  justify-content: space-between;
+}
+.wall-studio h1 {
+  font-size: 1.35rem;
+}
+.wall-studio h2 {
+  font-size: 1rem;
+}
+.wall-studio h3 {
+  font-size: 0.9rem;
+}
+.wall-studio section {
+  background: #1a2432;
+  border: 1px solid #354457;
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+.wall-grid {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(300px, 1fr) minmax(
+      220px,
+      280px
+    );
+  gap: 0.8rem;
+  align-items: start;
+}
+.wall-studio label {
+  display: block;
+  margin: 0.45rem 0;
+}
+.wall-studio input:not([type="checkbox"]),
+.wall-studio select,
+.wall-studio textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background: #101722;
+  color: inherit;
+  border: 1px solid #516176;
+  border-radius: 4px;
+  padding: 0.4rem;
+}
+.wall-studio input[type="color"] {
+  height: 2rem;
+}
+.wall-studio button,
+.wall-studio .button {
+  background: #33465d;
+  color: inherit;
+  border: 1px solid #5b6d82;
+  border-radius: 4px;
+  padding: 0.45rem;
+  cursor: pointer;
+}
+.wall-studio button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.wall-studio button:focus-visible,
+.wall-studio input:focus-visible,
+.wall-studio select:focus-visible {
+  outline: 2px solid #80c9ff;
+}
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.35rem;
+  max-height: 260px;
+  overflow: auto;
+}
+.preset-grid button {
+  text-align: left;
+  min-height: 56px;
+}
+.preset-grid img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+.preset-grid small {
+  display: block;
+  color: #b4c4d6;
+}
+.layer-list {
+  max-height: 300px;
+  overflow: auto;
+}
+.layer-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+.layer-list button.active {
+  background: #3b6284;
+}
+.stage-frame {
+  background: #050a16;
+  overflow: hidden;
+}
+.stage-frame canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.wall-error {
+  background: #612b30;
+  padding: 0.7rem;
+}
+.wall-stage a {
+  color: #9dd8ff;
+  display: block;
+}
+@media (max-width: 900px) {
+  .wall-grid {
+    grid-template-columns: 1fr;
+  }
+  .wall-stage {
+    order: -1;
+  }
+}
+.layer-menu {
+  position: fixed;
+  z-index: 30;
+  background: #26384b;
+  border: 1px solid #8193a8;
+  box-shadow: 0 8px 24px #0008;
+  padding: 0.3rem;
+  display: grid;
+}
+.wall-stage iframe {
+  width: min(100%, 560px);
+  aspect-ratio: 16/9;
+  border: 0;
+}
+.youtube-preview {
+  width: min(100%, 560px);
+  aspect-ratio: 16/9;
+  background: #000;
+}
+.youtube-preview iframe {
+  width: 100%;
+  height: 100%;
+}
+.wall-grid {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.wall-grid:disabled canvas {
+  pointer-events: none;
+}

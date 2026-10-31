@@ -1,0 +1,329 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { bootstrapRoomRealtime } from '../../../src/scene/legacy/application.js';
+
+const visitorSession = { visitorId: 'self', capability: 'signed' };
+
+class FakeSocket {
+  constructor() {
+    this.connected = false;
+    this.listeners = new Map();
+    this.emitted = [];
+  }
+
+  on(eventName, handler) {
+    this.listeners.set(eventName, handler);
+  }
+
+  off(eventName, handler) {
+    if (this.listeners.get(eventName) === handler) this.listeners.delete(eventName);
+  }
+
+  connect() {}
+
+  disconnect() {
+    this.connected = false;
+  }
+
+  emit(eventName, payload) {
+    this.emitted.push([eventName, payload]);
+  }
+
+  trigger(eventName, payload) {
+    if (eventName === 'connect') this.connected = true;
+    if (eventName === 'disconnect') this.connected = false;
+    this.listeners.get(eventName)?.(payload);
+  }
+}
+
+function startRealtime(consumers) {
+  const socket = new FakeSocket();
+  const realtime = bootstrapRoomRealtime({
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
+    ioFactory: () => socket,
+    profileController: {
+      joinPayload: () => ({ room_id: 'room-a', profile: {} }),
+      setSocketClient() {},
+    },
+    socketUrl: 'https://museum.test',
+    consumers: {
+      initialize() {},
+      handleSocketEvent() {},
+      ...consumers,
+    },
+  });
+  socket.emitToClient = (eventName, payload) => socket.trigger(eventName, payload);
+  return { socket, realtime };
+}
+
+test('a reconnect snapshot drops departed peers so their next visit renders again', () => {
+  const rendered = [];
+  const { socket, realtime } = startRealtime({ syncRoster: (users) => rendered.push(users) });
+  const peer = {
+    userId: 'other', position: '1 1.6 0', rotation: '0 0 0', handTracking: false,
+  };
+  socket.emitToClient('room_state', { users: [peer] });
+  socket.trigger('disconnect');
+  socket.trigger('connect');
+  socket.emitToClient('room_state', { users: [] });
+
+  assert.deepEqual(realtime.poseBuffer.userIds(), []);
+  socket.emitToClient('user_joined', { userId: 'other', displayName: 'Returned' });
+  socket.emitToClient('position_update', peer);
+  assert.equal(rendered.at(-1)[0]?.displayName, 'Returned');
+});
+
+test('room realtime rejoins on reconnect and renders reducer snapshots', () => {
+  const socket = new FakeSocket();
+  const initialized = [];
+  const rendered = [];
+  const received = [];
+  let injectedClient = null;
+  const profileController = {
+    joinPayload: () => ({
+      room_id: 'room-a',
+      profile: { displayName: 'Visitor', avatarId: 'shiba', color: '#4CAF50' },
+    }),
+    setSocketClient(client) {
+      injectedClient = client;
+    },
+  };
+
+  const realtime = bootstrapRoomRealtime({
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
+    ioFactory: () => socket,
+    profileController,
+    socketUrl: 'https://museum.test',
+    consumers: {
+      initialize: (client) => initialized.push(client),
+      syncRoster: (users) => rendered.push(users),
+      handleSocketEvent: (eventName, payload) => received.push([eventName, payload]),
+    },
+  });
+
+  assert.equal(injectedClient, realtime.socketClient);
+  assert.deepEqual(initialized, [realtime.socketClient]);
+
+  socket.trigger('connect');
+  assert.deepEqual(socket.emitted, [
+    ['join_position_room', profileController.joinPayload()],
+  ]);
+  socket.trigger('room_state', { users: [] });
+  socket.trigger('disconnect');
+  socket.trigger('connect');
+  assert.deepEqual(socket.emitted, [
+    ['join_position_room', profileController.joinPayload()],
+    ['voice.get_state', { room_id: 'room-a' }],
+    ['join_position_room', profileController.joinPayload()],
+  ]);
+  socket.trigger('room_state', {
+    users: [
+      { userId: 'self', displayName: 'Local', position: '0 1.6 0', rotation: '0 0 0' },
+      { userId: 'other', displayName: 'Other', position: '0 1.6 0', rotation: '0 0 0' },
+    ],
+  });
+  assert.deepEqual(socket.emitted, [
+    ['join_position_room', profileController.joinPayload()],
+    ['voice.get_state', { room_id: 'room-a' }],
+    ['join_position_room', profileController.joinPayload()],
+    ['voice.get_state', { room_id: 'room-a' }],
+  ]);
+
+  // room_state already seeded the pose buffer with 'other's pose (fix #3), so this
+  // position_update is no longer a brand-new pose-buffer entry and carries no hand
+  // change — it does not, by itself, trigger a roster resync. The moved position is
+  // still visible in the next roster snapshot because state.applyUpdate always runs.
+  socket.trigger('position_update', { userId: 'other', position: '1 2 3', rotation: '0 0 0' });
+  socket.trigger('profile_updated', { userId: 'other', displayName: 'Updated' });
+  socket.trigger('user_left', { userId: 'other' });
+
+  assert.deepEqual(rendered, [
+    [],
+    [{ userId: 'other', displayName: 'Other', position: '0 1.6 0', rotation: '0 0 0' }],
+    [{ userId: 'other', displayName: 'Updated', position: '1 2 3', rotation: '0 0 0' }],
+    [],
+  ]);
+  assert.deepEqual(received, [['user_left', { userId: 'other' }]]);
+});
+
+test('room realtime forwards ancillary public socket events unchanged', () => {
+  const socket = new FakeSocket();
+  const received = [];
+  bootstrapRoomRealtime({
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
+    ioFactory: () => socket,
+    profileController: {
+      joinPayload: () => ({ room_id: 'room-a', profile: {} }),
+      setSocketClient() {},
+    },
+    socketUrl: 'https://museum.test',
+    consumers: {
+      initialize() {},
+      syncRoster() {},
+      handleSocketEvent: (eventName, payload) => received.push([eventName, payload]),
+    },
+  });
+
+  const events = [
+    'expression',
+    'voice_admin_toggle',
+    'voice.offer',
+    'voice.answer',
+    'voice.ice',
+    'voice.join',
+    'voice.leave',
+    'voice.displaced',
+    'voice.mute',
+    'voice.transcript',
+    'room_effects',
+    'room_effects_cleared',
+  ];
+  events.forEach((eventName) => socket.trigger(eventName, { eventName }));
+
+  assert.deepEqual(received, events.map((eventName) => [eventName, { eventName }]));
+});
+
+test('user join is stored but waits for renderable position data', () => {
+  const socket = new FakeSocket();
+  const rendered = [];
+  const realtime = bootstrapRoomRealtime({
+    bootstrapData: { roomId: 'room-a' },
+    visitorSession,
+    ioFactory: () => socket,
+    profileController: {
+      joinPayload: () => ({ room_id: 'room-a', profile: {} }),
+      setSocketClient() {},
+    },
+    socketUrl: 'https://museum.test',
+    consumers: {
+      initialize() {},
+      syncRoster: (users) => rendered.push(users),
+      handleSocketEvent() {},
+    },
+  });
+
+  socket.trigger('user_joined', { userId: 'other', displayName: 'Other' });
+  assert.deepEqual(realtime.state.users(), [{ userId: 'other', displayName: 'Other' }]);
+  assert.deepEqual(rendered, []);
+
+  socket.trigger('profile_updated', { userId: 'other', displayName: 'Updated' });
+  assert.deepEqual(realtime.state.users(), [{ userId: 'other', displayName: 'Updated' }]);
+  assert.deepEqual(rendered, [[]]);
+
+  socket.trigger('position_update', {
+    userId: 'other',
+    position: '0 1.6 0',
+    rotation: '0 0 0',
+  });
+  assert.deepEqual(rendered, [
+    [],
+    [{
+      userId: 'other',
+      displayName: 'Updated',
+      position: '0 1.6 0',
+      rotation: '0 0 0',
+    }],
+  ]);
+});
+
+test('a first avatar pose preceding the delayed join profile materializes and then updates that peer', () => {
+  const rendered = [];
+  const { socket } = startRealtime({ syncRoster: users => rendered.push(users) });
+  socket.trigger('avatar_pose', { userId:'other',position:'1 1.6 0',rotation:'0 0 0' });
+  assert.equal(rendered.length, 1);
+  socket.trigger('user_joined', { userId:'other',avatarId:'casual',displayName:'Arrived' });
+  assert.equal(rendered.at(-1)[0].avatarId, 'casual');
+});
+
+test('position packets feed the pose buffer and do not sync the roster', () => {
+  const rendered = [];
+  const { socket, realtime } = startRealtime({ syncRoster: (users) => rendered.push(users) });
+
+  socket.emitToClient('room_state', { users: [{ userId: 'other', displayName: 'Other' }] });
+  const rostersAfterState = rendered.length;
+
+  socket.emitToClient('position_update', {
+    userId: 'other', position: { x: 1, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+  });
+  socket.emitToClient('position_update', {
+    userId: 'other', position: { x: 2, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+  });
+
+  assert.equal(rendered.length, rostersAfterState + 1); // only the first, unknown user
+  assert.deepEqual(realtime.poseBuffer.userIds(), ['other']);
+});
+
+test('a departing user is dropped from the pose buffer', () => {
+  const { socket, realtime } = startRealtime({ syncRoster() {} });
+
+  socket.emitToClient('position_update', {
+    userId: 'other', position: { x: 1, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+  });
+  socket.emitToClient('user_left', { userId: 'other' });
+
+  assert.deepEqual(realtime.poseBuffer.userIds(), []);
+});
+
+test('room_state seeds the pose buffer with each user\'s last-known pose', () => {
+  const { socket, realtime } = startRealtime({ syncRoster() {} });
+
+  socket.emitToClient('room_state', {
+    users: [
+      { userId: 'self', position: '0 1.6 0', rotation: '0 0 0' },
+      { userId: 'other', position: '2 1.6 3', rotation: '0 90 0' },
+    ],
+  });
+
+  assert.deepEqual(realtime.poseBuffer.userIds().sort(), ['other', 'self']);
+  // Render far enough past the seeded sample that it is held rather than
+  // interpolated — proves the pose actually landed in the buffer, not just that
+  // the user key exists.
+  const pose = realtime.poseBuffer.poseAt('other', Date.now() + 1000);
+  assert.deepEqual(pose.position, { x: 2, y: 1.6, z: 3 });
+});
+
+test('position_update packets with changing hands sync the roster even for an established peer', () => {
+  const rendered = [];
+  const { socket } = startRealtime({ syncRoster: (users) => rendered.push(users) });
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: true,
+    leftHand: { wrist: { position: [0, 1, 0] } },
+  });
+  const afterFirst = rendered.length; // the brand-new pose-buffer entry triggers this one
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: true,
+    leftHand: { wrist: { position: [0, 1, 0] } },
+  });
+  assert.equal(rendered.length, afterFirst); // identical hand payload: no extra sync
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: true,
+    leftHand: { wrist: { position: [0, 2, 0] } },
+  });
+  assert.equal(rendered.length, afterFirst + 1); // differing leftHand still reaches the renderer
+  assert.deepEqual(rendered.at(-1)[0].leftHand, { wrist: { position: [0, 2, 0] } });
+
+  socket.emitToClient('position_update', {
+    userId: 'other',
+    position: { x: 1, y: 1.6, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    handTracking: false,
+  });
+  assert.equal(rendered.length, afterFirst + 2); // a true -> false transition still syncs
+  assert.equal(rendered.at(-1)[0].handTracking, false);
+});

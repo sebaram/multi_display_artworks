@@ -1,325 +1,149 @@
-# multi_display_artworks
-**Demo:** https://meta.juyounglee.net
+# MetaMuseum
 
-3D virtual gallery where every wall, artwork, and element has its own web address. Built with A-Frame + Flask + MongoDB.
+Interactive 3D galleries with FastAPI, React, A-Frame, Socket.IO and MongoDB.
 
----
+Each room, wall and artwork keeps its own URL. Administrators can edit the gallery, design animated walls, save presets and apply them to a wall. Everyone in the same room shares pointer reactions and the canonical video play/pause/seek state. YouTube uses a separate synchronized player.
 
-## Project Structure
+## Release status
 
-```
-multi_display_artworks/
-├── README.md
-├── flask_server/
-│   ├── requirements.txt          # Python dependencies
-│   ├── requirements_new.txt
-│   ├── seed_data.py              # Seed initial data
-│   ├── seed_and_serve.py         # Init DB + run server
-│   └── app/
-│       ├── app.py                # Flask app factory
-│       ├── config.py             # App configuration (MongoDB URI, etc.)
-│       ├── forms.py              # Flask-WTF forms
-│       └── metamuseum/
-│           ├── __init__.py       # App init, SocketIO, blueprint registration
-│           ├── models.py         # MongoDB document models
-│           │   ├── User
-│           │   ├── Room
-│           │   ├── Wall / Image / GaussianSplat / Video / Webpage
-│           │   ├── Marker
-│           │   ├── LocationPreset
-│           │   ├── LLMConfig         (singleton: API keys, model, temperature)
-│           │   └── WhisperConfig     (singleton: API keys, model, language)
-│           │
-│           ├── auth.py           # Login/register/activation logic
-│           │
-│           ├── core/              # Core business logic
-│           │   ├── pyAframe.py       # A-Frame scene builder (wall, image, etc.)
-│           │   ├── position_sync.py  # Socket.IO multi-user position sync
-│           │   ├── streaming.py      # RTSP → HLS live streaming (FFmpeg)
-│           │   ├── ar_proxy.py       # Vision Pro companion AR proxy
-│           │   ├── mailing.py        # Email sending (SMTP)
-│           │   └── ratelimit.py      # Rate limiting decorator
-│           │
-│           ├── elements/          # Element type logic
-│           │   ├── basic.py          # CRUD for Wall, Image, GaussianSplat, Video, Webpage
-│           │   └── user.py          # Camera position tracking
-│           │
-│           ├── views/            # Route handlers + Flask-Admin
-│           │   ├── main_views.py     # /, /wall?wall_id=…, /room?room_id=…
-│           │   ├── llm_layout.py     # /api/auto-layout, /api/apply-layout (MiniMax)
-│           │   ├── whisper_views.py  # /api/transcribe (Whisper STT)
-│           │   ├── stream_views.py   # /stream/* HLS and stream-control routes
-│           │   ├── marker_views.py   # AR marker CRUD + marker tracking
-│           │   └── ar_companion_views.py  # /room?ar=companion (Vision Pro)
-│           │
-│           ├── templates/        # HTML templates
-│           │   ├── default/         # base, nav, footer, home
-│           │   ├── auth/           # signin, register, activate
-│           │   ├── admin/          # Flask-Admin custom index
-│           │   ├── element.html        # Element admin page
-│           │   ├── element_aframe.html # 3D element preview in A-Frame
-│           │   ├── wall_aframe.html    # Wall with all elements rendered
-│           │   ├── room_aframe.html   # Full room with all walls + elements
-│           │   ├── ar_companion.html  # Vision Pro companion view
-│           │   ├── aframe_test.html
-│           │   ├── video_test.html
-│           │   └── splat_example.html
-│           │
-│           └── static/
-│               ├── gltf/         # Curated avatar assets; each asset keeps its license/attribution beside it
-│               └── js/           # Client-side functionality
-│                   ├── drag-component.js       # Admin drag-to-move (auth-gated)
-│                   ├── location-features.js   # Teleport dropdown and boundary clamp
-│                   ├── room/                   # ES-module room client: bootstrap, state/socket, rendering, interaction, UI
-│                   ├── llm-layout.js           # LLM auto-layout UI (curator panel)
-│                   ├── marker-ar.js            # AR.js marker detection + overlay
-│                   ├── avatar-expression.js    # face-api.js smile detection → emoji bubble
-│                   ├── voice-chat.js           # WebRTC audio + Whisper transcription
-│                   ├── ar-receiver.js          # Vision Pro companion receiver
-│                   ├── hide-on-play.js         # Hide UI while video plays
-│                   └── play-on-click.js        # Click-to-start video audio
+The FastAPI/React generation uses product version **2.0.0** consistently across backend/frontend packages and OpenAPI. Deployment status, verified image/source identities and recovery evidence are recorded in the [release execution record](docs/releases/v2.0-execution.md).
 
-├── .venv/                        # Python virtual environment
-└── CLAUDE_FILES/                 # Claude.ai agent memory
-    └── CLAUDE.md
+- The [RC validation](https://github.com/sebaram/multi_display_artworks/actions/runs/41204409109) at `5f7152d` passed backend, frontend, all 49 browser cases, clean-image and real-Mongo runtime checks. The final merged source must pass its own push validation before deployment.
+- Legacy baseline: `legacy-flask`, `974bbfd`, plus annotated tag `production-pre-v2-20261031`. All 81 running application code files matched that commit in the [production identity check](docs/releases/legacy-production-verification.json). The actual image/configuration and paired Mongo/media snapshots are preserved privately on the deployment host.
+- Automatic production deployment remains disabled. Explicit manual preparation, acceptance and cutover operations are provided below; merging does not deploy the new application.
+
+See the [changelog](CHANGELOG.md) for changes and compatibility limits, and the [2.0 release review and cutover plan](docs/releases/v2.0-readiness.md) for versioning, legacy preservation, data backup, release gates and rollback.
+
+## Features and entry points
+
+| Surface | Available behavior |
+| --- | --- |
+| Gallery | Catalog, rooms, images, GLTF and Gaussian splats; artwork transforms/cutouts, room boundaries and spawn presets. |
+| Permanent URLs | `/room?room_id=<id>`, `/wall?wall_id=<id>` and `/element?wall_element_id=<id>&type=<type>`. Existing IDs and stored media paths are retained. |
+| TV / wall display | A wall URL fits the wall to the viewport and receives design, pointer and playback updates without creating a room visitor. It is a passive display; interaction and administrator playback controls belong to the room. `refresh` uses the wall's ETag to detect updates. |
+| Wall authoring | 44 source presets, layers/groups, text/shapes/motion, history, JSON import/export, uploaded video and thumbnails. MongoDB stores presets and independent applied snapshots. |
+| Shared state | Same-room pointer reactions and canonical MP4 play/pause/seek, including late join and reconnect. Network delivery, buffering and local autoplay policies affect when each client displays a frame. |
+| Avatars | Four original humanoid presets plus legacy choices, customizable appearance, owner-side motion/IK and relayed final joints. Untracked leg motion is estimated; finger articulation and arbitrary model uploads are outside this release. |
+| Input and presence | Desktop movement/look, a floating nipplejs analog joystick on mobile, tab-local visitors and room presence. WebXR controller/hand behavior has mock-device coverage; device status is listed below. |
+| Administration | Eleven resource editors, existing bcrypt accounts, CSRF-protected mutations, reference checks and masked provider secrets. |
+| Media and services | MP4, managed RTSP/HLS, separate webpage/YouTube players, WebRTC voice, AR/gesture tools and configured AI/STT integrations. External providers and public-network voice require their own operational checks. |
+
+YouTube remains an external service. Its live CI check verifies either actual playback/pause/seek or an explicitly observed bot-login refusal together with the visible error and original-video link. A green CI result alone does not establish successful real YouTube playback. The controlled-player test separately exercises the real application HTTP and Socket.IO play/pause/seek path.
+
+## Run locally
+
+Requirements: Python 3.12+, Node 22.12+ (Node 24 recommended), MongoDB 7 and FFmpeg on PATH.
+
+```sh
+python -m venv .venv
+# Activate .venv, then:
+pip install --require-hashes -r backend/requirements-dev.lock
+pip install --no-deps -e backend
+npm --prefix frontend ci
+cp .env.example .env
+# Edit secrets and MongoDB connection in .env.
+npm --prefix frontend run build
+uvicorn metamuseum.asgi:app --app-dir backend --env-file .env --host 127.0.0.1 --port 8000
 ```
 
----
+For live frontend editing, also run `npm --prefix frontend run dev` and open http://127.0.0.1:5173. The Vite proxy forwards API, media and Socket.IO traffic to 8000. FFmpeg can instead be configured with `FFMPEG_PATH`.
 
-## Core Features
+Alternatively, set the two secrets in `.env` and use `docker compose up -d --build`; this starts a separate development MongoDB and the app on 5000. It does not connect to the production database.
 
-### 🎨 Element Types
-| Type | Description | 3D Component |
-|------|-------------|---------------|
-| **Wall** | Container with position, size, rotation | `a-box` |
-| **Image** | Image on wall, optionally draggable | `a-plane` with texture |
-| **GaussianSplat** | 3D Gaussian splatting scene | `gaussian-splatting` component |
-| **Video** | Video wall with HLS streaming support | `a-plane` + video element |
-| **Webpage** | iframe embed via aframe-html-component | `a-html` |
+When migrating existing data, preserve the signing secrets, MongoDB and media together. Existing account hashes are supported; the new session cookie requires users to sign in again. Generated Flask-Admin export/file/ajax-lookup protocols are retired with authenticated `410` responses; the React resource editors replace those internals. See the [compatibility contract](contracts/feature-parity.md).
 
-### 👥 Multi-User
-- **Position sync** — Socket.IO broadcasts camera pos/rot to all users in room
-- **Tab-local visitor profile** — every room tab receives its own signed visitor capability and randomized name, catalog avatar, and color. The record lives in that tab’s `sessionStorage`, so reloading preserves it while a separately opened tab starts as a distinct visitor.
-- **Profile editing** — rooms open directly without a profile dialog. Use `Visitor` → `Edit` in the top-left toolbar to change the name, catalog avatar, or color; saving updates that visitor’s remote presence for other people currently in the room. Use `?user=new` (or `Visitor` → `New visitor`) to replace the current tab’s visitor; the query flag is removed after the replacement is created.
-- **Guest persistence** — anonymous visitor capabilities, profiles, and room presence are browser- or memory-scoped only; they never create MongoDB user or profile records.
-- **Avatar catalog and attribution** — visitors can select only the built-in `Shiba`, `Robot`, `Rigged Simple`, or `None` entries; URL parameters such as `?avatar=` do not select an avatar. `Rigged Simple` is by Cesium under CC BY 4.0; its complete attribution is in [`flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md`](flask_server/app/metamuseum/static/gltf/rigged-simple/LICENSE.md).
-- **Avatar expressions** — face-api.js smile detection → emoji bubble above avatar
+Screenshots from the final container: [catalog](docs/validation/catalog.png) · [wall editor](docs/validation/wall-editor.png).
 
-### 🔐 Admin Features
-- **Admin authentication** — sign in at `/signin`; only the existing administrator account can change gallery elements or control streams
-- **Drag-to-move** — admin can drag any element (auth required, commit on mouseup)
-- **Transform panel** — scale/rotate 6-field editor per element
-- **QR Room Share** — generates local QR code (qrcode-generator library), no external API
-- **LLM Auto-Layout** — curator types "place all images in a row" → MiniMax M2.7 arranges them
-- **Voice chat admin toggle** — server-authoritative on/off switch
+Feature-by-feature [before/after HTML report](docs/reports/migration-before-after.html) includes 19 screenshots and 8 embedded demonstration videos. See [capture conditions and report checks](docs/reports/README.md).
 
-### 📡 Live Streaming
-- RTSP stream URL → FFmpeg → HLS segments (`.ts`) → video element via HLS.js
-- Admin sets `stream_url` on a Video element → auto detected and played
+[Performance evaluation](docs/reports/performance-evaluation.html) compares 59 conditions across room sizes, content types, desktop rendering and desktop mobile stress profiles. Phone/Quest hardware was unavailable during that historical benchmark. A later LG V35 functional smoke checked WebGL, appearance save/reload, native touch movement and a desktop observer; it did not measure phone FPS, thermals or CPU/GPU/RAM consumption. Actual Quest 3 VR/controller/hand acceptance was not completed. [Benchmark methods and reproduction](tools/performance/README.md).
 
-### 🤳 AR Features
-- **AR.js marker detection** — camera sees Hiro/Kanji marker → overlay virtual content
-- **Vision Pro companion** (`?ar=companion`) — passthrough AR with spatial content anchors
-- **AR walking** — joystick-based movement in AR passthrough mode
-- **Marker syncing** — physical marker → virtual content per element
+[Rendering optimization](docs/reports/render-optimization.html) compares the original runtime with visible-wall scheduling, bounded artwork residency, image LOD and a shared Spark 2.4 splat renderer. [Rendering policy and remaining limits](docs/rendering-performance.md).
 
-### 🎤 Voice Chat
-- **WebRTC** — direct P2P audio between users in same room
-- **Socket.IO signaling** — WebRTC offer/answer/ICE exchange via Socket.IO
-- **Server-authoritative toggle** — admin enables/disables per room
-- **Whisper transcription** — MediaRecorder chunks → `/api/transcribe` → Whisper API → `voice.transcript` broadcast
-- **Transcript bubbles** — 💬 text bubble above speaking avatar for 5 seconds
+The [avatar evaluation](docs/reports/avatar-evaluation.html) records partial performance coverage and the limited actual-phone check. The newer [mobile/desktop/TV comparison](docs/reports/mobile-desktop-tv-comparison.html) and [display fix verification](docs/reports/display-fix-verification.json) document permanent wall URLs, passive displays and subsequent fixes. Reports preserve their capture dates, commit IDs and historical CI results; use the release-status CI link above for the candidate's current gate.
 
-### 🏷️ Location & Movement
-- **Location presets** — saved positions (name + camera vector) stored in MongoDB
-- **Teleport dropdown** — jump to preset with one click
-- **Boundary clamping** — `boundary-clamp` A-Frame component prevents user from leaving room
-- **Expandable map** — the upper-right compact map opens a larger overview of the room, walls, artworks, presets, and your position. Opening it never changes or teleports the camera; use the named teleport dropdown to move to a preset.
-- **Mobile movement guidance** — “Hold and drag to move” is shown only when both `(pointer: coarse)` and `(max-width: 767px)` match. It is absent for desktop pointer layouts.
-- **Authorization unchanged** — these public visitor controls do not grant administration access; element transforms and stream controls remain restricted to the existing administrator authorization.
+## Wall designs
 
----
+Open a wall's design action while signed in as an administrator, or visit `/wall-editor?wall_id=<id>`. The standalone designer is at `/wall-editor`.
 
-## Setup
+The editor supports the source's 44 presets, layers and original group hierarchy, text, shapes, motion, video uploads, undo/redo and JSON import/export. Saving a preset preserves a reusable design; applying takes an independent snapshot for the selected wall. Removing it restores the wall's stored legacy background. Existing artwork stays on the wall.
 
-```bash
-cd flask_server
-pip install -r requirements.txt
-export SECRET_KEY='replace-with-a-random-secret-key'
-export SECURITY_PASSWORD_SALT='replace-with-a-random-password-salt'
-export MONGODB_URI=mongodb://localhost:27017/metamuseum
-python seed_and_serve.py --serve
+Import the pinned 44 defaults once into the intended configured database (idempotent; changes that database):
+
+```sh
+# Export the same environment as the app before running this command.
+python scripts/import_wall_presets.py
 ```
 
-Requires non-empty `SECRET_KEY` and `SECURITY_PASSWORD_SALT` values (use unique
-random values and keep them out of version control), plus a running **real
-MongoDB** server. `MONGODB_URI` is the preferred connection setting;
-alternatively configure `MONGODB_HOST`, `MONGODB_PORT`, and `MONGODB_DB`. To run
-the integration suite locally, use a separate test database:
+Preset metadata, configuration, bindings and playback clocks live in MongoDB. Uploaded media lives under `WALL_MEDIA_ROOT` and must be backed up with MongoDB. The renderer uses a seeded common clock; clients converge on the same state rather than claiming identical GPU frames. Browser autoplay still requires a local sound gesture.
 
-```bash
-MONGODB_URI=mongodb://localhost:27017/metamuseum_test \
-MONGODB_DB=metamuseum_test \
-pytest tests -v
+## Research features
+
+Procedural gaze is an optional, default-off research algorithm with configurable attention weights and filters. It estimates gaze direction; perceptual naturalness and human attention have not been validated.
+
+The native GaussianAvatars subject-306 preset is a **local research head/bust**, not a production full-body avatar. Licensed FLAME/model/subject assets are not bundled. The asset API and preset are disabled in production, so deploying this branch will not publish the local model. Dynamic Gaussian LOD is not implemented; large-room native-avatar performance remains unmeasured. See [setup, scope and asset terms](docs/gaussian-avatar-gaze.md).
+
+## Tests
+
+During development, run the affected tests and a brief smoke check. Reserve full regression/performance/device matrices for release readiness or an explicit request. The commands below describe isolated integration/release validation, not a required loop for every edit.
+
+The destructive integration fixtures refuse every database except the marker-guarded local instance on127.0.0.1:27028. Never point them at production.
+
+```sh
+docker compose -f docker-compose.migration.yml up -d --wait
+python -m pytest backend/tests -q
+npm --prefix frontend test
+npm --prefix frontend run build
 ```
 
-### Tab-local visitor smoke check
+For browser tests, seed the dedicated instance, import defaults, generate procedural media, then start the API with that test database and the media server on8766:
 
-With the application running against `metamuseum_test`, open a seeded room and
-verify the following in a browser:
-
-1. The room opens without a profile dialog; `Visitor` reveals the summary and
-   `Edit` reveals the profile form.
-2. Save an edited profile, reload the same tab, and confirm the profile is
-   retained.
-3. Open the same room in a separate new tab and confirm it has a different
-   visitor profile while both presences are visible.
-4. Visit the room with `?user=new` and confirm a fresh visitor is created and
-   the query flag is removed from the address bar.
-
-For a self-contained dev stack (app + its own MongoDB):
-
-```bash
-export SECRET_KEY='replace-with-a-random-secret-key'
-export SECURITY_PASSWORD_SALT='replace-with-a-random-password-salt'
-docker compose up -d --build       # docker-compose.yml — dev only, empty DB
+```sh
+python backend/tests/fixtures/seed.py
+python scripts/import_wall_presets.py
+python frontend/tests/fixtures/generate_media.py
+python frontend/tests/fixtures/server.py
+# Separate terminal: uvicorn as above with isolated Mongo URI and allowed5173 origin.
+npm --prefix frontend run test:e2e
 ```
 
----
+Run database reset suites and browser acceptance sequentially. See [fixture setup](frontend/tests/fixtures/README.md), [API contract](contracts/ui-api-shape.md), [wall protocol](contracts/wall-design-api.md) and [migration validation](docs/migration-validation.md).
 
 ## Deployment
 
-Pushing to `master` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
-the image is built and tested against an ephemeral `mongo:7` container on a
-private Docker network. CI verifies `/health` and runs the pytest integration
-suite against `metamuseum_test`; a **self-hosted runner** on the web server then
-rebuilds and restarts the production container. If `/health` or `/` fails within
-60s the previous image is restored automatically.
+The root Dockerfile builds React and installs the hashed Python runtime with FFmpeg. It runs exactly one Uvicorn worker because room caches and pointer coalescers have one owner.
 
-> **`docker-compose.yml` is the dev stack and brings up its own empty
-> `mongo:7`. Production uses `docker-compose.prod.yml`**, which attaches to the
-> long-lived `mongo_container` holding the real data. Do not deploy with the
-> dev file.
+`docker-compose.prod.yml` preserves the existing external Mongo network `tlx-mongo_default`, loopback port51736, and host image/splat/GLTF mounts. It adds `/var/www/metamuseum/data/wall_media`. Production must use HTTPS and an explicit `ALLOWED_ORIGINS` list.
 
-Application code is baked into the image. Only secrets and the media that
-MongoDB references by path are mounted from the host:
+Before cutover, preserve the actual running image/configuration and make a consistent Mongo/media backup; rehearse restore and rollback in isolated copies. Startup cleans uploaded files absent from the connected MongoDB, so never combine a staging/empty database with the live `wall_media` directory. Verify UID 1000 write access, every production media mount, HTTPS and WebSocket forwarding. Keep one worker and one application replica until realtime state has a shared owner.
 
-| Host path | Mounted at | Why |
-|---|---|---|
-| `data/metamuseum.env` | (env vars) | `config.py` reads all secrets from the environment |
-| `data/static_splat/` | `…/static/splat` | `GaussianSplat 'hail_splat'` → `static/splat/hail.splat` |
-| `data/static_image/` | `…/static/image` | `Image 'matisse_danceI'` → `static/image/dance_i.jpg` |
-| `data/static_gltf/*.glb` | `…/static/gltf/*.glb` | `GLTFmodel 'dance'` → `static/gltf/matisse_dance.glb` |
-| `data/streams/` | `/app/streams` | runtime scratch for HLS segments |
+Branch/PR CI runs integration, unit, browser, clean-image and host-free release-script checks. Push and merge events never deploy production. The manual `deploy.yml` workflow offers `inventory`, `prepare`, `accept-staging`, `hold`, `accept-private`, `promote` and `rollback`; `validate` runs the normal quality job. Host operations share one queue and a host lock, run as UID/GID1000 with Docker access, and keep the existing runner-root checkout intact. Operations code is checked out at the workflow SHA in `.release-checkout`; the separately selected product SHA is checked out in `.candidate-checkout` for preparation and hold.
 
-### First-time host setup
+Use a new lowercase `release_id` for each preparation. Its private backup and evidence directory is `$HOME/.local/state/metamuseum/releases/<release_id>`. `candidate_sha` accepts a full lowercase 40-character SHA and defaults to the selected workflow ref's SHA. Preparation requires a successful **push** quality run for that exact candidate, verifies its clean checkout and matching package versions, and builds only that checkout. The immutable `metamuseum:<version>-<sha>` tag carries OCI revision/version/source labels; operations bind the resolved image ID. Preparation verifies the running legacy image against [the recorded source/image evidence](docs/releases/legacy-production-verification.json), briefly stops the app for a paired database/media snapshot, resumes production, and restores separate candidate and legacy staging copies on isolated internal Docker bridges with no host/public port publication; resource identities are recorded in each private staging `resources.json`.
 
-```bash
-bash scripts/init_host_data.sh              # stages /var/www/metamuseum/data
-$EDITOR /var/www/metamuseum/data/metamuseum.env   # fill in real secrets
-docker compose -f docker-compose.prod.yml up -d --build
+For a candidate branch, replace `master` below with that branch for `prepare` and `accept-staging`. For cutover, prepare and accept a fresh image of the final current master SHA; `hold` and `promote` require dispatch from master, equality with current `origin/master`, and green push quality for that exact SHA.
+
+```sh
+gh workflow run deploy.yml --ref master -f operation=prepare -f release_id=v2-release-1 -f candidate_sha=<40-character-sha>
+gh workflow run deploy.yml --ref master -f operation=accept-staging -f release_id=v2-release-1 -f candidate_sha=<40-character-sha>
+gh workflow run deploy.yml --ref master -f operation=hold -f release_id=v2-release-1 -f candidate_sha=<40-character-sha>
+# Copy the explicit cutover-... basename printed by hold into attempt_id:
+gh workflow run deploy.yml --ref master -f operation=accept-private -f release_id=v2-release-1 -f candidate_sha=<40-character-sha> -f attempt_id=<cutover-basename>
+gh workflow run deploy.yml --ref master -f operation=promote -f release_id=v2-release-1 -f candidate_sha=<40-character-sha> -f attempt_id=<cutover-basename>
+# Recovery uses the captured attempt without requiring new CI or current-master equality:
+gh workflow run deploy.yml --ref master -f operation=rollback -f release_id=v2-release-1 -f attempt_id=<cutover-basename>
 ```
 
-Apache reverse-proxies `meta.juyounglee.net` → `127.0.0.1:51736`, which maps to
-port **5000** in the container (SocketIO/eventlet, see `flask_server/start.sh`).
+Run these operations sequentially and inspect each result. After an RC rehearsal, close-staging validates both isolated stacks, removes their containers/networks, and retains all paired data and backups without retaining idle application or Mongo processes. Failed incomplete stacks use abandon-staging with the same exact candidate SHA and retain all paired data. Keep the final rehearsal stacks running until private acceptance has read the pristine legacy account digests. Selecting `hold` authorizes the final paired snapshot and moves the accepted candidate to private loopback51739, closing public port51736. After the final paired backup, hold idempotently imports the 44 packaged defaults without overwriting existing presets; private acceptance verifies their visible catalog. Staging acceptance creates and cleans owned fixtures only in copied data; private acceptance checks the live candidate and references that same image's staging evidence. Selecting `promote` publishes the explicitly identified accepted attempt on51736. Rollback restores that attempt's exact original image/configuration; restoring paired data is a separate decision. Only sanitized inventory is uploaded as an Actions artifact; backups, environment material and detailed acceptance evidence remain private on the host. See the [executable release plan](docs/releases/v2.0-readiness.md) for the remaining release gates.
 
----
+Review [third-party notices](THIRD_PARTY_NOTICES.md) before public distribution: the pinned wall source has no root license, and its marks/research artwork need documented release rights. Private Gaussian/FLAME assets remain excluded from production. The [release review](docs/releases/v2.0-readiness.md) separates code readiness from these operational and asset-release decisions.
 
-## API Endpoints
+## Layout
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Home — room list |
-| GET | `/health` | Application and MongoDB health check |
-| GET | `/wall?wall_id=<id>` | Wall detail page |
-| GET | `/room?room_id=<id>` | Full 3D room (A-Frame) |
-| GET | `/room?room_id=<id>&ar=companion` | Vision Pro companion AR view |
-| GET | `/room?room_id=<id>&ar=marker` | AR marker detection mode |
-| GET, POST | `/signin` | Existing-account sign in |
-| GET | `/logout` | Sign out |
-| GET | `/kwanri` | Flask-Admin (administrator account required) |
-| PATCH | `/element/<element_id>/<element_type>` | Update an element (administrator account required) |
-| POST | `/api/auto-layout` | LLM auto-arrange elements |
-| POST | `/api/apply-layout` | Apply LLM layout to DB |
-| POST | `/api/transcribe` | Whisper audio → text |
-| GET | `/api/whisper-config` | Get Whisper config |
-| PUT | `/api/whisper-config` | Update Whisper config (admin) |
-| POST | `/stream/push/<stream_id>` | Upload a phone-camera media segment (administrator account required) |
-| POST | `/stream/start-rtsp` | Start RTSP-to-HLS conversion (administrator account required) |
-| POST | `/stream/stop/<stream_id>` | Stop a stream (administrator account required) |
-| GET | `/stream/playlist/<stream_id>` | Serve an HLS playlist |
-| GET | `/stream/segment/<stream_id>/<segment>` | Serve an HLS segment |
-| GET | `/stream/list` | List available streams |
-| POST | `/camera-data` | Save camera position |
-| GET | `/get-cameras` | Get recent camera positions |
+- `backend/metamuseum`: ASGI APIs, preserved MongoEngine models, room services and local static media.
+- `frontend/src`: React UI, managed A-Frame scenes and extracted wall engine.
+- `frontend/public`: pinned runtimes, source presets, fonts and provenance.
+- `contracts`: historical BSON/route/event evidence and current API contracts.
+- `backend/tests`, `frontend/tests`: isolated integration and browser suites.
 
----
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `SECRET_KEY` | Required non-empty Flask session-signing key |
-| `SECURITY_PASSWORD_SALT` | Required non-empty salt for password and confirmation tokens |
-| `MONGODB_URI` | Preferred MongoDB connection string (takes precedence over `MONGODB_HOST` and `MONGODB_PORT`) |
-| `MONGODB_HOST` | MongoDB host when `MONGODB_URI` is not set (default: `localhost`) |
-| `MONGODB_PORT` | MongoDB port when `MONGODB_URI` is not set (default: `27017`) |
-| `MONGODB_DB` | MongoDB database name (default: `metamuseum`; tests require `metamuseum_test`) |
-| `MAIL_*` | SMTP邮件配置 |
-| `MINIMAX_API_KEY` | MiniMax API key (legacy, DB config preferred) |
-
----
-
-## TODO
-
-### ✅ Completed
-- [x] Drag to move images/wall/gaussiansplat — `drag-component.js`, admin-only via auth
-- [x] Video background contents on wall — `stream_url` on Wall/Video model
-- [x] Add auto-refresh on wall page — JS refresh with ETag check
-- [x] Webpage wall element type — iframe via aframe-html-component
-- [x] Cutout option for GaussianSplat — UI in element page (admin)
-- [x] Hand tracking — MediaPipe via avatar-expression.js
-- [x] Browser visitor profile — browser-only name, catalog avatar, and color with live room presence updates
-- [x] Add some additional marker add-on for each images (QR or synchro) — webpage element
-- [x] Text(relationship) based auto images placement (LLM powered) — llm_layout.py
-- [x] AR walking (joystick) — location-features.js
-- [x] Save user position/rotation tracking — /camera-data endpoint
-- [x] Automatic screen size fitting — responsive A-Frame scene
-- [x] MongoDB abstract class for wall elements — WallElement base
-- [x] Scale/rotate transform controls — 6-field transform panel
-
-### 🔄 In Progress
-- Vision Pro companion: SocketIO wiring + ar-receiver.js
-
-### 🎯 Backlog
-- [ ] QR/marker syncing — physical device detection → content overlay per element
-- [ ] Face-api.js offline model files
-- [ ] Remove deprecated HTTP polling endpoints (use Socket.IO instead)
-- [ ] Multi-user real-time element transforms (shared drag session)
-- [ ] aframe-click-drag-component for wall-level dragging
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| 3D Rendering | A-Frame 1.6.0 |
-| Gaussian Splatting | aframe-gaussian-splatting |
-| AR | AR.js 3.4.7 |
-| Backend | Flask + Flask-SocketIO (eventlet) |
-| Database | MongoDB (PyMongo) |
-| Admin | Flask-Admin |
-| Real-time | Socket.IO |
-| WebRTC Audio | Native browser WebRTC |
-| Speech-to-Text | Whisper API (OpenAI-compatible) |
-| LLM | MiniMax M2.7 via REST API |
-| Live Streaming | FFmpeg → HLS → HLS.js |
-| QR Codes | qrcode-generator (local, no external API) |
-| Avatar Expressions | face-api.js 0.22.2 |
-
----
-
-## Acknowledgment
-
-This work was supported by Institute of Information & communications Technology Planning & Evaluation (IITP) grant funded by the Korea government(MSIT) (No.2019-0-01270, WISE AR UI/UX Platform Development for Smartglasses)
+Original Flask runtime and dependency manifests are retired; historical behavior remains reproducible from Git. [Third-party notices](THIRD_PARTY_NOTICES.md) include the pinned wall source and renderer assets.

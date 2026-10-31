@@ -1,0 +1,29 @@
+..................................................                       [100%]
+============================== warnings summary ===============================
+flask_server/tests/test_authorization.py::test_anonymous_client_cannot_update_element
+flask_server/tests/test_seed.py::test_seed_creates_data_in_real_database
+  C:\dev\multi_display_artworks\.venv_legacy\Lib\site-packages\mongoengine\connection.py:209: DeprecationWarning: No uuidRepresentation is specified! Falling back to 'pythonLegacy' which is the default for pymongo 3.x. For compatibility with other MongoDB drivers this should be specified as 'standard' or '{java,csharp}Legacy' to work with older drivers in those languages. This will be changed to 'unspecified' in a future release.
+    warnings.warn(
+
+flask_server/tests/test_authorization.py::test_anonymous_client_cannot_update_element
+  C:\dev\multi_display_artworks\.venv_legacy\Lib\site-packages\engineio\async_drivers\eventlet.py:1: EventletDeprecationWarning:
+  Eventlet is deprecated. It is currently being maintained in bugfix mode, and
+  we strongly recommend against using it for new projects.
+
+  If you are already using Eventlet, we recommend migrating to a different
+  framework.  For more detail see
+  https://eventlet.readthedocs.io/en/latest/asyncio/migration.html
+
+    from eventlet.green.threading import Event
+
+flask_server/tests/test_authorization.py: 18 warnings
+flask_server/tests/test_main_page.py: 2 warnings
+flask_server/tests/test_presence_contract.py: 12 warnings
+flask_server/tests/test_room_debug_flag.py: 6 warnings
+flask_server/tests/test_seed.py: 32 warnings
+flask_server/tests/test_visitor_profile.py: 28 warnings
+  C:\dev\multi_display_artworks\.venv_legacy\Lib\site-packages\mongoengine\base\fields.py:186: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    value = value()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+50 passed, 101 warnings in 2.73s

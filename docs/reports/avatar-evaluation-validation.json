@@ -1,0 +1,500 @@
+{
+  "status": "PASS_BRIEF_ARTIFACT_CHECK",
+  "checks": {
+    "renderTrials": 101,
+    "renderConditions": 74,
+    "fanoutTrials": 0,
+    "notRunRender": 47,
+    "notRunFanout": 10,
+    "decisions": 19,
+    "media": 22,
+    "videos": 4,
+    "browserExportEqualsMachineJSON": true,
+    "embeddedJSONEqualsMachineJSON": true,
+    "mediaHashes": true,
+    "priorReportAndBeforeHashes": true,
+    "frozenHarnessCollector": true,
+    "desktopInitFilterExport": true,
+    "sampledImages": 1,
+    "sampledVideos": 1,
+    "mobileAndAllMediaQA": "NOT_RUN_BY_USER_REQUEST",
+    "noExternalRequests": true
+  },
+  "browser": {
+    "status": "ok",
+    "scope": "Brief init/filter/export/one image+one video only; exhaustive/mobile/all-media QA omitted by user request",
+    "initial": {
+      "rows": 74,
+      "overflow": false,
+      "coverage": {
+        "status": "PARTIAL_BY_USER_REQUEST",
+        "plannedRender": 148,
+        "completedRender": 101,
+        "notRunRender": [
+          {
+            "id": "pc-390-4x-L30-N5-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L30-N1-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L30-N50-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L30-N20-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L30-N10-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L30-N5-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L30-N1-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N50-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N20-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N10-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N5-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N1-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N50-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N20-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N10-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N5-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "pc-390-4x-L10-N1-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N50-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N20-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N10-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N5-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N1-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N50-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N20-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N10-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N5-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L100-N1-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N50-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N20-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N10-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N5-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N1-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N50-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N20-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N10-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N5-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L30-N1-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N50-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N20-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N10-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N5-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N1-mixed-models-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N50-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N20-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N10-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N5-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          },
+          {
+            "id": "desktop-L10-N1-shared-empty-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user request to stop exhaustive evaluation and do brief connected-device functional checks"
+          }
+        ],
+        "plannedFanout": 10,
+        "completedFanout": 0,
+        "notRunFanout": [
+          {
+            "id": "fanout-N1-r1",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N5-r1",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N10-r1",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N20-r1",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N50-r1",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N50-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N20-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N10-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N5-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          },
+          {
+            "id": "fanout-N1-r2",
+            "status": "NOT_RUN",
+            "reason": "Explicit user scope reduction; no relay-only trial was run"
+          }
+        ],
+        "completedConditions": 74,
+        "conditionsWithTwoRepeats": 27,
+        "reason": "User requested brief core functional checks on newly connected phone/Quest and stopped further exhaustive validation."
+      }
+    },
+    "filtered": 2,
+    "media": {
+      "imageWidth": 1440,
+      "imageHeight": 900,
+      "video": {
+        "advanced": true,
+        "duration": 9.8,
+        "error": null
+      }
+    },
+    "errors": [],
+    "externalRequests": [],
+    "download": "report-export.json"
+  },
+  "files": {
+    "avatar-evaluation.html": "f3ad0badda639c74ef24168ec88a31f03bcfb83a90b3e92d5e53b902cf407aea",
+    "avatar-evaluation-results.json": "fd64e11398b3e55d3e6a9f3057b0fe2597bb9ee914902e19d6bfa635d29ad0be"
+  },
+  "source": {
+    "productCommit": "888ed7857f9003e00f0d2988c31abfb87af22c77",
+    "frontendCommit": "341f60086fd7e284c084db936c1aaa14834b951f",
+    "relayCommit": "888ed7857f9003e00f0d2988c31abfb87af22c77",
+    "head": "915498bd6f1e5040154722afe5e6fb0d4191ba30",
+    "bundles": [
+      {
+        "name": "ARCompanion-AXWbHwuJ.js",
+        "sha256": "b3e92f8a65e2c555fa0d3d98294fb49f8e2e04ad4d9199cc027397c8520cf6e6"
+      },
+      {
+        "name": "Admin-BK2mseEj.js",
+        "sha256": "72159a429d2982d0f084b38c05def26f6e783e1541a107218883beba110afb4d"
+      },
+      {
+        "name": "GestureTool-oBfDsVll.js",
+        "sha256": "9d562237c58b83aec51cd04a1892885b4a26b97fecfff6f26648da4a45635ba0"
+      },
+      {
+        "name": "Room-C4LA_3Ab.js",
+        "sha256": "320239fbb2d613d4120c3968ad53806f6954e3b652c18721e6d89c16b986a80f"
+      },
+      {
+        "name": "SignIn-u5tyGiNg.js",
+        "sha256": "cf29d68cceb2282aa0a80c442ca38bb796333fe775938111f387f7b35b080f5e"
+      },
+      {
+        "name": "Streams-F58WYIr1.js",
+        "sha256": "51e0caee2567e039459450dc48e513ed55484fa043cc24a8f910b101b10435f1"
+      },
+      {
+        "name": "Tools-B4Q7njoF.js",
+        "sha256": "9fdd6562a99fa1de06062c69bfb5cf467efc11c4cd911dad982aa2ed617488cf"
+      },
+      {
+        "name": "WallEditor-B-mhg5WM.css",
+        "sha256": "1fedf7a85274ae1c309c56e249ad287a4dd5c021370786208e5e0f001da0a714"
+      },
+      {
+        "name": "WallEditor-D4Pzw_Jv.js",
+        "sha256": "71415f88c652655d4bda276c600d5bd65cb8ef5d2938bf4ed258657fa0303eb6"
+      },
+      {
+        "name": "hls-BVjKSyph.js",
+        "sha256": "ab067feeebe3fbb326ca84ab62c51f3a395ae5c9354baeb311e0353d7eef63dc"
+      },
+      {
+        "name": "index-0K3P_W4F.js",
+        "sha256": "91e34643f6865d11df7f91423f3cb4265de2e2c5f2006e27891f1510f5fa238d"
+      },
+      {
+        "name": "index-CSPvyqCU.css",
+        "sha256": "8c78af42b558c94c2f6c021cf54cbe66a151eaae2ef460d12427a59270bdf833"
+      },
+      {
+        "name": "index-Dzc4nc7C.js",
+        "sha256": "f481a2906aa21f37ed9bd8251dafc09547c612d211a0fee8dc545b7102d176c7"
+      },
+      {
+        "name": "lifetime-Dc-TqJrC.js",
+        "sha256": "17747bcb3e0edca2218126adecae97dbf8681bf4cc5c9674c36ffc468b3e87a8"
+      },
+      {
+        "name": "mountRoom-CcBehd_1.js",
+        "sha256": "9c5327c1a13a51e8a3191c1450ffe81cff1697ad45a403bcc82118f988f8850e"
+      },
+      {
+        "name": "youtube-iQJGhVl5.js",
+        "sha256": "5bedf46ff106b8b09565a55187b7655f36fc80188479276fbd9f9755606be5e3"
+      }
+    ],
+    "modelSha256": "f13e9a1251bc94c7744aa7bd06e5cf7a9b7f04a26371a7f013abaf57b4871468",
+    "harnessSha256": "ca00392697452fb92afabad9d2fbbc6cd0797b18d3f85818c9ea815d8a05d803",
+    "collectorSha256": "8f6c4387729a9f58e67ad6b202cfa29db8a589a8c5d0521fd17e78f2a9a5e957",
+    "fixtureVersion": "2026-10-29-v3",
+    "origin": "http://127.0.0.1:8013",
+    "settings": {
+      "db": "metamuseum_perf_20261029",
+      "poseHz": 20,
+      "visualBufferMs": 100,
+      "transport": "websocket",
+      "tls": false,
+      "network": "loopback"
+    }
+  },
+  "deviceChecks": {
+    "checkedAtUtc": "2026-10-30T07:56:58.4590716Z",
+    "scope": "Brief functional smoke on actual connected hardware; no device performance certification",
+    "phone": {
+      "model": "LG V35 / LM-V350N",
+      "android": "10",
+      "browser": "Chrome 156 (actual mobile user agent)",
+      "gpu": "Qualcomm Adreno 630",
+      "webgl": "WebGL 2.0",
+      "viewport": {
+        "width": 411,
+        "height": 695,
+        "dpr": 3.5
+      },
+      "adb": "AUTHORIZED",
+      "status": "CORE_SMOKE_PASSED",
+      "checks": [
+        "Room loaded and real WebGL rendered",
+        "Explorer preset, top color #CC3388, calm face saved via UI",
+        "Saved appearance read back from profile API and retained after reload",
+        "Native Android 1-second touch hold moved 1.499999912m",
+        "PC observer received matching appearance, material color and 1.499999881m position"
+      ],
+      "pageErrors": 0,
+      "consoleWarnings": 1,
+      "horizontalOverflow": false,
+      "measuredHardwareFps": "NOT_MEASURED",
+      "cpuRamGpuLoad": "NOT_MEASURED"
+    },
+    "quest": {
+      "model": "Quest 3 (identified by user; model query pending authorization)",
+      "adb": "UNAUTHORIZED",
+      "status": "BLOCKED_USB_AUTH",
+      "functionalChecks": "NOT_RUN",
+      "attempted": "Target reconnect and one local ADB 31-to-37 server restart; still unauthorized",
+      "pending": "Headset Developer settings MTP notification and USB debugging authorization"
+    },
+    "desktop": {
+      "roomLoaded": true,
+      "visitor": "PC smoke",
+      "pageErrors": 0,
+      "appearanceMatchesPhone": true,
+      "materialTopHex": "cc3388",
+      "remotePhoneXZ": {
+        "x": 7.471895265665038e-05,
+        "z": -1.499999880755577
+      },
+      "purpose": "Actual observer for phone appearance and movement synchronization",
+      "observerPlacement": "Scripted for visibility; not a test of desktop input"
+    },
+    "screenshots": [
+      "phone-editor.png",
+      "phone-room-after-touch.png",
+      "desktop-sees-phone.png"
+    ],
+    "reportSummary": [
+      "LG V35 실기기에서 입장·프리셋/색/얼굴 저장·새로고침 유지·터치 이동·PC 외형/위치 동기화 확인",
+      "실제 Android 터치 1초로 약 1.5m 이동; 페이지 오류 0, 가로 넘침 없음",
+      "짧은 기능 확인이며 휴대폰 FPS·CPU·RAM·발열 검증은 수행하지 않음",
+      "Quest 3는 USB 디버깅 인증 대기이며 실제 VR/손 입력 확인은 미실행"
+    ],
+    "privacy": "Device serials, account details, cookies and tokens excluded"
+  },
+  "limits": [
+    "Physical phone/Quest performance NOT_RUN; brief functional status separately recorded",
+    "Simulated XR is functional only",
+    "N50 severe stale-sample age and forced closure are retained, not a realtime/shutdown pass"
+  ]
+}

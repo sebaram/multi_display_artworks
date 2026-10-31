@@ -15,15 +15,14 @@ name: metamuseum
 services:
   app:
     build:
-      context: ./flask_server
+      context: .
       dockerfile: Dockerfile
     image: metamuseum:latest
     container_name: metamuseum_container
     restart: unless-stopped
 
     # Apache reverse-proxies meta.juyounglee.net -> 127.0.0.1:51736.
-    # The image serves SocketIO/eventlet on 5000 (see flask_server/start.sh);
-    # the previous uwsgi+nginx image listened on 80.
+    # The image serves FastAPI and Socket.IO through one Uvicorn worker on5000.
     ports:
       - "127.0.0.1:51736:5000"
 
@@ -31,6 +30,9 @@ services:
     # environment and ships with empty defaults, so this file is required.
     env_file:
       - /var/www/metamuseum/data/metamuseum.env
+    environment:
+      ENVIRONMENT: production
+      ALLOWED_ORIGINS: '["https://meta.juyounglee.net"]'
 
     volumes:
       # Referenced from MongoDB documents, not from code, so they must exist
@@ -46,6 +48,7 @@ services:
       - /var/www/metamuseum/data/static_gltf/wheel.glb:/app/metamuseum/static/gltf/wheel.glb:ro
       # Runtime scratch for streaming
       - /var/www/metamuseum/data/streams:/app/streams
+      - /var/www/metamuseum/data/wall_media:/app/wall_media
 
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=5).status==200 else 1)\""]

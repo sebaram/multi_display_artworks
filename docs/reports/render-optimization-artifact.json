@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-10-29T17:18:16.356Z",
+  "html": "render-optimization.html",
+  "html_bytes": 7481567,
+  "html_sha256": "f5083b04b3358c96321c8b3f45486d6fe409d1318ad1854f2c0d0a0e0f045352",
+  "results": "render-optimization-results.json",
+  "results_sha256": "b749628cb27431b56be87e26cc03809a7d2d23d0fd1fbfed7ef1d775234a6d1b",
+  "validation": "render-optimization-validation.json",
+  "validation_sha256": "b007416f36c1ccab0493649eea4bdf85665c36a46e9d36002f25c34f7184de05",
+  "baseline_commit": "52ee0b48f357fba4ba74f409502199c685473dc5",
+  "optimized_commit": "a941868d85045db9a61537d18fdd0ade2e8eddb3",
+  "attempts": 139,
+  "selected_trials": 46,
+  "excluded_trials": 93,
+  "screenshots": 25,
+  "actual_phone": false,
+  "actual_quest3": false,
+  "evidence_hashes": {
+    "comparison-raw.jsonl": "2ea33a33381c1c808a420ac8f3b3c041f5330cffaab556cb61fe58065fdc86f1",
+    "system-samples.jsonl": "7a473696d9f678d4cb86eb51633f84bd3cf8337ce78c34fe0903a2a41e5efabe",
+    "picking-validation.json": "5a5451337c86a8c82689590f14e68d503602845e3745fe14111e1f20ba57ed4d",
+    "e2e-progress.log": "9d39e8e0a210a29f41af449022ba0bafaac4c22b85edaf6785400f550e32e931",
+    "binary-splat-bounds-proof.json": "59fa0390dcdccd3bd4c226ea915423edb860e69ba185b7f6b8666a16e17fc0d2",
+    "single-pass-validation.json": "18a3ff4a015ec4550e5de57152579c39822746a94cf4792f4d3da7b828ffb2b0",
+    "lighting-pixel-proof.json": "5810069bfa6bde8e6d0b24a838cb65dbe9edb02d932f5e773178fc347bf7e05d"
+  }
+}

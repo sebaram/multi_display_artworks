@@ -1,0 +1,342 @@
+[
+  {
+    "id": "P2-S1-02",
+    "title": "VR Room Design",
+    "description": "Change wall finishes and furniture to personalize a virtual room.",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P2-S1-02.jpg",
+    "url": "../output/clips/P2-S1-02_VR_공간에서_벽재·가구_디자인_직접_개인화.mp4",
+    "duration": 35.024
+  },
+  {
+    "id": "P2-S2-02",
+    "title": "ParameterRoom: Shared Virtual Rooms",
+    "description": "Remote users and avatars share a room through mixed-reality telepresence.",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-02.jpg",
+    "url": "../output/clips/P2-S2-02_ParameterRoom_실제_공간+아바타_멀티유저_플레이.mp4",
+    "duration": 19.024
+  },
+  {
+    "id": "P2-S3-01",
+    "title": "AI Robot Assistant",
+    "description": "A reasoning-based AI agent guides a robot arm to move real objects.",
+    "category": "AI and interaction",
+    "cue": 2,
+    "poster": "assets/video-posters/P2-S3-01.jpg",
+    "url": "../output/clips/P2-S3-01_AI_에이전트_추론_기반_로봇팔_작업_수행.mp4",
+    "duration": 20.0
+  },
+  {
+    "id": "P2-S4-01",
+    "title": "Changing 3D Worlds",
+    "description": "See the same 3D scene change visual style, season and atmosphere.",
+    "category": "AI and spaces",
+    "cue": 3,
+    "poster": "assets/video-posters/P2-S4-01.jpg",
+    "url": "../output/clips/P2-S4-01_3D_장면_스타일_전환(공원_벤치_계절시간_변화).mp4",
+    "duration": 8.022
+  },
+  {
+    "id": "P2-S5-01",
+    "title": "AquaHaptics: Feeling Virtual Water",
+    "description": "Wearable haptic equipment lets a VR user experience water-like sensations.",
+    "category": "Touch and experience",
+    "cue": 4,
+    "poster": "assets/video-posters/P2-S5-01.jpg",
+    "url": "../output/clips/P2-S5-01_AquaHaptics_VR_착용_+_햅틱_장갑_체험_(3448x1930).mp4",
+    "duration": 8.122
+  },
+  {
+    "id": "P1-02",
+    "title": "VR 업무공간 창밖 풍경 전환(도심→사막→잔디)",
+    "description": "1인칭 VR 시점에서 공간의 배경이 바뀜. 공간 확장 메타포",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P1-02.jpg",
+    "url": "../output/clips/P1-02_VR_업무공간_창밖_풍경_전환(도심→사막→잔디).mp4",
+    "duration": 30.024
+  },
+  {
+    "id": "P1-03",
+    "title": "VR 업무공간 해변/사막 풍경 전환",
+    "description": "창밖 세계가 해변·사막으로 바뀌는 장면. '하나의 공간에서 무한한 세계로'",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P1-03.jpg",
+    "url": "../output/clips/P1-03_VR_업무공간_해변사막_풍경_전환.mp4",
+    "duration": 23.024
+  },
+  {
+    "id": "P1-04",
+    "title": "원격 사용자들이 아바타로 한 방에 모임",
+    "description": "멀리 있는 사람들이 같은 공간에 있는 것처럼 연결되는 장면(실사 인셋+아바타)",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P1-04.jpg",
+    "url": "../output/clips/P1-04_원격_사용자들이_아바타로_한_방에_모임.mp4",
+    "duration": 12.024
+  },
+  {
+    "id": "P1-17",
+    "title": "MR 헤드셋 시점 - 손으로 가상 가구 배치 (Meta-Object)",
+    "description": "실제 사무실 위에 가상 객체를 손으로 조작하는 MR 1인칭 (UVR Lab)",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P1-17.jpg",
+    "url": "../output/clips/P1-17_MR_헤드셋_시점_-_손으로_가상_가구_배치_(Meta-Object).mp4",
+    "duration": 23.024
+  },
+  {
+    "id": "P2-S1-03",
+    "title": "VR 공간에 소품(책·식물·빈백) 배치",
+    "description": "개인화된 공간 구성 과정",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P2-S1-03.jpg",
+    "url": "../output/clips/P2-S1-03_VR_공간에_소품(책·식물·빈백)_배치.mp4",
+    "duration": 27.024
+  },
+  {
+    "id": "P2-S1-04",
+    "title": "SceneLinker - 실제 공간을 의미 기반 3D 장면으로 인식",
+    "description": "실제 테이블·의자가 시맨틱 3D로 변환. 공간 컴퓨팅 (UVR Lab, IEEE VR 2026)",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P2-S1-04.jpg",
+    "url": "../output/clips/P2-S1-04_SceneLinker_-_실제_공간을_의미_기반_3D_장면으로_인식.mp4",
+    "duration": 15.622
+  },
+  {
+    "id": "P2-S1-05",
+    "title": "디지털 트윈 3D 공간 복원 (회전)",
+    "description": "실내 공간 3D 재구성 결과 (UVR Lab)",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P2-S1-05.jpg",
+    "url": "../output/clips/P2-S1-05_디지털_트윈_3D_공간_복원_(회전).mp4",
+    "duration": 15.024
+  },
+  {
+    "id": "P2-S2-01",
+    "title": "Neighborhood: 원격 공간을 걸어서 이동하는 텔레프레즌스",
+    "description": "원격 사용자의 공간이 연결되어 이동 가능. UIST 2026",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-01.jpg",
+    "url": "../output/clips/P2-S2-01_Neighborhood_원격_공간을_걸어서_이동하는_텔레프레즌스.mp4",
+    "duration": 24.722
+  },
+  {
+    "id": "P2-S2-03",
+    "title": "Voronoi Rooms: 3인이 겹쳐진 공간에서 협업",
+    "description": "아바타 1인칭 + 실제 HMD 사용자 화면 동시 노출. TOG 2025",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-03.jpg",
+    "url": "../output/clips/P2-S2-03_Voronoi_Rooms_3인이_겹쳐진_공간에서_협업.mp4",
+    "duration": 9.022
+  },
+  {
+    "id": "P2-S2-05",
+    "title": "3개 공간 사용자의 동시 협업(멀티뷰)",
+    "description": "HMD 쓴 실사용자 + 아바타 6분할",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-05.jpg",
+    "url": "../output/clips/P2-S2-05_3개_공간_사용자의_동시_협업(멀티뷰).mp4",
+    "duration": 17.024
+  },
+  {
+    "id": "P2-S2-06",
+    "title": "TranSpace: 서로 다른 두 공간을 잇는 전이 공간 생성",
+    "description": "아파트-사무실 등 떨어진 공간을 연결하는 생성 기술. MM 2026",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-06.jpg",
+    "url": "../output/clips/P2-S2-06_TranSpace_서로_다른_두_공간을_잇는_전이_공간_생성.mp4",
+    "duration": 15.622
+  },
+  {
+    "id": "P2-S2-07",
+    "title": "Multi-View Transition Space 그리드",
+    "description": "공간 생성 결과 멀티뷰",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-07.jpg",
+    "url": "../output/clips/P2-S2-07_Multi-View_Transition_Space_그리드.mp4",
+    "duration": 6.522
+  },
+  {
+    "id": "P2-S2-09",
+    "title": "VRGaussianAvatar - HMD만으로 실사 3D 가우시안 아바타 실시간 제어(4분할)",
+    "description": "4명의 HMD 사용자 동작을 실사형 3D 아바타가 그대로 따라함. 사람의 디지털 분신을 가장 직관적으로 보여줌 (UVR Lab, IEEE VR 2026)",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-09.jpg",
+    "url": "../output/clips/P2-S2-09_VRGaussianAvatar_-_HMD만으로_실사_3D_가우시안_아바타_실시간_제어(4분할).mp4",
+    "duration": 26.327
+  },
+  {
+    "id": "P2-S2-10",
+    "title": "VRGaussianAvatar - 사진 한 장으로 만든 아바타 라이브 데모",
+    "description": "HMD 쓴 사용자와 뒤 화면의 3D 아바타가 함께 움직임 (UVR Lab, IEEE VR 2026)",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-10.jpg",
+    "url": "../output/clips/P2-S2-10_VRGaussianAvatar_-_사진_한_장으로_만든_아바타_라이브_데모.mp4",
+    "duration": 2.424
+  },
+  {
+    "id": "P2-S2-11",
+    "title": "OFERA - HMD로 가려진 얼굴 표정을 실사 아바타로 재현",
+    "description": "HMD를 쓴 채 짓는 표정을 모니터 속 3D 얼굴 아바타가 실시간 재현. 얼굴이 보이는 동양인 피사체 (UVR Lab, IEEE VR 2026)",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-11.jpg",
+    "url": "../output/clips/P2-S2-11_OFERA_-_HMD로_가려진_얼굴_표정을_실사_아바타로_재현.mp4",
+    "duration": 20.024
+  },
+  {
+    "id": "P2-S2-12",
+    "title": "OFERA - 입력 얼굴 vs 3D 가우시안 아바타 표정 비교",
+    "description": "그린스크린 입력 표정을 아바타가 똑같이 따라함 (UVR Lab)",
+    "category": "People and collaboration",
+    "cue": 1,
+    "poster": "assets/video-posters/P2-S2-12.jpg",
+    "url": "../output/clips/P2-S2-12_OFERA_-_입력_얼굴_vs_3D_가우시안_아바타_표정_비교.mp4",
+    "duration": 26.424
+  },
+  {
+    "id": "P2-S3-02",
+    "title": "AI 에이전트 코드생성 기반 로봇팔(당근→바구니)",
+    "description": "짧고 명확한 로봇 액션",
+    "category": "AI and interaction",
+    "cue": 2,
+    "poster": "assets/video-posters/P2-S3-02.jpg",
+    "url": "../output/clips/P2-S3-02_AI_에이전트_코드생성_기반_로봇팔(당근→바구니).mp4",
+    "duration": 9.4
+  },
+  {
+    "id": "P2-S3-03",
+    "title": "사진 한 장으로 만드는 3D 얼굴 아바타(표정 구동)",
+    "description": "입력 표정에 따라 다시점 3D 아바타가 움직임. 시각 임팩트 높음",
+    "category": "AI and interaction",
+    "cue": 2,
+    "poster": "assets/video-posters/P2-S3-03.jpg",
+    "url": "../output/clips/P2-S3-03_사진_한_장으로_만드는_3D_얼굴_아바타(표정_구동).mp4",
+    "duration": 12.978
+  },
+  {
+    "id": "P2-S3-04",
+    "title": "3D 얼굴 아바타 – 동양인 피사체 포함",
+    "description": "국내 홍보영상에 맞는 동양인 아바타 결과",
+    "category": "AI and interaction",
+    "cue": 2,
+    "poster": "assets/video-posters/P2-S3-04.jpg",
+    "url": "../output/clips/P2-S3-04_3D_얼굴_아바타_–_동양인_피사체_포함.mp4",
+    "duration": 9.478
+  },
+  {
+    "id": "P2-S4-02",
+    "title": "3D 장면 스타일 전환 4분할(조각상/꽃)",
+    "description": "여러 장면에 대한 AI 공간 변환",
+    "category": "AI and spaces",
+    "cue": 3,
+    "poster": "assets/video-posters/P2-S4-02.jpg",
+    "url": "../output/clips/P2-S4-02_3D_장면_스타일_전환_4분할(조각상꽃).mp4",
+    "duration": 10.022
+  },
+  {
+    "id": "P2-S4-03",
+    "title": "HDR 자유시점 시공간 장면 합성(사람 동작)",
+    "description": "사람의 움직임을 포함한 4D 공간 복원. 사람+공간+AI",
+    "category": "AI and spaces",
+    "cue": 3,
+    "poster": "assets/video-posters/P2-S4-03.jpg",
+    "url": "../output/clips/P2-S4-03_HDR_자유시점_시공간_장면_합성(사람_동작).mp4",
+    "duration": 19.006
+  },
+  {
+    "id": "P2-S5-02",
+    "title": "AquaHaptics: VR 수중 환경에서 손으로 물 감각 체험",
+    "description": "가상 수중 공간 속 손 인터랙션",
+    "category": "Touch and experience",
+    "cue": 4,
+    "poster": "assets/video-posters/P2-S5-02.jpg",
+    "url": "../output/clips/P2-S5-02_AquaHaptics_VR_수중_환경에서_손으로_물_감각_체험.mp4",
+    "duration": 13.013
+  },
+  {
+    "id": "P2-S5-03",
+    "title": "AquaHaptics: 다수 참가자 지각 실험 멀티뷰",
+    "description": "여러 사용자가 햅틱 장갑으로 실험하는 장면",
+    "category": "Touch and experience",
+    "cue": 4,
+    "poster": "assets/video-posters/P2-S5-03.jpg",
+    "url": "../output/clips/P2-S5-03_AquaHaptics_다수_참가자_지각_실험_멀티뷰.mp4",
+    "duration": 12.113
+  },
+  {
+    "id": "P2-S5-04",
+    "title": "촉각+시각 피드백 - 손으로 가상 사물의 거칠기 체감",
+    "description": "VR 손이 조각상·천을 만지는 감각적 장면. UVR + HCI Tech Lab(윤상호) 공동연구, ISMAR 2025",
+    "category": "Touch and experience",
+    "cue": 4,
+    "poster": "assets/video-posters/P2-S5-04.jpg",
+    "url": "../output/clips/P2-S5-04_촉각+시각_피드백_-_손으로_가상_사물의_거칠기_체감.mp4",
+    "duration": 16.024
+  },
+  {
+    "id": "P2-S5-05",
+    "title": "진동 촉각 피드백 - 맨손으로 가상 컵 잡기",
+    "description": "HMD 사용자 + 손목 진동 피드백 실사/VR 분할화면 (UVR Lab, IEEE VR 2026)",
+    "category": "Touch and experience",
+    "cue": 4,
+    "poster": "assets/video-posters/P2-S5-05.jpg",
+    "url": "../output/clips/P2-S5-05_진동_촉각_피드백_-_맨손으로_가상_컵_잡기.mp4",
+    "duration": 22.024
+  },
+  {
+    "id": "P2-S5-06",
+    "title": "EMG 손목 밴드로 핀치 힘 인식 (ForceCtrl)",
+    "description": "웨어러블 센서로 손 힘을 읽는 장면 (UVR Lab, TVCG 2025)",
+    "category": "Touch and experience",
+    "cue": 4,
+    "poster": "assets/video-posters/P2-S5-06.jpg",
+    "url": "../output/clips/P2-S5-06_EMG_손목_밴드로_핀치_힘_인식_(ForceCtrl).mp4",
+    "duration": 14.024
+  },
+  {
+    "id": "P3-01",
+    "title": "거울 반사를 반영한 3D 환경 복원 비교",
+    "description": "입력/기존/제안 방법 비교로 기술 진보 표현",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P3-01.jpg",
+    "url": "../output/clips/P3-01_거울_반사를_반영한_3D_환경_복원_비교.mp4",
+    "duration": 6.699
+  },
+  {
+    "id": "P3-02",
+    "title": "반사 성질을 반영한 가상 3D 물체 삽입",
+    "description": "금속 구체 반사 렌더링 결과",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P3-02.jpg",
+    "url": "../output/clips/P3-02_반사_성질을_반영한_가상_3D_물체_삽입.mp4",
+    "duration": 6.724
+  },
+  {
+    "id": "P3-03",
+    "title": "실제 미술관에서 AR 손 인터랙션 선택",
+    "description": "AR 글래스 시점의 실공간 인터랙션. AR Assistant 자막 대체 인서트 (UVR Lab)",
+    "category": "Space design",
+    "cue": 0,
+    "poster": "assets/video-posters/P3-03.jpg",
+    "url": "../output/clips/P3-03_실제_미술관에서_AR_손_인터랙션_선택.mp4",
+    "duration": 9.024
+  }
+]

@@ -1,0 +1,1056 @@
+{
+  "date": "2026-10-31",
+  "timezone": "Asia/Seoul",
+  "title": "모바일·데스크톱·TV 표시 기능 재비교",
+  "baseline": {
+    "branch": "master",
+    "sha": "974bbfd74ecd9a1330a03d7dd2a19994209ec8f5",
+    "runtime": "https://meta.juyounglee.net",
+    "deploymentRun": "https://github.com/sebaram/multi_display_artworks/actions/runs/40257231769",
+    "identityLimit": "원격 master와 마지막 성공 배포 실행, 운영의 Flask HTML을 대조했다. 운영 런타임 SHA를 직접 반환하는 엔드포인트가 없어 수동 배포 차이는 배제하지 못한다."
+  },
+  "current": {
+    "branch": "codex/gaussian-avatar-gaze",
+    "sha": "a0a762c0db0c707ebec1051c09b52c61ac8a60d8",
+    "runtime": "http://127.0.0.1:8000",
+    "commitsAfterMaster": 78
+  },
+  "verdict": "TV 전용 표시와 모바일 저장 UI는 수정 필요",
+  "summary": "고유 월 주소와 자동 갱신은 유지되지만, TV 화면 구성은 메인과 달라졌다. 일반 탐색·관리·아바타 상태 동기화·공유 MP4 흐름은 확인 범위에서 동작했다. 전체 배포 준비 완료 판정은 하지 않는다.",
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "name": "TV simulation",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "methods": [
+    "독립 문맥 검토자 3명이 월 주소 보존, 반응형 UI·관리 흐름, 실시간 기능·CI를 각각 확인했다.",
+    "메인 운영에서는 공개 페이지·GET·HEAD와 일반 방문자 연결만 사용했다. 관리자 로그인·데이터 변경은 하지 않았다.",
+    "작업 브랜치는 실제 FastAPI가 제공하는 production React bundle과 marker로 보호된 전용 로컬 Mongo27028/metamuseum_test를 사용했다. 임시 소유 레코드만 생성·변경·삭제했다.",
+    "모바일은 같은 PC Chrome의 화면 크기·터치 에뮬레이션이다. TV는 1920×1080 Chrome 화면이며 실제 TV 기기가 아니다.",
+    "저장된 월·이미지의 실제 투영 geometry, DOM hit testing, 네트워크 응답과 실제 Socket.IO 연결을 확인했다. 화면·원격 상태·테스트 수치를 구분한다."
+  ],
+  "findings": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "title": "TV용 월 단독 화면에서 월이 너무 작게 표시된다",
+      "scope": "desktop / TV",
+      "baseline": "10×3 월, fov60·거리5. 화면 가로 점유율99.4%. 단독 표시용 화면.",
+      "current": "10×3 월, fov80·거리12. 화면 가로 점유율28.2%, 높이15.0%. 방의 이동·방문자·음성 UI가 남음.",
+      "impact": "TV나 모니터에서 URL 하나로 월을 표시하려는 핵심 용도를 충분히 지원하지 못한다.",
+      "reproduction": "로그아웃된 새 브라우저에서 /wall?wall_id=<id> 를 1920×1080으로 직접 열기.",
+      "method": "운영·현재 브라우저의 실제 mesh 투영 좌표 측정 + 동일 비율 월 + 소스 연결",
+      "files": [
+        {
+          "path": "frontend/src/features/room/Room.tsx",
+          "line": 37
+        },
+        {
+          "path": "frontend/src/scene/mountRoom.ts",
+          "line": 140
+        }
+      ],
+      "recommendation": "월 전용 display 모드와 화면 비율에 맞춘 fit 카메라를 제공하고, TV 표시에서는 방 HUD를 숨긴다.",
+      "evidence": [
+        "main-wall-tv.png",
+        "current-wall-tv.png"
+      ]
+    },
+    {
+      "id": "R2",
+      "priority": "P1",
+      "title": "이미지 고유 주소의 화면 맞춤 표시가 3D 장면으로 바뀌었다",
+      "scope": "desktop / mobile / TV",
+      "baseline": "/element?wall_element_id=<id>&type=image 는 object-fit:contain 이미지. 모바일390×844에 맞춤 표시.",
+      "current": "같은 형태의 URL이 A-Frame 장면1개를 만들며 fullscreen-image는0개. display_type 미지정과 aframe 선택을 구분하지 않음.",
+      "impact": "기존 이미지 표시·디지털 사이니지 링크에서 원본이 작거나 벽 좌표에 따라 치우쳐 보이고 WebGL도 요구한다.",
+      "reproduction": "이미지 단독 URL에서 display_type을 생략해 직접 열기.",
+      "method": "메인·현재 실제 브라우저, 메인은 자연 크기2000px 이미지 로드 확인, 현재는 정상200PNG 사용",
+      "files": [
+        {
+          "path": "frontend/src/features/room/Room.tsx",
+          "line": 217
+        },
+        {
+          "path": "contracts/feature-parity.md",
+          "line": 9
+        }
+      ],
+      "recommendation": "기존 기본 이미지 URL은 가벼운 contain 표시를 복원하고 display_type=aframe만 3D로 구분한다.",
+      "evidence": [
+        "main-image-default.png",
+        "current-image-default.png"
+      ]
+    },
+    {
+      "id": "R3",
+      "priority": "P2",
+      "title": "월 표시용 화면이 방 방문자가 되고 다른 아바타도 월 앞에 나타난다",
+      "scope": "standalone wall / realtime",
+      "baseline": "월 템플릿은 방 방문자 실시간 연결을 시작하지 않음.",
+      "current": "익명 TV 페이지의 visitor ID가 방 관찰자에게1개 나타남. TV 쪽에서도 다른 방문자 아바타1개 확인.",
+      "impact": "TV마다 방 인원이 늘고 단독 월 원점과 방 좌표가 혼재한다. 월 콘텐츠 앞에 방문자 모델과 음성 UI가 겹칠 수 있다.",
+      "reproduction": "월 단독 주소와 부모 방 주소를 별도 탭에서 열기.",
+      "method": "별도 익명 브라우저 컨텍스트의 실제 room presence / 렌더 DOM 확인",
+      "files": [
+        {
+          "path": "frontend/src/features/room/Room.tsx",
+          "line": 285
+        },
+        {
+          "path": "frontend/src/scene/realtime.ts",
+          "line": 189
+        }
+      ],
+      "recommendation": "월 디자인·포인터·영상 구독을 방문자 아바타·포즈·음성 연결과 분리한다.",
+      "evidence": [
+        "current-tv-with-room-visitor.png"
+      ]
+    },
+    {
+      "id": "R4",
+      "priority": "P2",
+      "title": "모바일 작품 편집의 저장 버튼을 음성 버튼이 가린다",
+      "scope": "mobile administrator 390×844",
+      "baseline": "이번에는 운영 관리자 UI에 로그인하지 않았으므로 같은 저장 버튼의 메인 동작은 미측정.",
+      "current": "저장 버튼 x25.8/y714.6/w131.75/h47.2의 중앙 hit test가 Voice Off를 반환. 위쪽 일부만 노출되어 일반 중앙 탭이 가로채진다.",
+      "impact": "작품 좌표·외형 편집을 마친 뒤 저장하려다 음성 버튼을 누르게 된다. 미니맵도 정보 패널 일부와 겹친다.",
+      "reproduction": "관리자 → 방 → 작품 목록 → 이미지 → 정보 패널을 저장 버튼까지 스크롤.",
+      "method": "독립 실제 브라우저 DOM hit testing + 화면 캡처. 기존 작품 저장은 수행하지 않음.",
+      "files": [
+        {
+          "path": "frontend/src/app/styles.css",
+          "line": 619
+        },
+        {
+          "path": "frontend/src/app/styles.css",
+          "line": 1041
+        },
+        {
+          "path": "frontend/src/scene/voice-chat.js",
+          "line": 553
+        }
+      ],
+      "recommendation": "모바일 정보 패널이 열리면 음성·미니맵을 숨기거나 패널 밖으로 이동한다.",
+      "evidence": [
+        "ui-room-admin-actions-mobile.png"
+      ]
+    },
+    {
+      "id": "R5",
+      "priority": "P2",
+      "title": "Windows에서 재생 중 미디어 삭제가500과 고아 파일을 남길 수 있다",
+      "scope": "Windows local runtime; Linux 미검증",
+      "baseline": "새 업로드 자산 기능에 해당하여 메인에 동일 API 없음.",
+      "current": "Mongo 자산 문서를 먼저 삭제한 다음 파일 unlink가 WinError32로 실패. DELETE500과 문서 없는 파일을 실제 관측.",
+      "impact": "사용자가 삭제 실패를 보고 다시 시도할 때 문서는 이미 없고 파일은 남는다.",
+      "reproduction": "다른 화면이 업로드 MP4를 읽는 동안 연결을 제거하고 자산 삭제.",
+      "method": "실제 DELETE응답 + api-error.log PermissionError traceback. 원인 경로와 소유 파일 확인 후 정리.",
+      "files": [
+        {
+          "path": "backend/metamuseum/services/wall_media.py",
+          "line": 115
+        },
+        {
+          "path": "backend/metamuseum/services/wall_media.py",
+          "line": 116
+        }
+      ],
+      "recommendation": "파일 제거 실패 시 메타데이터를 복구 가능하게 유지하거나 지연 삭제·재시도를 사용한다. Linux에서 같은 오류가 난다고 주장하지 않는다.",
+      "evidence": []
+    }
+  ],
+  "tv": {
+    "pattern": "/wall?wall_id=<wall-id>",
+    "refreshPattern": "/wall?wall_id=<wall-id>&refresh=5",
+    "directStatus": 200,
+    "main": {
+      "widthFraction": 0.994161815871201,
+      "heightFraction": 0.5302196351313071,
+      "fov": 60,
+      "z": 5,
+      "mobileWidthFraction": 3.824832239750626
+    },
+    "current": {
+      "widthFraction": 0.28166445206646457,
+      "heightFraction": 0.15022104110211443,
+      "fov": 80,
+      "z": 12,
+      "mobileWidthFraction": 1.0836458007708083
+    },
+    "geometry": "가로10·세로3인 월의 실제 mesh 앞면을 카메라로 투영한 값. 두 화면의 작품·색상은 다르며 이미지 픽셀의 동일성을 비교한 결과가 아니다.",
+    "refresh": {
+      "headStatuses": [
+        200,
+        304,
+        304,
+        200,
+        200,
+        304
+      ],
+      "wallMutationStatus": 200,
+      "changedColor": "#ab453f",
+      "automaticallyReflected": true,
+      "reloadRetained": true,
+      "headBodyBytes": 0
+    },
+    "imageSourceStatus": 200,
+    "temporaryIds": {
+      "room": "6ae5a3cc0f59fb9efcaa1831",
+      "wall": "6ae5a3df0f59fb9efcaa1833",
+      "image": "6ae5a4080f59fb9efcaa1835"
+    },
+    "temporaryLinksRemovedAfterAudit": true
+  },
+  "frontendTests": {
+    "command": "npm test",
+    "vitest": 238,
+    "legacyNode": 118,
+    "wallRendererNode": 76,
+    "total": 432,
+    "failed": 0
+  },
+  "observations": [
+    {
+      "title": "같은 생성 위치의 방문자 얼굴이 시야를 크게 가리는 장면",
+      "evidence": [
+        "realtime-avatar-desktop.png",
+        "realtime-wall-mobile.png"
+      ],
+      "detail": "실제 화면에서 큰 얼굴 조각을 관측했다. 로컬 owner는 XR 밖에서 hidden 설정이므로 자기 머리 표시 오류로 단정하지 않는다. 가까운 방문자·생성 위치 겹침으로 추정되지만 원인을 분리 재현하지 않았고, 메인의 동일 조건도 비교하지 않았다. 상태 동기화 통과와 시각적 완성도는 구분한다."
+    },
+    {
+      "title": "관리자 모바일 작품 터치와 이동 제스처",
+      "detail": "정상 이미지가 있는 방에서 관리자가 두 번째 손가락을 사용할 때 작품 편집 패널과 초안 이동으로 전환되어 회전이 멈추는 경우를 관측했다. 익명 컨텍스트에서는 이동과 yaw회전이 함께 동작했다. 작품 선택/편집 의도와 입력 영역 분리는 추가 UX 확인이 필요하며 새 결함으로 확정하지 않는다."
+    }
+  ],
+  "mobileJoystick": {
+    "method": "이번 재검토의 Chrome390×844 hasTouch/isMobile + CDP 입력, 익명 컨텍스트",
+    "slowDistance": 0.29333333333333034,
+    "fastDistance": 0.6599999999999957,
+    "afterReleaseDrift": 0,
+    "simultaneousMove": 0.3196133652299053,
+    "simultaneousYaw": -0.44304511781394523,
+    "physicalDevice": false
+  },
+  "notChecked": [
+    "실제 스마트폰·TV·Quest3·Vision Pro·물리 손/눈 추적",
+    "전체 브라우저 엔진 조합·장시간 부하·GPU/RAM/FPS 성능 매트릭스",
+    "운영 관리자 로그인·운영 DB 변경·운영 데이터 복원·실제 배포와 rollback",
+    "실제 마이크 통화·폰 카메라·외부 RTSP·유료 AI/STT provider 호출",
+    "로컬에서 GLTF/splat seed 자산 실물 렌더 재검증:8766 합성 미디어 서버가 꺼져 있음. 정상 PNG·업로드 MP4는 별도 검증",
+    "외부 YouTube 전체 재현과 이전 CI timeout의 확정 원인",
+    "모든 프리셋·모든 CRUD 조합을 클릭한 전수 시나리오. 프리셋·렌더러 로직은 전체 npm test로 확인"
+  ],
+  "matrix": [
+    {
+      "feature": "카탈로그·검색",
+      "main": "공개 목록·벽 링크 정상",
+      "current": "두 화면 카드·검색 빈 상태·긴 제목 정상",
+      "status": "pass",
+      "method": "브라우저 / 두 화면"
+    },
+    {
+      "feature": "방 입장·기본 렌더",
+      "main": "공개 방 WebGL 정상",
+      "current": "별도 합성 방 및 기존 방 입장 정상",
+      "status": "pass",
+      "method": "브라우저 / 두 화면"
+    },
+    {
+      "feature": "가로 넘침",
+      "main": "1280·390px 문서 넘침 없음",
+      "current": "카탈로그·관리·도구 문서 넘침 없음",
+      "status": "pass",
+      "method": "DOM 측정"
+    },
+    {
+      "feature": "월 고유 주소",
+      "main": "/wall?wall_id= 유지",
+      "current": "직접 접속200·갤러리의 모든 월 링크 유지",
+      "status": "pass",
+      "method": "브라우저 + 코드"
+    },
+    {
+      "feature": "TV 월 화면 맞춤",
+      "main": "1920px 가로99.4%",
+      "current": "28.2%로 축소, 방 UI 표시",
+      "status": "regression",
+      "method": "실제 mesh 투영"
+    },
+    {
+      "feature": "세로 화면 월 맞춤",
+      "main": "가로382.5% 투영으로 크게 잘림",
+      "current": "108.4%로 일부 잘림. 문서 overflow와는 다름",
+      "status": "partial",
+      "method": "실제 mesh 투영"
+    },
+    {
+      "feature": "월 자동 갱신",
+      "main": "refresh·HEAD 지원",
+      "current": "refresh1에서200/304, 외부 변경 자동 반영·reload 유지",
+      "status": "pass",
+      "method": "브라우저 + 실제 API"
+    },
+    {
+      "feature": "월 전용 방문자 분리",
+      "main": "단독 wall은 방 방문자 없음",
+      "current": "TV가 방 방문자로 나타나고 다른 아바타도 표시",
+      "status": "regression",
+      "method": "두 실제 탭"
+    },
+    {
+      "feature": "이미지 단독 주소",
+      "main": "contain 원본 이미지",
+      "current": "display_type 무시,3D장면으로 표시",
+      "status": "regression",
+      "method": "실제 브라우저"
+    },
+    {
+      "feature": "데스크톱 이동·선택",
+      "main": "기존 A-Frame 입력",
+      "current": "방 선택·정보 패널, 회귀 검사 정상",
+      "status": "pass",
+      "method": "브라우저 + 단위 검사"
+    },
+    {
+      "feature": "모바일 아날로그 이동",
+      "main": "기존 joystick 스크립트",
+      "current": "속도 차이·해제 정지·익명 두 손가락 이동/yaw 확인",
+      "status": "pass",
+      "method": "Chrome 터치 에뮬레이션"
+    },
+    {
+      "feature": "로그인·로그아웃·next",
+      "main": "운영 공개 signin 화면, 로그인 미실행",
+      "current": "실제 로컬 로그인/로그아웃·next 전환 정상",
+      "status": "pass",
+      "method": "로컬 브라우저"
+    },
+    {
+      "feature": "관리 방 CRUD",
+      "main": "운영 변경 미실행",
+      "current": "모바일 생성·삭제, 데스크톱 수정 정상",
+      "status": "pass",
+      "method": "실제 폼 + API 확인"
+    },
+    {
+      "feature": "선택 참조·기존 new 경로",
+      "main": "레거시 리소스 주소",
+      "current": "Wall 참조 없이 Image 생성·삭제. 별칭 단위 검사 통과",
+      "status": "pass",
+      "method": "실제 폼 + 단위 검사"
+    },
+    {
+      "feature": "작품 정보 패널",
+      "main": "기존 방의 작품",
+      "current": "모바일 bottom sheet·데스크톱 선택·닫기 정상",
+      "status": "pass",
+      "method": "브라우저"
+    },
+    {
+      "feature": "모바일 작품 변경 저장",
+      "main": "운영 관리자 미실행",
+      "current": "저장 중앙을 Voice Off가 가림",
+      "status": "regression",
+      "method": "DOM hit test"
+    },
+    {
+      "feature": "아바타 팝업·꾸미기",
+      "main": "기존 프리셋 선택",
+      "current": "컴팩트 메뉴·기본 옵션/Apply/Cancel 화면 안",
+      "status": "pass",
+      "method": "브라우저 / 두 화면"
+    },
+    {
+      "feature": "시선·고급 설정 UI",
+      "main": "신규 기능 없음",
+      "current": "활성 gaze 옵션은 내용 스크롤, 닫기 가능",
+      "status": "pass",
+      "method": "브라우저 /390px"
+    },
+    {
+      "feature": "저장 외형·Cancel·late join",
+      "main": "기존 아바타·방 상태",
+      "current": "색 적용 공유·Cancel 비공개·늦은 관찰자 복원",
+      "status": "pass",
+      "method": "실제 두 컨텍스트"
+    },
+    {
+      "feature": "아바타 pose·재접속",
+      "main": "기존 pose 동기화",
+      "current": "x=1 이동 전파, offline/online과 reload 복원",
+      "status": "pass",
+      "method": "실제 Socket.IO"
+    },
+    {
+      "feature": "근거리 아바타 시각 품질",
+      "main": "동일 조건 미비교",
+      "current": "생성 위치가 겹친 얼굴 조각 관측, 원인 미확정",
+      "status": "partial",
+      "method": "스크린샷 관측"
+    },
+    {
+      "feature": "월 편집기 화면",
+      "main": "신규 편집기 없음",
+      "current": "두 화면 preset/layer/properties 접근·스크롤 가능",
+      "status": "pass",
+      "method": "브라우저 읽기 전용"
+    },
+    {
+      "feature": "Mongo 프리셋·월 적용",
+      "main": "신규 기능 없음",
+      "current": "소유 프리셋 업로드 영상 적용·새 입장 복원",
+      "status": "pass",
+      "method": "실제 API + 실제 mesh"
+    },
+    {
+      "feature": "동일 방 월 포인터",
+      "main": "신규 기능 없음",
+      "current": "실제 surface handler의(.3,-.2) 상태가 peer로 전달",
+      "status": "pass",
+      "method": "실제 소켓, 입력 handler 주입"
+    },
+    {
+      "feature": "영상 seek/play/pause",
+      "main": "벽의 기존 영상",
+      "current": "seek2·play진행·pause2.461s 유지·reload/reconnect 복원",
+      "status": "pass",
+      "method": "실제 MP4 디코딩"
+    },
+    {
+      "feature": "업로드 자산 삭제",
+      "main": "동일 새 API 없음",
+      "current": "일반 정리 통과. 읽는 중 Windows 삭제500 관측",
+      "status": "regression",
+      "method": "실제 API + 로그"
+    },
+    {
+      "feature": "GLTF·splat 원본 렌더",
+      "main": "운영 공개 방에 원본 있음",
+      "current": "로컬 seed8766 OFF. 이번 실물 재렌더 미검증",
+      "status": "not-tested",
+      "method": "전체 단위/CI와 구분"
+    },
+    {
+      "feature": "AR·companion·preset URL",
+      "main": "기존 경로",
+      "current": "링크·소스 wiring 유지. 물리 추적 미검증",
+      "status": "not-tested",
+      "method": "소스 + UI"
+    },
+    {
+      "feature": "음성·실제 XR",
+      "main": "기존 UI",
+      "current": "UI 존재. 통화·헤드셋 세션 미실행",
+      "status": "not-tested",
+      "method": "실기기 없음"
+    },
+    {
+      "feature": "AI/STT·RTSP",
+      "main": "기존 도구",
+      "current": "도구 화면·Python CI 성공. 실제 provider 호출 미실행",
+      "status": "not-tested",
+      "method": "UI + 원격 CI"
+    },
+    {
+      "feature": "GaussianAvatars 연구 도구",
+      "main": "메인에 없음",
+      "current": "도구 링크 존재, 이번 네이티브 자산 실행 미검증",
+      "status": "not-tested",
+      "method": "UI 링크"
+    },
+    {
+      "feature": "원본 링크·온라인 수 UX",
+      "main": "홈 작품 트리·온라인 수",
+      "current": "작품 원본 링크는 정보 패널에 있음. 홈 온라인 수 제거는 이전 UX 변경",
+      "status": "partial",
+      "method": "UI + 소스"
+    }
+  ],
+  "checkedAt": "2026-10-31T17:35:47+09:00",
+  "ci": {
+    "current": {
+      "conclusion": "failure",
+      "databaseId": 41183536147,
+      "headSha": "a0a762c0db0c707ebec1051c09b52c61ac8a60d8",
+      "jobs": [
+        {
+          "completedAt": "2026-10-31T08:28:16Z",
+          "conclusion": "failure",
+          "databaseId": 124485689277,
+          "name": "quality",
+          "startedAt": "2026-10-31T08:10:58Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completedAt": "2026-10-31T08:10:59Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "startedAt": "2026-10-31T08:10:58Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:11:10Z",
+              "conclusion": "success",
+              "name": "Initialize containers",
+              "number": 2,
+              "startedAt": "2026-10-31T08:10:59Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:11:14Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 3,
+              "startedAt": "2026-10-31T08:11:10Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:11:17Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "startedAt": "2026-10-31T08:11:14Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:11:18Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-node@v4",
+              "number": 5,
+              "startedAt": "2026-10-31T08:11:17Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:12:20Z",
+              "conclusion": "success",
+              "name": "Install locked dependencies and FFmpeg",
+              "number": 6,
+              "startedAt": "2026-10-31T08:11:18Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:12:21Z",
+              "conclusion": "success",
+              "name": "Mark isolated Mongo instance",
+              "number": 7,
+              "startedAt": "2026-10-31T08:12:20Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:12:23Z",
+              "conclusion": "success",
+              "name": "Generate media and publish controlled RTSP",
+              "number": 8,
+              "startedAt": "2026-10-31T08:12:21Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:13:27Z",
+              "conclusion": "success",
+              "name": "Python integration and compatibility",
+              "number": 9,
+              "startedAt": "2026-10-31T08:12:23Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:13:58Z",
+              "conclusion": "success",
+              "name": "React, legacy behavior, renderer, types and build",
+              "number": 10,
+              "startedAt": "2026-10-31T08:13:27Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:13:59Z",
+              "conclusion": "success",
+              "name": "Seed synthetic browser fixtures",
+              "number": 11,
+              "startedAt": "2026-10-31T08:13:58Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:06Z",
+              "conclusion": "failure",
+              "name": "Browser tests against actual API and Socket.IO",
+              "number": 12,
+              "startedAt": "2026-10-31T08:13:59Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:10Z",
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 13,
+              "startedAt": "2026-10-31T08:28:06Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:10Z",
+              "conclusion": "skipped",
+              "name": "Build clean runtime image",
+              "number": 14,
+              "startedAt": "2026-10-31T08:28:10Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:10Z",
+              "conclusion": "skipped",
+              "name": "Runtime smoke against real Mongo",
+              "number": 15,
+              "startedAt": "2026-10-31T08:28:10Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:10Z",
+              "conclusion": "success",
+              "name": "Runtime diagnostics and cleanup",
+              "number": 16,
+              "startedAt": "2026-10-31T08:28:10Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:10Z",
+              "conclusion": "skipped",
+              "name": "Post Run actions/setup-node@v4",
+              "number": 29,
+              "startedAt": "2026-10-31T08:28:10Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:10Z",
+              "conclusion": "skipped",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 30,
+              "startedAt": "2026-10-31T08:28:10Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:11Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 31,
+              "startedAt": "2026-10-31T08:28:10Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:14Z",
+              "conclusion": "success",
+              "name": "Stop containers",
+              "number": 32,
+              "startedAt": "2026-10-31T08:28:11Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-10-31T08:28:14Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 33,
+              "startedAt": "2026-10-31T08:28:14Z",
+              "status": "completed"
+            }
+          ],
+          "url": "https://github.com/sebaram/multi_display_artworks/actions/runs/41183536147/job/124485689277"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/sebaram/multi_display_artworks/actions/runs/41183536147"
+    },
+    "previous": {
+      "run": 41181962820,
+      "sha": "de78328",
+      "passed": 44,
+      "failed": 3,
+      "failures": [
+        "아바타 reload 후 Visitor 대기: 전체60초 timeout",
+        "월 편집 persistence:180초 timeout, finally의 GET 위치가 원래 미완료 단계를 가림",
+        "YouTube pause: player state2 기대, -1 관측"
+      ],
+      "limit": "CI 로그로 확정된 실패 기록이며 원인은 분리 재현하지 못했다. 현재 커밋에서 해결됐다고 주장하지 않는다."
+    },
+    "currentBrowserResults": {
+      "passed": 44,
+      "failed": 3,
+      "duration": "14.1m",
+      "failures": [
+        "avatar-customization: reload 후 Visitor 대기의 전체60초 timeout",
+        "wall-editor-persistence: 두 번째 화면의 staleApply PUT 응답 대기180초 timeout, finally GET도 timeout",
+        "youtube-live: pause state2 기대에 -1 반환"
+      ],
+      "evidence": "GitHub Actions41183536147 failed-job log, saved as ci-current-failed.log",
+      "rootCausesIsolated": false
+    }
+  },
+  "realtime": {
+    "avatar": {
+      "head": "a0a762c0db0c707ebec1051c09b52c61ac8a60d8",
+      "environment": "Local FastAPI production React build at http://127.0.0.1:8000, synthetic metamuseum_test Mongo on 27028",
+      "browser": "Installed Chrome, headed isolated realtime-audit session",
+      "desktop": "default CLI desktop viewport",
+      "mobile": {
+        "hasTouch": true,
+        "height": 844,
+        "width": 390,
+        "physicalDevice": false,
+        "isMobile": true
+      },
+      "result": "all targeted behavioral assertions completed",
+      "completedAt": "2026-10-31T08:17:47Z",
+      "checks": [
+        "Two tabs have distinct visitor IDs and see each other",
+        "Peer camera position x=1 reached the observer",
+        "Casual appearance with top #37A9C2 reached peer data-profile-key",
+        "Cancel after top color draft #F01020 left peer appearance unchanged",
+        "390px mobile emulation late join recovered the appearance",
+        "Real browser context offline removed the peer from a separate mobile observer",
+        "Real online/reconnect recovered appearance",
+        "Reload kept visitor identity and saved appearance"
+      ],
+      "evidence": [
+        "realtime-avatar-desktop.png",
+        "realtime-avatar-mobile.png"
+      ],
+      "metadataLimit": "First callback returned undefined, so raw step timestamps and pageerror array were not retained. Completion is evidenced by its final success screenshot after all assertions, no failure screenshot, and exit0.",
+      "cleanup": [
+        "Temporary room deleted",
+        "Exact owned anonymous avatar profile 6ae5a4260f59fb9efcaa1837 deleted with ID/revision/color/anonymous guards; deleted_count1",
+        "Browser session realtime-audit closed"
+      ]
+    },
+    "wall": {
+      "startedAt": "2026-10-31T08:21:14.424Z",
+      "steps": [
+        {
+          "name": "isolated-room-wall-upload-preset-created",
+          "at": "2026-10-31T08:21:15.386Z"
+        },
+        {
+          "name": "mobile-emulation-received-paused-upload",
+          "at": "2026-10-31T08:21:17.016Z",
+          "media": {
+            "time": 1,
+            "paused": true,
+            "ready": 4
+          }
+        },
+        {
+          "name": "shared-seek-reached-peer",
+          "at": "2026-10-31T08:21:17.310Z",
+          "media": {
+            "time": 2,
+            "paused": true,
+            "ready": 4
+          }
+        },
+        {
+          "name": "shared-play-advanced-peer",
+          "at": "2026-10-31T08:21:17.759Z",
+          "media": {
+            "time": 2.366189,
+            "paused": false,
+            "ready": 4
+          }
+        },
+        {
+          "name": "shared-pause-held-peer",
+          "at": "2026-10-31T08:21:18.720Z",
+          "media": {
+            "time": 2.461,
+            "paused": true,
+            "ready": 4
+          }
+        },
+        {
+          "name": "surface-handler-pointer-reached-peer",
+          "at": "2026-10-31T08:21:18.949Z",
+          "state": {
+            "wall_id": "6ae5a4fb0f59fb9efcaa1842",
+            "binding_revision": 1,
+            "runtime_id": "1ee80027219f482084791f4a699d9159",
+            "sequence": 3,
+            "server_time_ms": 1793434878765,
+            "pointer": {
+              "x": 0.30000000000000004,
+              "y": -0.19999999999999996
+            },
+            "seed": 0,
+            "animation_epoch_ms": 1793434876469,
+            "active_until_ms": 1793434881738
+          }
+        },
+        {
+          "name": "reload-restored-paused-media-on-actual-mesh",
+          "at": "2026-10-31T08:21:19.725Z",
+          "media": {
+            "time": 2.461,
+            "paused": true,
+            "ready": 4
+          }
+        },
+        {
+          "name": "real-network-reconnect-restored-persisted-clock",
+          "at": "2026-10-31T08:21:20.841Z",
+          "media": {
+            "time": 2.461,
+            "paused": true,
+            "ready": 4
+          }
+        }
+      ],
+      "errors": [],
+      "records": {
+        "room": "6ae5a4fb0f59fb9efcaa1841",
+        "wall": "6ae5a4fb0f59fb9efcaa1842",
+        "asset": "6ae5a4fb0f59fb9efcaa1843",
+        "preset": "6ae5a4fb0f59fb9efcaa1844"
+      },
+      "cleanup": [
+        "binding deleted",
+        "preset deleted",
+        "wall deleted",
+        "room deleted",
+        "asset deleted"
+      ],
+      "result": "pass",
+      "eventCounts": {
+        "admin": 8,
+        "guest": 10
+      },
+      "finishedAt": "2026-10-31T08:21:21.324Z"
+    }
+  },
+  "cleanup": {
+    "root": [
+      {
+        "resource": "images",
+        "status": 204
+      },
+      {
+        "resource": "walls",
+        "status": 204
+      },
+      {
+        "resource": "rooms",
+        "status": 204
+      }
+    ],
+    "other_reviewers": "소유 Room/Image/preset/upload/binding/avatar profile 및 Windows 고아 파일 정리. 운영 데이터 변경 없음.",
+    "runtime": "기존 API8000 및 Tailscale 연결 유지. 검증용 브라우저는 종료. DB 초기화·앱 재시작 없음."
+  },
+  "fixture_limits": "처음의 잘못된 테스트 데이터 필드와 A-Frame DOM visibility 대기 등 검사 스크립트 오류는 수정 후 최종 성공 결과로 대체했다. 제품 결함으로 세지 않았다.",
+  "screenshots": [
+    {
+      "file": "main-wall-tv.png",
+      "caption": "메인 · 1920×1080 · 월 가로 점유율99.4%",
+      "bytes": 1063570
+    },
+    {
+      "file": "current-wall-tv.png",
+      "caption": "현재 · 1920×1080 · 월 가로 점유율28.2%",
+      "bytes": 100340
+    },
+    {
+      "file": "main-image-default.png",
+      "caption": "메인 · 이미지 기본 주소는 contain 표시",
+      "bytes": 167153
+    },
+    {
+      "file": "current-image-default.png",
+      "caption": "현재 · 이미지 기본 주소도3D 장면",
+      "bytes": 155452
+    },
+    {
+      "file": "main-wall-mobile.png",
+      "caption": "메인 월 · 390×844 · 가로382.5% 투영",
+      "bytes": 238063
+    },
+    {
+      "file": "current-wall-mobile.png",
+      "caption": "현재 월 · 390×844 · 가로108.4% 투영",
+      "bytes": 59246
+    },
+    {
+      "file": "ui-home-desktop.png",
+      "caption": "현재 카탈로그 · 데스크톱",
+      "bytes": 144102
+    },
+    {
+      "file": "ui-home-mobile.png",
+      "caption": "현재 카탈로그 · 모바일",
+      "bytes": 138382
+    },
+    {
+      "file": "ui-wall-editor-mobile.png",
+      "caption": "현재 월 편집기 · 모바일",
+      "bytes": 59747
+    },
+    {
+      "file": "ui-avatar-preferences-mobile.png",
+      "caption": "현재 아바타 꾸미기 · 모바일",
+      "bytes": 43070
+    },
+    {
+      "file": "ui-room-admin-actions-mobile.png",
+      "caption": "현재 모바일 · Voice Off가 저장 버튼 중앙을 덮음",
+      "bytes": 56606
+    },
+    {
+      "file": "current-tv-with-room-visitor.png",
+      "caption": "현재 TV · 부모 방의 다른 방문자도 표시",
+      "bytes": 96158
+    },
+    {
+      "file": "realtime-wall-mobile.png",
+      "caption": "현재 공유 MP4 · 재생 시계와 peer 상태 확인; 가까운 얼굴 조각도 관측",
+      "bytes": 84719
+    },
+    {
+      "file": "realtime-avatar-desktop.png",
+      "caption": "현재 다중 방문자 · 상태 전파 통과, 얼굴 겹침 시각 품질은 추가 확인 필요",
+      "bytes": 85460
+    }
+  ],
+  "artifactVerification": {
+    "rows": 32,
+    "decodedImages": 14,
+    "issueFilter": 5,
+    "searchRows": 1,
+    "zoom": true,
+    "escape": true,
+    "jsonExport": true,
+    "mobile": {
+      "width": 390,
+      "scrollWidth": 375
+    },
+    "pageErrors": [],
+    "externalRequests": [],
+    "screenshots": [
+      "report-desktop.png",
+      "report-mobile.png"
+    ]
+  },
+  "followup": {
+    "date": "2026-10-31",
+    "timezone": "Asia/Seoul",
+    "baseline": "a0a762c",
+    "scope": "R1–R5의 집중 수정과 짧은 브라우저 검증; 작업 트리 변경, 미커밋",
+    "fixes": [
+      {
+        "id": "R1",
+        "status": "fixed",
+        "evidence": "10×3 월의 실제 mesh 가로 점유율: 데스크톱1920×1080 0.9800000003, 모바일390×844 0.9800000001. 이동·방문자·음성 버튼0. 화면 회전에 맞춰 다시 fit."
+      },
+      {
+        "id": "R2",
+        "status": "fixed",
+        "evidence": "기본 이미지 URL은 scene0·contain. 이미지 요소 크기가 데스크톱1920×1080, 모바일390×844. display_type=aframe는scene1 유지. 실제 grid intrinsic 최소 크기 넘침도 수정 후 확인."
+      },
+      {
+        "id": "R3",
+        "status": "fixed",
+        "evidence": "TV 전송 이벤트는wall.clock/wall.watch만. visitor-capability·me/avatar 요청0, 양쪽 remote-avatar0. 실제 공유 MP4 seek/play/pause2.614초·포인터·네트워크재접속·reload 복원. 별도 YouTube 진입은 유지하되 TV는 공유 명령 권한 없음."
+      },
+      {
+        "id": "R4",
+        "status": "fixed",
+        "evidence": "실제 모바일 저장 버튼 중앙 hit test=true, 이름 수정 후 저장 성공. 정보 패널을 닫으면 Voice Off 다시 표시. CSS isolated browser check도 body 장착 위젯의 가림 전후·데스크톱 복원 확인."
+      },
+      {
+        "id": "R5",
+        "status": "fixed",
+        "evidence": "실제 Windows FileShare.Read 잠금 중 DELETE409 asset_content_in_use, 자산 메타데이터 유지true. 잠금 해제 후 재DELETE204. 참고 자산 보호 유지."
+      }
+    ],
+    "checks": {
+      "frontend": {
+        "passed": 44,
+        "files": 6,
+        "description": "TV fit·읽기 전용 client·standalone·room review·element route·image behavior. 마지막 키보드 guard 수정 후 관련23개 재통과."
+      },
+      "backend": {
+        "passed": 21,
+        "groups": [
+          {
+            "name": "display Socket.IO in-memory manager",
+            "passed": 4
+          },
+          {
+            "name": "isolated media-delete routes",
+            "passed": 8
+          },
+          {
+            "name": "existing wall permission/snapshot/playback controlled cases",
+            "passed": 9
+          }
+        ],
+        "sharedDatabaseFixtures": false
+      },
+      "build": "tsc --noEmit + vite build 통과. 기존 chunk 크기/dynamic-import 경고는 유지.",
+      "browser": {
+        "engine": "Chrome",
+        "emulation": true,
+        "physicalDevice": false,
+        "pageErrors": [],
+        "desktopViewport": [
+          1920,
+          1080
+        ],
+        "mobileViewport": [
+          390,
+          844
+        ],
+        "sharedPausedSeconds": 2.614,
+        "visitorRequests": 0,
+        "displayCommands": [
+          "wall.clock",
+          "wall.watch"
+        ],
+        "saveButtonHit": true,
+        "voiceRestored": true
+      },
+      "review": {
+        "context": "구현 이력을 주지 않은 수정 범위 전용 독립 소스 검토",
+        "result": "YouTube 진입 누락을 발견해 복구하고 회귀 검사 통과. 그 외 조치할 결함 없음.",
+        "limit": "검토자의 Python 실행은 환경 제약으로 중단; 통과 주장 없음. 구현 측 격리 검사4개와 실제 브라우저가 별도 통과."
+      }
+    },
+    "cleanup": {
+      "assetRetry": 204,
+      "image": 204,
+      "wall": 204,
+      "room": 204,
+      "physicalDevices": "접근하지 않음",
+      "api": "기존127.0.0.1:8000과 Tailscale 유지, API 새 코드로 재시작",
+      "testBrowsers": "종료",
+      "uploadedVideo": "검증 후 삭제"
+    },
+    "limits": [
+      "전체 CI·전체 회귀·실기기 성능 재실행 없음.",
+      "a0a762c CI의 아바타 reload·월 동시 편집·외부 YouTube pause 실패 원인은 이5개 수정 범위 밖이며 해결했다고 주장하지 않음.",
+      "YouTube 별도 플레이어 진입과 read-only UI는 단위 검사; 외부 실제 재생은 이번 미검증.",
+      "Mongo 장애가 파일 unlink 뒤 발생하면 콘텐츠 없는 메타데이터가 재삭제할 때까지 남을 수 있음. 의도한 삭제는 다시 시도 가능하도록 테스트했다.",
+      "기본 생성 위치에서 아바타가 겹치는 시각 관측은 이번5개 확정 수정에 포함하지 않음."
+    ],
+    "screenshots": [
+      "../validation/display-tv-after-desktop.png",
+      "../validation/display-tv-after-mobile.png",
+      "../validation/display-image-after-desktop.png",
+      "../validation/display-image-after-mobile.png",
+      "../validation/display-inspector-after-mobile.png"
+    ]
+  }
+}

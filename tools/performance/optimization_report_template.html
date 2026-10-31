@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>멀티 디스플레이 전시 공간 — 렌더링 최적화 비교</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23172b30'/%3E%3Cpath d='M14 43V21h9v22zm14 0V29h9v14zm14 0V14h9v29z' fill='%23a8c9bf'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:72px}body{margin:0;background:#f3f1e9;color:#172b30;font:15px/1.7 "Malgun Gothic","Segoe UI",sans-serif}a{color:#19646a;text-underline-offset:4px}button,input,select{font:inherit;color:inherit}button,select,summary{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #c56b24;outline-offset:3px}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(34px,4.4vw,64px);line-height:1.22;letter-spacing:-.055em;margin:18px 0 22px;max-width:1120px}h1 em{font-style:normal;color:#a8c9bf}h2{font-size:clamp(25px,2.7vw,35px);line-height:1.35;letter-spacing:-.04em;margin:4px 0 14px}h3{font-size:18px;line-height:1.4;margin-bottom:10px}.masthead{padding:52px max(5vw,24px) 38px;background:#172b30;color:#f5f3e9}.kicker{font-size:12px;font-weight:700;letter-spacing:.16em;color:#a8c9bf}.masthead p{max-width:1000px;color:#d0dbd4;font-size:17px}.meta{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px}.meta span{border:1px solid #4b6262;border-radius:4px;padding:5px 10px;font-size:12px;overflow-wrap:anywhere}.toc{position:sticky;top:0;z-index:5;display:flex;gap:5px;overflow:auto;padding:10px max(4vw,18px);background:#f3f1e9f5;border-bottom:1px solid #c9d1c6;backdrop-filter:blur(8px)}.toc a{text-decoration:none;white-space:nowrap;font-size:13px;padding:5px 9px;border-radius:4px}.toc a:hover{background:#d8e5dd}main{max-width:1600px;margin:auto;padding:0 4vw}.section{padding:40px 0;border-top:1px solid #c6cec3}.section:first-child{border:0}.section-top{display:flex;align-items:baseline;gap:16px}.number{font:34px/1 Georgia,serif;color:#698b7d}.intro{font-size:16px;max-width:1150px;color:#4b6262}.notice{background:#fffef9;border:1px solid #c8d0c2;border-left:4px solid #23696a;border-radius:4px;padding:18px 22px;margin:20px 0}.notice p:last-child{margin-bottom:0}.warning{background:#eee1ca;border-left-color:#a06a2e}.small,.note{font-size:12px;color:#586e68}.note{margin:12px 0}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:23px 0}.card{background:#dfeade;border-radius:6px;padding:19px;min-width:0}.card strong{display:block;font:32px/1.2 Georgia,serif;color:#205950}.card span,.card small{display:block;font-size:12px;margin-top:6px}.card small{font-size:11px;color:#587064}.scope{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.scope article{padding:20px;background:#fffef9;border:1px solid #cad3c5;border-top:4px solid #377e71;border-radius:5px}.scope article.pending{border-top-color:#a38b76}.scope p{font-size:13px;margin-bottom:0}.badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;background:#e7e8e2;color:#4c605b}.badge.pass{background:#dcebdc;color:#235d44}.badge.fail{background:#f0d6cc;color:#8c3928}.badge.unmeasured{background:#ebddc8;color:#755025}.controls{padding:20px;background:#e7ece3;border:1px solid #cbd4c6;border-radius:7px;margin:22px 0}.filter-grid{display:grid;grid-template-columns:1.3fr 2fr 1.6fr 2fr;gap:14px}label{font-size:12px;font-weight:700}input,select{display:block;width:100%;min-height:42px;background:#fffef9;border:1px solid #9bad9f;border-radius:4px;padding:8px 10px;margin-top:5px}.control-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:15px}.control-bottom p{margin:0}.actions{display:flex;gap:8px;flex-wrap:wrap}button.action{background:#f9fff8;border:1px solid #749c8b;color:#174d47;border-radius:4px;padding:8px 12px;font-size:12px}button.primary{background:#246b63;color:white;border-color:#246b63}.table-wrap{overflow:auto;border:1px solid #cbd4c6;border-radius:6px}table{border-collapse:collapse;width:100%;font-size:12px;background:#fffef9}caption{text-align:left;padding:12px 14px;color:#4d655d}th,td{padding:11px 12px;border-bottom:1px solid #dbe1d4;text-align:right;vertical-align:top;white-space:nowrap}th{background:#e5ebdf;color:#345c54;font-weight:700}th:first-child,td:first-child{text-align:left}tbody tr:last-child td{border:0}tbody tr:hover{background:#f0f4e9}td.wrap,th.wrap{white-space:normal;min-width:160px;max-width:360px;text-align:left}td.metric-missing{color:#829087}td small{display:block;font-size:10px;color:#687d76}.row-button{border:0;background:transparent;text-align:left;padding:0;color:#19646a;text-decoration:underline;text-underline-offset:3px}.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.chart-panel{background:#fffef9;border:1px solid #cad3c5;border-radius:6px;padding:20px;min-width:0}.chart-panel svg{display:block;width:100%;height:auto}.chart-panel svg text{font:11px "Malgun Gothic","Segoe UI",sans-serif;fill:#4b6262}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin:15px 0}.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:12px;height:8px;display:inline-block;border-radius:2px}.empty{border:1px dashed #afc0af;color:#5f756b;padding:28px 15px;text-align:center;background:#f7f8f1}.detail{background:#fffef9;border:1px solid #cbd4c6;border-radius:6px;padding:22px;margin-top:20px}.detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.detail-grid dt{font-size:11px;color:#587064}.detail-grid dd{margin:3px 0 0;font-size:13px;overflow-wrap:anywhere}.detail-grid div{border-bottom:1px solid #dbe1d4;padding-bottom:10px}details{margin-top:16px}summary{font-size:13px;color:#19646a;font-weight:700}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#e9eee3;padding:16px;border-radius:4px;max-height:450px;overflow:auto;font:11px/1.65 Consolas,monospace}.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.check{background:#fffef9;border:1px solid #cad3c5;border-radius:5px;padding:18px}.check.fail{border-left:4px solid #ac533b}.check.pass{border-left:4px solid #377e71}.check.unmeasured{border-left:4px solid #a38b76}.check h3{font-size:15px;margin:8px 0}.check p{margin:0;font-size:13px;overflow-wrap:anywhere}.gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.capture{margin:0;background:#fffef9;border:1px solid #cad3c5;border-radius:6px;overflow:hidden}.capture button{display:block;width:100%;padding:0;background:#dfe6db;border:0;cursor:zoom-in}.capture img{display:block;width:100%;height:220px;object-fit:contain}.capture figcaption{padding:13px;font-size:12px;overflow-wrap:anywhere}.capture b{display:block;margin-bottom:5px}.capture .missing{padding:35px 18px;font-size:12px;color:#755025}.hardware{display:grid;grid-template-columns:170px minmax(0,1fr);gap:8px 18px;font-size:13px}.hardware dt{font-weight:700}.hardware dd{margin:0;overflow-wrap:anywhere}.method-list{padding-left:22px;max-width:1150px}.method-list li{margin:11px 0}.hash{font-family:Consolas,monospace;font-size:12px}.footer{padding:26px 0 42px;color:#687d76;font-size:12px}dialog{max-width:96vw;max-height:96vh;border:1px solid #9dad9c;border-radius:6px;padding:14px;background:#f3f1e9;color:#172b30}dialog::backdrop{background:#102327df}dialog img{display:block;max-width:90vw;max-height:78vh;object-fit:contain}dialog p{margin:12px 0 0;font-size:13px;max-width:85vw;overflow-wrap:anywhere}dialog button{display:block;margin-left:auto;margin-bottom:10px;border:1px solid #749c8b;border-radius:4px;background:#fffef9;padding:5px 12px}noscript{display:block;padding:20px;background:#eee1ca}.no-print{display:block}@media(max-width:1000px){.cards,.detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.scope{grid-template-columns:1fr}.checks{grid-template-columns:1fr}}@media(max-width:650px){body{font-size:14px}.masthead{padding:34px 23px}.masthead p{font-size:15px}main{padding:0 18px}.charts,.gallery{grid-template-columns:1fr}.filter-grid{grid-template-columns:1fr}.card{padding:15px}.card strong{font-size:27px}.hardware{grid-template-columns:1fr;gap:2px}.hardware dd{margin-bottom:12px}.section{padding:30px 0}.chart-panel{padding:14px}.detail{padding:16px}.capture img{height:210px}}@media print{.toc,.controls,.no-print{display:none!important}body{background:white;font-size:11px}.masthead{padding:20px}.section{padding:20px 0}.cards,.scope{break-inside:avoid}main{padding:0}.table-wrap{overflow:visible}table{font-size:9px}th,td{padding:6px}details[open] pre{max-height:none}.chart-panel{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="kicker">MULTI DISPLAY ARTWORKS · RENDERING COMPARISON</div>
+  <h1>렌더링 최적화 전후,<br><em>같은 장면에서 비교했습니다.</em></h1>
+  <p>기존 빌드와 최적화 빌드의 실측값을 나란히 확인합니다. 품질 제어기를 끈 고정 버퍼 비교와 해상도·LOD를 조절하는 적응형 결과를 구분합니다.</p>
+  <div class="meta" id="header-meta"></div>
+</header>
+<nav class="toc" aria-label="보고서 목차"><a href="#scope">측정 범위</a><a href="#comparison">전후 비교</a><a href="#checks">검증 결과</a><a href="#captures">실행 화면</a><a href="#method">방법과 한계</a><a href="#evidence">재현 정보</a></nav>
+<main>
+<noscript>표·차트·원자료를 보려면 JavaScript가 필요합니다. 이 보고서는 네트워크 연결 없이 열 수 있는 단일 HTML입니다.</noscript>
+<section class="section" id="scope">
+  <div class="section-top"><span class="number">01</span><h2>이 보고서가 측정한 것</h2></div>
+  <p class="intro">변경의 효과는 장면·프로필·반복별로 읽어야 합니다. 아래 숫자와 판정은 입력 원자료에서만 가져오며, 측정하지 않은 기기의 FPS·CPU·RAM을 추정하지 않습니다.</p>
+  <div class="scope">
+    <article><span class="badge">실제 Chrome 실행</span><h3>현재 호스트 PC</h3><p id="host-summary">호스트 정보 미제공</p></article>
+    <article class="pending"><span class="badge unmeasured">PC의 제한 조건</span><h3>모바일 스트레스 프로필</h3><p>PC에서 적용한 화면·CPU 등의 제한 조건입니다. 실제 휴대폰 GPU·RAM·발열·배터리 결과로 해석할 수 없습니다. 정확한 설정은 원자료에 기록된 값만 확인합니다.</p></article>
+    <article class="pending"><span class="badge unmeasured">별도 실기기 검증 필요</span><h3>실제 휴대폰 · Quest 3</h3><p id="device-summary">실제 휴대폰 및 Quest 3는 미측정입니다. 헤드셋의 스테레오 렌더링·XR 프레임 루프·컨트롤러와 실제 기기 메모리는 별도 확인이 필요합니다.</p></article>
+  </div>
+  <div class="cards" id="overview"></div>
+  <div id="evaluation-summary"></div>
+  <aside class="notice warning" id="attempts-note"></aside>
+  <aside class="notice warning"><strong>고정 버퍼와 적응형 결과를 함께 읽는 방법</strong><p>최적화 고정 버퍼 실행은 품질 제어기를 level 0에서 끈 조건입니다. 이미지의 화면 크기 LOD, 자산 상주 제어, splat LOD는 계속 적용되므로 기존과 같은 시각 품질을 뜻하지 않습니다. 관측된 렌더 버퍼가 모두 같을 때만 차이를 계산하며, 월 소스 해상도·활성 splat·이미지 LOD의 차이도 옆에 표시합니다. 적응형 결과에는 렌더 해상도와 LOD 조절에 따른 품질 절충이 추가로 포함됩니다.</p></aside>
+  <div id="data-notes"></div>
+</section>
+<section class="section" id="comparison">
+  <div class="section-top"><span class="number">02</span><h2>장면별 전후 비교</h2></div>
+  <p class="intro">FPS·CPU·메모리·렌더 카운터는 정상 실행의 중앙값, p95·p99 프레임 간격은 반복 중 가장 큰 값입니다. 누락값은 <b>—</b>로 표시하며 0으로 바꾸지 않습니다.</p>
+  <p class="note">CPU에는 브라우저 내 관찰 코드와 결과 반환 비용이 포함됩니다. 관찰량이 빌드마다 달라 순수 앱 CPU 가속률로 해석하지 않습니다. 각 실행의 CPU 관찰 구간 길이는 상세에 표시합니다.</p>
+  <div class="controls no-print">
+    <div class="filter-grid">
+      <label for="profile-filter">프로필<select id="profile-filter"><option value="">전체 프로필</option></select></label>
+      <label for="workload-filter">장면<select id="workload-filter"><option value="">전체 장면</option></select></label>
+      <label for="variant-filter">빌드·품질<select id="variant-filter"><option value="">전체 빌드·품질</option></select></label>
+      <label for="search">표에서 찾기<input id="search" type="search" placeholder="장면, 경로, 빌드 이름" autocomplete="off"></label>
+    </div>
+    <div class="control-bottom"><p class="small" id="filter-count" aria-live="polite"></p><div class="actions"><button class="action" id="reset" type="button">필터 초기화</button><button class="action primary" id="download" type="button">원자료 JSON 내려받기</button></div></div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="charts"><article class="chart-panel"><h3>렌더 FPS</h3><p class="small">높을수록 좋음 · 장면 내 빌드별 중앙값</p><div id="fps-chart"></div></article><article class="chart-panel"><h3>Chrome + 관찰 작업 CPU · 논리 코어 %</h3><p class="small">낮을수록 CPU 사용량이 적음 · 1논리 코어 = 100%</p><div id="cpu-chart"></div></article></div>
+  <p class="note">차트는 각 장면에 있는 측정값만 표시합니다. 차트의 축은 현재 필터에 따라 달라지며, 검증 통과 여부를 나타내지 않습니다.</p>
+  <div class="table-wrap"><table><caption>정상 실행 집계 · 장면 이름을 누르면 반복별 원자료와 품질 설정을 확인할 수 있습니다.</caption><thead><tr><th class="wrap">장면 · 프로필</th><th>빌드·품질</th><th>정상 / 전체</th><th>FPS</th><th>p95 ms<br>최악 반복</th><th>p99 ms<br>최악 반복</th><th>CPU 코어 %</th><th>JS 힙 MiB</th><th>WS MiB</th><th>commit MiB</th><th>GPU 전용 MiB</th><th>draw calls</th><th>삼각형</th><th class="wrap">렌더 버퍼</th></tr></thead><tbody id="comparison-body"></tbody></table></div>
+  <div class="notice" id="fixed-deltas"></div>
+  <div class="detail" id="case-detail" hidden tabindex="-1"></div>
+</section>
+<section class="section" id="checks">
+  <div class="section-top"><span class="number">03</span><h2>검증 결과와 남은 항목</h2></div>
+  <p class="intro">입력에 기록된 판정을 그대로 표시합니다. 미측정은 통과가 아니며, 성능 수치만으로 기능·시각 품질·XR 동작의 통과를 판정하지 않습니다.</p>
+  <p id="check-summary" class="note"></p><div class="checks" id="check-list"></div>
+</section>
+<section class="section" id="captures">
+  <div class="section-top"><span class="number">04</span><h2>실행 화면으로 확인</h2></div>
+  <p class="intro">입력에 제공된 화면을 이 파일 안에 포함했습니다. 화면을 누르면 확대됩니다. 화면만으로 미세한 품질 차이와 시간에 따른 깜박임을 모두 검증할 수는 없습니다.</p>
+  <div class="gallery" id="gallery"></div>
+</section>
+<section class="section" id="method">
+  <div class="section-top"><span class="number">05</span><h2>측정 방법과 해석의 한계</h2></div>
+  <ol class="method-list">
+    <li><b>워밍업 이후 측정.</b> 초기 상주 작품의 준비 확인과 워밍업 이후 구간을 관찰합니다. 회전 중에는 로딩·퇴거·재요청이 이어집니다. 준비·측정 시간, 실행 순서, 반복 수는 입력 원자료에서 확인합니다. 기록이 없는 시간은 임의로 채우지 않습니다.</li>
+    <li><b>정지 시점과 360° yaw 경로.</b> 정지 시점은 가시성·상주 자산의 차이가 크게 드러날 수 있고, 360° 회전은 시야 전환·재상주 비용을 포함합니다. 이동 중 실제 자산 재요청·LOD 전환 비용과 로딩 대기가 포함됩니다. 끝 시점의 미완료 상주 작품 수를 상세에 표시하며, 완전히 같은 렌더 작업량을 뜻하지 않습니다. 두 경로를 합쳐 평균 내지 않습니다. 장면 이름과 실행 상세의 카메라 경로를 확인합니다.</li>
+    <li><b>집계와 FPS 범위.</b> 프로필 + 장면 + 빌드·품질로 묶고 <code>status = ok</code>인 실행만 집계합니다. 각 지표의 유한 숫자만 사용하므로 지표마다 유효 표본 수가 다를 수 있습니다. FPS·CPU·메모리·카운터는 중앙값, p95·p99는 반복 최댓값입니다. FPS는 메인 장면의 렌더 호출 횟수이며 Spark 내부 패스를 따로 세지 않습니다. 새 비교 실행에서는 GPU 타이머를 사용하지 않습니다. 실패 실행과 오류는 상세 원자료에 남깁니다.</li>
+    <li><b>CPU.</b> Chrome 전체 프로세스 합계의 코어 사용률이며, 브라우저 안에서 수행한 측정 코드와 측정 결과 반환·직렬화 비용도 포함합니다. 이미지 크기 관찰량이 빌드마다 달라 관찰 오버헤드가 비대칭입니다. FPS의 10초 구간보다 CPU·RAM 관찰 구간이 길 수 있고 그 길이를 상세에 기록했습니다. 순수 앱 렌더링 CPU 절감률로 해석하거나 별도 보정하지 않습니다. 1논리 코어 = 100%이므로 100%를 넘을 수 있습니다. 운영체제 전체 사용률이나 기기별 성능 환산값이 아닙니다. 모바일 4배 제한의 제어 스레드 자체도 Chrome CPU 합계에 들어가므로, 그 수치를 실제 앱의 휴대폰 CPU 요구량으로 해석하지 않습니다.</li>
+    <li><b>메모리.</b> JS 힙은 JavaScript만 포함하고, WS는 Chrome 프로세스의 상주 페이지 합계로 공유 페이지가 중복될 수 있습니다. private commit은 실제 상주 RAM과 다릅니다. GPU 전용 메모리는 앱 프로세스의 스냅샷이며 실행 중 피크가 아닙니다. 반복 후 잔존 메모리 비교는 누수의 존재·부재를 정확히 증명하지 않습니다.</li>
+    <li><b>품질·기능.</b> 같은 렌더 버퍼여도 월 소스 해상도·splat LOD·상주 자산 수는 다를 수 있습니다. 절감량은 실제 버퍼·소스·예산·카운터와 함께 읽습니다. 적응형 해상도·LOD의 시각 품질, 원본 접근, 재생 동기화, 편집·선택, AR/XR 회귀는 검증 항목을 따로 확인합니다.</li>
+    <li><b>기기 범위.</b> 모바일 스트레스는 이 호스트 PC의 제한 조건입니다. 실제 휴대폰·Quest 3의 GPU, RAM, 발열, 배터리, XR 스테레오 성능이나 장시간 안정성으로 환산하지 않습니다.</li>
+  </ol>
+  <details><summary>입력에 기록된 측정 프로토콜 · 메타데이터</summary><pre id="protocol-data"></pre></details>
+</section>
+<section class="section" id="evidence">
+  <div class="section-top"><span class="number">06</span><h2>재현 정보와 전체 증거</h2></div>
+  <dl class="hardware" id="reproduction"></dl>
+  <p class="note">차트·표·스크린샷·원자료가 포함된 단일 HTML입니다. 외부 글꼴·스크립트·이미지를 요청하지 않습니다. 내려받는 JSON에는 포함된 스크린샷 데이터도 들어 있습니다.</p>
+  <details><summary>전체 입력 원자료 보기</summary><pre id="all-data"></pre></details>
+</section>
+<footer class="footer">멀티 디스플레이 전시 공간 · 렌더링 최적화 비교 · 수치가 없는 항목은 미측정 또는 미제공</footer>
+</main>
+<dialog id="zoom" aria-label="실행 화면 확대"><button type="button" id="close-zoom">닫기</button><img id="zoom-image" alt=""><p id="zoom-caption"></p></dialog>
+<script id="comparison-data" type="application/json">__COMPARISON_DATA__</script>
+<script>
+(() => {
+  'use strict';
+  const data = JSON.parse(document.getElementById('comparison-data').textContent);
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const num = value => typeof value === 'number' && Number.isFinite(value);
+  const fmt = (value, digits = 1) => num(value) ? value.toLocaleString('ko-KR', {minimumFractionDigits:digits,maximumFractionDigits:digits}) : '—';
+  const textValue = value => value == null ? '—' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+  const uniq = values => [...new Set(values)];
+  const median = values => {const sorted = values.filter(num).sort((a,b) => a-b); const mid = Math.floor(sorted.length/2); return sorted.length ? sorted.length%2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2 : null;};
+  const maximum = values => {const valid=values.filter(num);return valid.length?Math.max(...valid):null;};
+  const variants = {'baseline':'기존 빌드','optimized-fixed':'최적화 · 고정 버퍼','optimized-adaptive':'최적화 · 적응형'};
+  const profiles = {'desktop':'현재 PC · 데스크톱','mobile-stress':'PC · 모바일 스트레스'};
+  const colors = {'baseline':'#82958d','optimized-fixed':'#246b63','optimized-adaptive':'#c18b4a'};
+  const variantName = value => variants[value] || value || '빌드 미제공';
+  const profileName = value => profiles[value] || value || '프로필 미제공';
+  const key = row => JSON.stringify([row.profile ?? '',row.workload ?? '',row.variant ?? '']);
+  const pairKey = row => JSON.stringify([row.profile ?? '',row.workload ?? '']);
+  const trialBuffer = trial => {
+    const value = trial.buffer;
+    return value && num(value.width) && num(value.height) ? `${value.width} × ${value.height}` : null;
+  };
+  const fields = ['fps','cpu_core_pct','js_heap_mib','working_set_mib','private_commit_mib','gpu_dedicated_mib','draw_calls','triangles','resident_artworks','textures','geometries','wall_rendered_mean','wall_skipped_mean'];
+  const trialRows = Array.isArray(data.trials) ? data.trials : [];
+  const grouped = new Map();
+  for (const trial of trialRows) {const id=key(trial); if(!grouped.has(id)) grouped.set(id, {profile:trial.profile,workload:trial.workload,variant:trial.variant,trials:[]}); grouped.get(id).trials.push(trial);}
+  const rows = [...grouped.values()].map(row => {
+    const ok = row.trials.filter(t => t.status === 'ok');
+    const metrics = Object.fromEntries(fields.map(field => [field,median(ok.map(t => t[field]))]));
+    for (const field of ['p95_ms','p99_ms']) {const values=ok.map(t=>t[field]).filter(num);metrics[field]=values.length?Math.max(...values):null;}
+    return {...row,...metrics,ok,buffer_sizes:uniq(ok.map(trialBuffer).filter(Boolean)),buffer_complete:ok.length>0&&ok.every(t=>trialBuffer(t)!==null)};
+  }).sort((a,b) => String(a.profile).localeCompare(String(b.profile)) || String(a.workload).localeCompare(String(b.workload)) || (Object.keys(variants).indexOf(a.variant)-Object.keys(variants).indexOf(b.variant)));
+  const metadata = data.metadata || {};
+  const variantList = uniq(rows.map(row => row.variant));
+  const describeBuffers = row => row.buffer_sizes.join(' / ') || '—';
+  const valueCell = (value,digits=1) => `<td${num(value)?'':' class="metric-missing" title="미측정 또는 미제공"'}>${fmt(value,digits)}</td>`;
+  const listText = (trials,field) => uniq(trials.map(t=>t[field]).filter(v=>v!=null).map(textValue)).join(' / ') || '—';
+  const dimensionText = value => {
+    if(!Array.isArray(value)) return textValue(value);
+    const sizes=value.length===2&&value.every(num)?[value]:value;
+    if(!sizes.length)return '없음 (0개)';
+    const dimensions=sizes.map(size=>Array.isArray(size)&&size.length===2&&size.every(num)?`${size[0]} × ${size[1]}`:size&&num(size.width)&&num(size.height)?`${size.width} × ${size.height}`:null);
+    if(dimensions.some(size=>size===null))return textValue(value);
+    return uniq(dimensions).sort().map(size=>`${size} px (${dimensions.filter(item=>item===size).length}개)`).join(', ');
+  };
+  const dimensionEvidence = (row,field) => uniq(row.ok.map(t=>t[field]).filter(v=>v!=null).map(dimensionText)).join(' / ') || '—';
+  const qualityText = row => {
+    const wall=dimensionEvidence(row,'wall_sources');
+    const active=median(row.ok.map(t=>t.splat_stats?.activeSplats));
+    const lod=dimensionEvidence(row,'image_lod_stats');
+    return `월 소스: ${wall} · 정렬 후 활성 splat 중앙값: ${fmt(active,0)} · 이미지 LOD: ${lod}`;
+  };
+  const jsonPretty = value => JSON.stringify(value,null,2);
+  $('header-meta').innerHTML = [['측정',metadata.measured_at],['기존',metadata.baseline_commit],['최종 제품',metadata.optimized_commit]].map(([label,value])=>`<span>${esc(label)} · ${esc(textValue(value))}</span>`).join('');
+  $('attempts-note').textContent = `전체 시도 ${metadata.attempts_total ?? data.trials.length}회 중 최종 ${metadata.selected_trials ?? data.trials.length}회만 집계했습니다. 제외 ${metadata.excluded_trials ?? (data.excluded_iteration_summary||[]).length}회에는 교체된 개발 빌드와 무효 요청 실행 ${metadata.invalid_attempts ?? 0}회가 포함됩니다. 실패 실행은 삭제하지 않고 원자료의 excluded_iteration_summary에 남겼습니다.`;
+  $('host-summary').textContent = `호스트: ${textValue(metadata.host)} · 브라우저: ${textValue(metadata.browser)}`;
+  if(metadata.actual_mobile_measured === true || metadata.actual_quest3_measured === true) $('device-summary').textContent = `입력의 실제 휴대폰 측정 플래그: ${metadata.actual_mobile_measured === true?'예':'아니오'} · 실제 Quest 3 측정 플래그: ${metadata.actual_quest3_measured === true?'예':'아니오'}. 플래그 자체는 기능·품질 통과 판정이 아니며 개별 실행의 기기 증거를 확인해야 합니다.`;
+  const failures = trialRows.filter(row => row.status !== 'ok');
+  const checks = Array.isArray(data.checks) ? data.checks : [];
+  const checkCount = status => checks.filter(check => check.status === status).length;
+  const cards = [[rows.length,'프로필·장면·빌드 조건',`${uniq(rows.map(pairKey)).length}개 프로필·장면 조합`],[trialRows.filter(row=>row.status==='ok').length,'정상 실행',`전체 ${trialRows.length}회 · 비정상 ${failures.length}회`],[checkCount('fail'),'실패 판정 항목',`통과 ${checkCount('pass')} · 미측정 ${checkCount('unmeasured')}`],[data.screenshots.length,'제공된 실행 화면','원자료와 함께 이 HTML에 포함']];
+  $('overview').innerHTML = cards.map(([value,label,note])=>`<article class="card"><strong>${esc(value)}</strong><span>${esc(label)}</span><small>${esc(note)}</small></article>`).join('');
+  const notes = Array.isArray(metadata.notes)?metadata.notes:metadata.notes?[metadata.notes]:[];
+  if(Array.isArray(metadata.evaluation)&&metadata.evaluation.length) $('evaluation-summary').innerHTML=`<aside class="notice warning"><strong>실측 평가 · 개선과 남은 병목</strong><ul>${metadata.evaluation.map(note=>`<li>${esc(textValue(note))}</li>`).join('')}</ul></aside>`;
+  if(notes.length) $('data-notes').innerHTML=`<aside class="notice"><strong>측정자가 남긴 기록</strong><ul>${notes.map(note=>`<li>${esc(textValue(note))}</li>`).join('')}</ul></aside>`;
+  for(const [id,field,label] of [['profile-filter','profile',profileName],['workload-filter','workload',v=>v||'장면 미제공'],['variant-filter','variant',variantName]]) for(const value of uniq(rows.map(row=>row[field])).filter(v=>v!=null)) {const option=document.createElement('option');option.value=value;option.textContent=label(value);$(id).append(option);}
+  $('legend').innerHTML = variantList.map(v=>`<span><i style="background:${colors[v]||'#647f82'}"></i>${esc(variantName(v))}</span>`).join('');
+  function filteredRows() {
+    const query=$('search').value.trim().toLowerCase();
+    return rows.filter(row=>(!$('profile-filter').value||row.profile===$('profile-filter').value)&&(!$('workload-filter').value||row.workload===$('workload-filter').value)&&(!$('variant-filter').value||row.variant===$('variant-filter').value)&&(!query||`${profileName(row.profile)} ${row.workload} ${variantName(row.variant)} ${listText(row.trials,'camera_path')}`.toLowerCase().includes(query)));
+  }
+  function chart(target,metric,group) {
+    const available=group.filter(row=>num(row[metric]));
+    if(!available.length) {$(target).innerHTML='<p class="empty">현재 조건의 측정값이 없습니다.</p>';return;}
+    const pairs=uniq(available.map(pairKey));
+    const max=Math.max(1,...available.map(row=>row[metric]));
+    const width=650,left=20,right=100,plot=width-left-right;
+    let y=12,content='';
+    for(const pair of pairs) {
+      const members=available.filter(row=>pairKey(row)===pair),first=members[0];
+      content+=`<text x="${left}" y="${y+12}">${esc(first.workload||'장면 미제공')}</text><text x="${left}" y="${y+28}" style="font-size:10px">${esc(profileName(first.profile))}</text>`;
+      y+=42;
+      for(const row of members) {const bar=Math.max(0,row[metric]/max*plot);content+=`<g><title>${esc(`${variantName(row.variant)} · ${fmt(row[metric])}${metric==='fps'?' FPS':' 코어 %'}`)}</title><rect x="${left}" y="${y}" width="${bar.toFixed(2)}" height="15" rx="2" fill="${colors[row.variant]||'#647f82'}"/><text x="${left+bar+7}" y="${y+12}">${fmt(row[metric])}</text></g>`;y+=23;}
+      y+=19;
+    }
+    $(target).innerHTML=`<svg role="img" aria-label="${metric==='fps'?'FPS':'CPU'} 빌드별 비교" viewBox="0 0 ${width} ${y+30}"><title>${metric==='fps'?'렌더 FPS':'Chrome CPU 코어 사용률'} 비교</title>${content}<line x1="${left}" x2="${left+plot}" y1="${y}" y2="${y}" stroke="#b6c3b5"/><text x="${left}" y="${y+18}">0</text><text x="${left+plot}" y="${y+18}" text-anchor="end">${fmt(max)}${metric==='fps'?' FPS':'%'}</text></svg>`;
+  }
+  function fixedDeltas(group) {
+    const fixed=group.filter(row=>row.variant==='optimized-fixed');
+    if(!fixed.length) {$('fixed-deltas').innerHTML='<strong>고정 버퍼 실행의 비교</strong><p class="small">현재 필터에 최적화 고정 버퍼 조건이 없습니다.</p>';return;}
+    const delta=(after,before,suffix)=>num(after)&&num(before)?`${after-before>0?'+':''}${fmt(after-before)}${suffix}${before!==0?` (${after-before>0?'+':''}${fmt((after-before)/before*100)}%)`:''}`:'—';
+    const content=fixed.map(after=>{
+      const before=group.find(row=>row.variant==='baseline'&&pairKey(row)===pairKey(after));
+      const match=before&&before.buffer_complete&&after.buffer_complete&&before.buffer_sizes.length===1&&after.buffer_sizes.length===1&&before.buffer_sizes[0]===after.buffer_sizes[0];
+      const beforeWalls=before?dimensionEvidence(before,'wall_sources'):'—';
+      const afterWalls=dimensionEvidence(after,'wall_sources');
+      const wallDifference=beforeWalls!=='—'&&afterWalls!=='—'&&beforeWalls!==afterWalls;
+      return `<tr><td class="wrap">${esc(after.workload)}<small>${esc(profileName(after.profile))}</small></td><td>${match?'동일 버퍼 관측':'비교 조건 미충족'}${wallDifference?'<small>월 소스 해상도 차이 · 품질 절충 포함</small>':''}</td><td>${match?delta(after.fps,before.fps,' FPS'):'—'}${wallDifference?'<small>월 소스 차이 포함</small>':''}</td><td>${match?delta(after.cpu_core_pct,before.cpu_core_pct,'%p'):'—'}</td><td class="wrap">${match?esc(after.buffer_sizes[0]):'기존·최적화의 정상 실행과 단일 동일 버퍼 기록 필요'}<small>기존 ${esc(before?qualityText(before):'—')}</small><small>최적화 ${esc(qualityText(after))}</small></td></tr>`;
+    }).join('');
+    $('fixed-deltas').innerHTML=`<strong>고정 버퍼 실행의 비교 · 이미지·splat LOD와 상주 제어는 활성</strong><p class="small">차이는 최적화−기존입니다. CPU의 %p는 코어 사용률 차이입니다. 고정 버퍼는 같은 시각 품질의 보장이 아닙니다. 경로·자산·월 소스·LOD와 반복 수를 함께 확인합니다.</p><div class="table-wrap"><table><thead><tr><th>장면</th><th>버퍼 조건</th><th>FPS 차이</th><th>CPU 차이</th><th>관측 버퍼 · 품질 증거</th></tr></thead><tbody>${content}</tbody></table></div>`;
+  }
+  function selectCase(id,focus=true) {
+    const row=rows[Number(id)];if(!row)return;
+    const splats=row.ok.map(t=>t.splat_stats).filter(v=>v&&typeof v==='object');
+    const stats=[['끝 시점 렌더 버퍼',describeBuffers(row)],['CPU 관찰 구간 · 초',fmt(median(row.ok.map(t=>t.cpu_counter_seconds)),3)],['카메라 경로',listText(row.trials,'camera_path')],['끝 시점 월 소스 해상도',dimensionEvidence(row,'wall_sources')],['마지막 표본 이미지 LOD',dimensionEvidence(row,'image_lod_stats')],['끝 시점 상주 작품 · 반복 중앙값',fmt(row.resident_artworks,0)],['끝 시점 로딩 중 · 최대',fmt(maximum(row.ok.map(t=>t.pending_residents_at_end)),0)],['텍스처 · 중앙값',fmt(row.textures,0)],['지오메트리 · 중앙값',fmt(row.geometries,0)],['월 렌더 횟수 · 프레임 평균의 중앙값',fmt(row.wall_rendered_mean,2)],['월 생략 횟수 · 프레임 평균의 중앙값',fmt(row.wall_skipped_mean,2)],['끝 시점 splat meshes · 반복 중앙값',fmt(median(splats.map(s=>s.meshes)),0)],['로드된 splat 정점 · 중앙값',fmt(median(splats.map(s=>s.loadedVertexCount)),0)],['끝 시점 정렬 후 활성 splat · 반복 중앙값',fmt(median(splats.map(s=>s.activeSplats)),0)],['splat 예산 · 중앙값',fmt(median(splats.map(s=>s.budget)),0)]];
+    const samples=fields.concat(['p95_ms','p99_ms']).map(field=>`${field}: ${row.ok.filter(t=>num(t[field])).length}/${row.ok.length}`).join(' · ');
+    $('case-detail').innerHTML=`<h3>${esc(row.workload||'장면 미제공')}</h3><p class="small">${esc(profileName(row.profile))} · ${esc(variantName(row.variant))} · 정상 ${row.ok.length}/${row.trials.length}회</p><dl class="detail-grid">${stats.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl><p class="note">지표별 유효 표본: ${esc(samples)}</p><div class="table-wrap"><table><caption>반복별 수치 · 실패 실행은 위 집계에서 제외</caption><thead><tr><th>반복</th><th>상태</th><th>FPS</th><th>p95 ms</th><th>p99 ms</th><th>CPU 코어 %</th><th>JS 힙 MiB</th><th>WS MiB</th><th>GPU 전용 MiB</th><th>실제 버퍼</th><th>오류 수</th></tr></thead><tbody>${row.trials.map(t=>`<tr><td>${esc(t.repeat??t.id??'—')}</td><td>${esc(t.status??'—')}</td>${valueCell(t.fps)}${valueCell(t.p95_ms,2)}${valueCell(t.p99_ms,2)}${valueCell(t.cpu_core_pct)}${valueCell(t.js_heap_mib)}${valueCell(t.working_set_mib)}${valueCell(t.gpu_dedicated_mib)}<td>${esc(trialBuffer(t)||'—')}</td><td>${Array.isArray(t.errors)?t.errors.length:'—'}</td></tr>`).join('')}</tbody></table></div><details><summary>반복별 전체 JSON · 오류·설정·원시 증거 펼치기</summary><pre>${esc(jsonPretty(row.trials))}</pre></details>`;
+    $('case-detail').hidden=false;
+    if(focus){$('case-detail').scrollIntoView({block:'start',behavior:'auto'});$('case-detail').focus({preventScroll:true});}
+  }
+  function render() {
+    const group=filteredRows();
+    $('filter-count').textContent=`전체 ${rows.length}개 집계 조건 중 ${group.length}개 표시 · 해당 실행 ${group.reduce((n,row)=>n+row.trials.length,0)}회`;
+    $('comparison-body').innerHTML=group.length?group.map(row=>`<tr><td class="wrap"><button type="button" class="row-button" data-row="${rows.indexOf(row)}">${esc(row.workload||'장면 미제공')}</button><small>${esc(profileName(row.profile))}</small></td><td>${esc(variantName(row.variant))}</td><td>${row.ok.length} / ${row.trials.length}</td>${valueCell(row.fps)}${valueCell(row.p95_ms,2)}${valueCell(row.p99_ms,2)}${valueCell(row.cpu_core_pct)}${valueCell(row.js_heap_mib)}${valueCell(row.working_set_mib)}${valueCell(row.private_commit_mib)}${valueCell(row.gpu_dedicated_mib)}${valueCell(row.draw_calls,0)}${valueCell(row.triangles,0)}<td class="wrap">${esc(describeBuffers(row))}${row.buffer_complete?'':'<small>일부 또는 전체 기록 없음</small>'}</td></tr>`).join(''):'<tr><td colspan="14" class="empty">현재 필터와 일치하는 측정 조건이 없습니다.</td></tr>';
+    chart('fps-chart','fps',group);chart('cpu-chart','cpu_core_pct',group);fixedDeltas(group);$('case-detail').hidden=true;
+  }
+  for(const id of ['profile-filter','workload-filter','variant-filter']) $(id).addEventListener('change',render);
+  $('search').addEventListener('input',render);
+  $('reset').addEventListener('click',()=>{for(const id of ['profile-filter','workload-filter','variant-filter','search']) $(id).value='';render();});
+  $('comparison-body').addEventListener('click',event=>{const button=event.target.closest('[data-row]');if(button)selectCase(button.dataset.row);});
+  $('download').addEventListener('click',()=>{const blob=new Blob([jsonPretty(data)+'\n'],{type:'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='render-optimization-comparison.json';link.hidden=true;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);});
+  $('check-summary').textContent=`통과 ${checkCount('pass')} · 실패 ${checkCount('fail')} · 미측정 ${checkCount('unmeasured')} · 전체 ${checks.length}개 입력 항목`;
+  const statusLabel = status => ({pass:'통과',fail:'실패',unmeasured:'미측정'}[status]||'판정 미제공');
+  $('check-list').innerHTML=checks.length?checks.map(check=>{const status=['pass','fail','unmeasured'].includes(check.status)?check.status:'unmeasured';return `<article class="check ${status}"><span class="badge ${status}">${statusLabel(check.status)}</span><h3>${esc(check.name||'이름 미제공')}</h3><p>${esc(textValue(check.detail))}</p></article>`;}).join(''):'<p class="empty">입력에 검증 판정이 없습니다. 통과로 간주하지 않습니다.</p>';
+  $('gallery').innerHTML=data.screenshots.length?data.screenshots.map((shot,index)=>`<figure class="capture">${shot.data_uri?`<button type="button" data-shot="${index}" aria-label="${esc((shot.caption||'실행 화면')+' 확대')}"><img src="${esc(shot.data_uri)}" alt="${esc(shot.caption||'제공된 실행 화면')}" loading="lazy"></button>`:`<div class="missing">${esc(shot.embedded_error||'이미지 미제공')}</div>`}<figcaption><b>${esc(shot.caption||'제공된 실행 화면')}</b>${esc([variantName(shot.variant),shot.workload].filter(Boolean).join(' · '))}${shot.sha256?`<details><summary>이미지 SHA-256</summary><span class="hash">${esc(shot.sha256)}</span></details>`:''}</figcaption></figure>`).join(''):'<p class="empty">제공된 실행 화면이 없습니다.</p>';
+  $('gallery').addEventListener('click',event=>{const button=event.target.closest('[data-shot]');if(!button)return;const shot=data.screenshots[Number(button.dataset.shot)];$('zoom-image').src=shot.data_uri;$('zoom-image').alt=shot.caption||'실행 화면';$('zoom-caption').textContent=shot.caption||'실행 화면';$('zoom').showModal();});
+  $('close-zoom').addEventListener('click',()=>$('zoom').close());
+  $('zoom').addEventListener('click',event=>{if(event.target===$('zoom'))$('zoom').close();});
+  $('protocol-data').textContent=jsonPretty({metadata,measurement_protocol:data.measurement_protocol??null});
+  const reproduction=[['측정 시각',metadata.measured_at],['기존 커밋',metadata.baseline_commit],['최종 제품 커밋',metadata.optimized_commit],['호스트',metadata.host],['브라우저',metadata.browser],['실제 휴대폰 측정',metadata.actual_mobile_measured===true?'입력 플래그: 예':'미측정 또는 미제공'],['실제 Quest 3 측정',metadata.actual_quest3_measured===true?'입력 플래그: 예':'미측정 또는 미제공'],['보고서 생성',data.report_artifact?.generated_at],['입력 JSON SHA-256',data.report_artifact?.input_sha256]];
+  $('reproduction').innerHTML=reproduction.map(([label,value])=>`<dt>${esc(label)}</dt><dd>${esc(textValue(value))}</dd>`).join('');
+  $('all-data').textContent=jsonPretty(data);
+  render();
+})();
+</script>
+</body>
+</html>

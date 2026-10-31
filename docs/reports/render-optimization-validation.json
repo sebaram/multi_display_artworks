@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-29T17:18:16.356Z",
+  "status": "pass",
+  "initial": {
+    "trials": 46,
+    "rows": 23,
+    "images": 25,
+    "allDecoded": true,
+    "documentWidth": 1425,
+    "viewport": 1440,
+    "sourceRevisions": [
+      "a941868d85045db9a61537d18fdd0ade2e8eddb3"
+    ],
+    "assessment": "실측 평가 · 개선과 남은 병목서로 다른 이미지 300개: 데스크톱 GPU 전용 메모리 스냅샷 중앙값 1936→534 MiB (72% 감소). 화면 크기에 따른 이미지 LOD와 상주 제어가 포함됩니다.라이브 월 4개: 최적화 고정 모드는 프레임당 평균 1.64개 소스 렌더와 2.36개 생략을 기록했습니다. FPS는 기존 45.5 / 고정 43.4 / 적응형 51.0입니다. 적응형은 해상도 절충을 포함하며, 작업 생략만으로 고정 모드 FPS 향상을 보장하지 않습니다.Splat 8개 정지 시점: Chrome+관찰 작업 CPU 중앙값 328.2→25.4 코어%. 정렬·LOD 갱신 생략 효과가 관찰되지만 순수 앱 CPU 절감률로 환산하지 않습니다. 새 계층·누적 버퍼로 RAM/VRAM이 늘어나는 장면도 있습니다.PC 모바일 제한: 이미지 300개 FPS 중앙값 56.4→55.1, 혼합 300개 47.8→47.8입니다. 혼합 장면의 p95 최악 반복은 33.9→39.9 ms입니다. 평균 FPS와 프레임 지연을 함께 읽어야 하며 실제 휴대폰 수치가 아닙니다.평가: 이미지 메모리와 불필요한 화면 밖 작업을 줄였습니다. Splat 계층·재사용 캐시의 메모리 비용과 자동 품질의 화질 절충이 남습니다. 모든 장면의 FPS 향상을 보장하지 않습니다. 두 반복의 관찰이며 실제 휴대폰·Quest 3 사용 적합성을 인증하지 않습니다.",
+    "checks": "통과 9 · 실패 0 · 미측정 2 · 전체 11개 입력 항목"
+  },
+  "mobile": {
+    "width": 390,
+    "documentWidth": 375
+  },
+  "mobileGroups": 8,
+  "filtering": true,
+  "emptySearch": true,
+  "caseDetails": true,
+  "imageZoomAndEscape": true,
+  "download": {
+    "status": "saved",
+    "filename": "render-optimization-comparison.json",
+    "contentValidated": true
+  },
+  "requests": [
+    "http://127.0.0.1:8099/render-optimization.html"
+  ],
+  "errors": [],
+  "html_sha256": "f5083b04b3358c96321c8b3f45486d6fe409d1318ad1854f2c0d0a0e0f045352",
+  "results_sha256": "b749628cb27431b56be87e26cc03809a7d2d23d0fd1fbfed7ef1d775234a6d1b"
+}

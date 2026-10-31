@@ -1,0 +1,18 @@
+{
+  "triangles": 2544,
+  "lowBodyTriangles": 464,
+  "fullBodyTriangles": 1176,
+  "residentTriangles": 3008,
+  "bones": 22,
+  "bodyMaterials": 1,
+  "accessoryMaterials": 1,
+  "textureSize": 1,
+  "meters": true,
+  "up": "+Y",
+  "forward": "-Z",
+  "animations": [
+    "idle",
+    "walk"
+  ],
+  "generator": "tools/avatars/generate_humanoid.py"
+}

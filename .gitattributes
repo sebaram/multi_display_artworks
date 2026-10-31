@@ -1,0 +1,13 @@
+/frontend/src/wall-engine/reference/vendor/* -whitespace
+/frontend/public/wall-reference/fonts/*-OFL.txt -whitespace
+/frontend/public/vendor/** -whitespace
+/docs/reports/*.html -text
+/docs/reports/*.json -text
+# Preserve generated report hashes while accepting native Windows line endings.
+/docs/reports/render-optimization*.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/reports/render-optimization*.json whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/frontend/public/vendor/aframe-1.8.0.min.js -text
+/frontend/public/vendor/gaussian-splatting.js -text
+/frontend/public/vendor/spark-2.4.0.module.js -text
+/frontend/public/vendor/aframe-three-bridge.js -text
+/frontend/public/vendor/three-Pass.js -text

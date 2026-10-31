@@ -1,0 +1,11 @@
+SPDX-License-Identifier: CC0-1.0
+
+Original MetaMuseum humanoid assets and generator, 2026 MetaMuseum contributors.
+To the extent possible under law, the contributors waive all copyright and
+related or neighboring rights in these original assets and the generator under
+CC0 1.0 Universal. This work is provided without warranty.
+
+License text: https://creativecommons.org/publicdomain/zero/1.0/legalcode.en
+This dedication covers common-humanoid.glb, humanoid-thumbnail.svg,
+asset-inspection.json, catalog.fixture.json and tools/avatars/generate_humanoid.py.
+Third-party Three.js/SkeletonUtils code retains its separate MIT license.

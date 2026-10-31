@@ -1,0 +1,166 @@
+{
+  "name": "Meaning 02A / Co-creation",
+  "source_key": "meaning:3",
+  "config": {
+    "schema_version": 1,
+    "source_commit": "b247fd238fe6cb2c8c860c77d13488b28b8a0290",
+    "logical_screen": "front",
+    "seed": 0,
+    "state": {
+      "variant": 1,
+      "cue": 0,
+      "videoId": null,
+      "showVideo": false,
+      "brightness": 85,
+      "speed": 1,
+      "motionAmount": 1,
+      "paused": false,
+      "epoch": 0,
+      "offset": 0,
+      "branding": true,
+      "headlines": false,
+      "guide": false,
+      "calibration": false,
+      "interactive": false,
+      "frontW": 3840,
+      "frontH": 2160,
+      "leftW": 3840,
+      "leftH": 2160,
+      "leftShape": "tiles",
+      "bezel": 0,
+      "screens": [
+        {
+          "id": "left",
+          "name": "Left tiled wall",
+          "width": 3840,
+          "height": 2160,
+          "mode": "tiles",
+          "cols": 3,
+          "rows": 2,
+          "tileW": 16,
+          "tileH": 9,
+          "aspectW": 16,
+          "aspectH": 9,
+          "grid": false
+        },
+        {
+          "id": "front",
+          "name": "Front LED / 4.44 x 2.50 m",
+          "width": 3840,
+          "height": 2160,
+          "mode": "raster",
+          "cols": 1,
+          "rows": 1,
+          "tileW": 16,
+          "tileH": 9,
+          "aspectW": 16,
+          "aspectH": 9,
+          "grid": false
+        }
+      ],
+      "videoLayers": [],
+      "authored": {
+        "1": {
+          "edits": {
+            "branding-front": {
+              "x": 7,
+              "y": 7,
+              "size": 0.62
+            },
+            "wall-caption-front": {
+              "visible": false
+            },
+            "branding-left": {
+              "x": 7,
+              "y": 7,
+              "size": 0.62
+            },
+            "wall-caption-left": {
+              "visible": false
+            },
+            "preset-main": {
+              "x": 84,
+              "y": 60,
+              "size": 0.7,
+              "motionSpeed": 0.45,
+              "motionAmount": 0.8,
+              "screen": "front",
+              "visible": false
+            },
+            "preset-companion": {
+              "x": 80,
+              "y": 64,
+              "size": 0.68,
+              "motionSpeed": 0.45,
+              "motionAmount": 0.8,
+              "screen": "left",
+              "visible": false
+            },
+            "front-soft-shadow-1": {
+              "visible": false
+            },
+            "left-soft-shadow-1": {
+              "visible": false
+            },
+            "left-connecting-ribbon-1": {
+              "y": 91,
+              "visible": false
+            },
+            "left-connecting-ribbon-2": {
+              "y": 93,
+              "visible": false
+            }
+          },
+          "objects": [
+            {
+              "id": "meaning-front",
+              "type": "cocreation",
+              "source": null,
+              "archived": false,
+              "x": 82,
+              "y": 72,
+              "size": 1.1,
+              "rotation": 0,
+              "motionSpeed": 0.9,
+              "motionAmount": 1,
+              "motionAnchor": 0,
+              "motionOffset": 0,
+              "screen": "front",
+              "visible": true
+            },
+            {
+              "id": "meaning-left",
+              "type": "cocreation",
+              "source": null,
+              "archived": false,
+              "x": 82,
+              "y": 72,
+              "size": 1.1,
+              "rotation": 0,
+              "motionSpeed": 0.9,
+              "motionAmount": 1,
+              "motionAnchor": 0,
+              "motionOffset": 0,
+              "screen": "left",
+              "visible": true
+            }
+          ]
+        }
+      },
+      "appearance": {
+        "1": {
+          "mode": "gradient",
+          "backgroundColor": "#101824",
+          "glowColor": "#27495f",
+          "glow": 0.65,
+          "lighting": 0.95,
+          "floor": 0.55
+        }
+      },
+      "activeVideoLayer": null,
+      "editVideos": false,
+      "editElements": false,
+      "activeElement": null
+    }
+  }
+}

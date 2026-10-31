@@ -1,0 +1,37 @@
+# 비교·성능 보고서
+
+현재 출시 후보는 `codex/gaussian-avatar-gaze`의 `71f9a3b`이며, [CI 41192279779](https://github.com/sebaram/multi_display_artworks/actions/runs/41192279779)의 테스트·이미지 빌드·런타임 검사가 성공했습니다. 아래 보고서의 실패 수치와 검증 범위는 각 촬영 시점의 기록입니다. YouTube CI의 성공은 실제 재생 또는 명시적 봇 차단 시 오류 안내·원본 링크 검증을 뜻하며 실제 재생 성공과 구분합니다. 운영 데이터 복원·배포와 실기기 확인 범위는 [2.0 출시 검토안](../releases/v2.0-readiness.md)에 정리했습니다.
+
+[2026-10-31 TV·모바일 후속 수정 검증](display-fix-verification.json): 아래 재비교의 R1–R5를 수정했습니다. 월 전용 화면은 가로·세로 모두98% 폭으로 맞추고, 방 방문자 없이 월 상태만 구독합니다. 이미지 contain 표시·모바일 저장 버튼·Windows 잠금 파일 재삭제를 복구했습니다. 집중 검사65개(프론트엔드44·백엔드21)와 빌드, 실제 Chrome 흐름을 확인했습니다. [수정 후 TV](../validation/display-tv-after-desktop.png)·[모바일](../validation/display-tv-after-mobile.png). 전체 CI 및 실기기는 재실행하지 않았습니다.
+
+[2026-10-31 모바일·데스크톱·TV 재비교](mobile-desktop-tv-comparison.html)는 메인 `974bbfd`와 현재 `a0a762c`를 32개 기능 묶음, 실제 화면 14장으로 다시 확인했습니다. 고유 월 URL과 refresh는 동작하지만 TV 월 표시가 가로99.4%에서28.2%로 작아지고, 기본 이미지 주소의 contain 표시가 사라졌습니다. 방 방문자와 월 표시 연결, 모바일 저장 버튼 가림, Windows 미디어 삭제까지 확정 수정 항목5건을 기록했습니다. 로컬 프론트엔드432검사는 통과했지만 최신 CI는 브라우저44통과·3실패입니다. 실제 모바일·TV·XR 기기 결과와 에뮬레이션을 구분했습니다. [원자료](mobile-desktop-tv-comparison-results.json).
+
+[2026-10-31 후속 수정 검증](parity-fix-verification.json): 비교 보고서의 F1–F7을 수정하고 아바타 팝업을 컴팩트하게 바꿨습니다. [데스크톱](../validation/avatar-compact-desktop.png)·[모바일](../validation/avatar-compact-mobile.png)에서 기본 설정과 버튼이 한 화면에 들어옵니다. 구현 이력을 전달하지 않은 독립 검토자가 별도 브라우저와 집중 검사로 다시 확인했으며, 확인 범위 내 추가 조치 사항은 없었습니다. 전체 CI·실기기 재검증은 별도입니다.
+
+[2026-10-31 운영 배포판·작업 브랜치 비교](deployment-comparison.html)는 마지막 성공 배포 `master · 974bbfd`와 `codex/gaussian-avatar-gaze · f81d22d`를 독립 검토자 3명과 실제 Chrome으로 비교했습니다. 27개 기능 항목, 확정 결함 7건, 이번에 촬영한 화면 11장을 담은 단일 HTML입니다. 실제 브라우저·API·mock 재현·코드 확인을 구분하며, 운영 데이터와 실기기는 이번에 변경하거나 검증하지 않았습니다. [구조화 결과](deployment-comparison-results.json)에 재현 조건·소스 위치·CI 조회 시점과 미확인 범위를 기록했습니다. 최신 CI는 브라우저9건 실패·37건 통과로 종료돼 image/runtime 검사는 건너뛰었습니다. 이 실패 목록과 원인을 재현한 확정 결함7건은 구분했습니다.
+
+[렌더링 최적화 전후 비교](render-optimization.html)는 기존 빌드와 화면 밖 월 갱신 중단, 이미지 LOD·자산 해제, Spark 2.4 공유 렌더러를 적용한 빌드를 비교합니다. 동일 화면 버퍼 조건과 자동 품질 조절 조건을 구분하고, 화질·메모리 비용이 달라진 부분도 표시합니다. [적용 정책과 한계](../rendering-performance.md).
+
+최종 빌드의 46회 비교와 스크린샷 25장을 단일 HTML에 담았습니다. [원자료](render-optimization-results.json), [브라우저 검증](render-optimization-validation.json), [파일 해시](render-optimization-artifact.json)를 함께 보관합니다. 이미지 재방문 시 작은 축소 이미지를 재사용해 개발 중 발견한 모바일 FPS 퇴행을 해소했습니다. 라이브 월 고정 해상도 FPS 감소와 splat 메모리 증가는 첫 평가에 명시했습니다. 실제 휴대폰·Quest 3는 미측정입니다.
+
+[성능 평가 보고서](performance-evaluation.html)는 59개 조건의 일반 측정 118회, 라이브 월 3분 실행, API 동시 요청 144회와 SPA 왕복 10회를 포함합니다. FPS·프레임 간격·CPU·RAM·GPU 전용 메모리를 비교하고 CSV/JSON을 내보낼 수 있습니다. 실제 휴대폰·Quest 3는 미측정이며, 모바일 항목은 같은 PC의 화면·CPU 제한 조건입니다. [측정 방법과 재현](../../tools/performance/README.md), [원자료](performance-results.json)를 함께 보관했습니다.
+
+## 기능별 전후 비교
+
+[migration-before-after.html](migration-before-after.html)을 브라우저에서 엽니다. 스크린샷 19장과 영상 8개, 영상 포스터용 이미지가 모두 HTML 안에 포함되어 있습니다. 파일 하나만 복사해도 이미지 확대와 영상 재생을 사용할 수 있습니다. HTML 크기는 약 4.7MB입니다.
+
+탐색, 관리, 3D 작품, 월 디자인, 프리셋, 실시간 공유, 영상, 연결 도구, 검증 기록의 9개 항목으로 구성했습니다. 기존 Git 소스 `974bbfd`와 새 구현 `31a4b65`, 촬영 중 회귀 수정 `3e4a170`을 사용했습니다. 동일 합성 BSON 18개를 격리 DB에 넣고 실제 앱을 실행해 촬영했습니다. 신규 기능 시연용 데이터는 별도로 추가했습니다.
+
+`migration-media.json`에는 내장 미디어별 크기와 SHA-256, 캡처 조건과 소스 버전을 기록했습니다. `report-validation.json`은 최종 HTML을 Chrome에서 확인한 결과입니다. 이미지 전체 디코딩, 영상 8개 프레임 디코딩, 두 영상 함께 재생, 확대·Escape 닫기, 390px 모바일 가로 넘침 여부를 확인했습니다. 보고서 HTML 요청 외에 외부 자원 요청이 없었습니다. 브라우저 도구의 file 프로토콜 제한 때문에 검증은 로컬 HTTP로 수행했습니다.
+
+필요하면 저장소 루트에서 로컬 미리보기를 실행할 수 있습니다.
+
+```sh
+python -m http.server 8099 --bind 127.0.0.1 --directory docs/reports
+```
+
+브라우저에서 `http://127.0.0.1:8099/migration-before-after.html`을 엽니다. 원본 캡처와 촬영용 구버전 아카이브는 무시되는 `output/playwright/migration-report/`에 보관합니다.
+
+촬영 중 저장된 월의 첫 입장 화면이 흰색이 되는 문제를 발견해 DOM 연결 이후 캔버스 재질을 연결하도록 수정했습니다. 실제 재질의 캔버스 연결을 확인하는 브라우저 회귀 검증을 추가했고 실패 재현 후 통과했습니다. 별도 리뷰에서 조치할 문제는 발견되지 않았습니다. 스트림 ID의 HTML 패턴도 수정하고 실제 Chromium의 기본 입력 검증으로 확인했습니다.
+
+보고서에 인용한 전체 테스트 수치는 이전 구현 단계의 기록입니다. 촬영 중 수정 후에는 프런트엔드 231개 테스트, 타입 검사·빌드, 공유 월 회귀 검증과 네이티브 입력 검증을 확인했습니다. 백엔드·전체 브라우저·컨테이너 검증을 다시 전부 실행하지는 않았습니다. 운영 데이터 복원, 실제 장치·유료 추론·운영 배포는 수행하지 않았습니다.

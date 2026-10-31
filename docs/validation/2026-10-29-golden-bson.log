@@ -1,0 +1,8 @@
+.C:\dev\multi_display_artworks\flask_server\app\metamuseum\models.py:44: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  updated_at = StringField(default=lambda: datetime.utcnow().isoformat())
+..
+BASE_DIR:  C:\dev\multi_display_artworks
+----------------------------------------------------------------------
+Ran 3 tests in 1.058s
+
+OK

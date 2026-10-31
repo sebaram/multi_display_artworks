@@ -1,0 +1,59 @@
+{
+  "implementation_head": "bd83165",
+  "base": "974bbfd74ecd9a1330a03d7dd2a19994209ec8f5",
+  "branch": "codex/fastapi-react-interactive-walls",
+  "source_commit": "b247fd238fe6cb2c8c860c77d13488b28b8a0290",
+  "backend": {
+    "passed": 181,
+    "subtests_passed": 5,
+    "seconds": 103.09,
+    "database": "guarded synthetic MongoDB on127.0.0.1:27028"
+  },
+  "frontend_unit": {
+    "vitest": 47,
+    "legacy_node": 108,
+    "wall_engine_node": 76,
+    "total": 231
+  },
+  "browser": {
+    "development_passed": 30,
+    "production_build_passed": 29,
+    "production_exclusion": "one Vite-only engine audio harness already passed in development suite",
+    "browsers": [
+      "Chromium",
+      "Firefox",
+      "WebKit"
+    ],
+    "development_duration_reported": "4.7m",
+    "production_duration_reported": "4.2m"
+  },
+  "image": {
+    "tag": "metamuseum:migration-check",
+    "id": "sha256:b0a2cb36f2fd3cc55d6a3bbdafc7c0f8b2c6237a16b98409fbb1d479940a7294",
+    "health_spa_assets_socketio": true,
+    "presets": 44,
+    "upload_range_and_persistent_media_sha": true,
+    "flask_eventlet_absent": true
+  },
+  "checks": {
+    "typecheck": true,
+    "production_build": true,
+    "npm_audit_vulnerabilities": 0,
+    "actionlint": true,
+    "compose_dev_prod_config": true,
+    "whole_branch_review": "APPROVED"
+  },
+  "remote_ci": {
+    "existing_master_run": "https://github.com/sebaram/multi_display_artworks/actions/runs/40257231769",
+    "conclusion": "success",
+    "runner": "online at inspection",
+    "new_branch_pushed": false,
+    "production_deployed": false
+  },
+  "not_executed": [
+    "actual production-data restore/rollback rehearsal",
+    "physical XR/AR/camera/microphone/mobile GPU benchmark",
+    "paid provider inference",
+    "external TURN/network reachability"
+  ]
+}

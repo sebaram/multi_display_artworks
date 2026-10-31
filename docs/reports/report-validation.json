@@ -1,0 +1,79 @@
+{
+  "media": [
+    {
+      "file": "before-navigation.mp4",
+      "duration": 12,
+      "width": 1280,
+      "height": 800,
+      "error": null
+    },
+    {
+      "file": "after-tour.mp4",
+      "duration": 13.833333,
+      "width": 1280,
+      "height": 800,
+      "error": null
+    },
+    {
+      "file": "before-admin.mp4",
+      "duration": 8.5,
+      "width": 1280,
+      "height": 800,
+      "error": null
+    },
+    {
+      "file": "after-admin.mp4",
+      "duration": 6.75,
+      "width": 1280,
+      "height": 800,
+      "error": null
+    },
+    {
+      "file": "after-editor.mp4",
+      "duration": 9.583333,
+      "width": 1280,
+      "height": 800,
+      "error": null
+    },
+    {
+      "file": "shared-pair.mp4",
+      "duration": 16.083333,
+      "width": 1440,
+      "height": 450,
+      "error": null
+    },
+    {
+      "file": "after-youtube.mp4",
+      "duration": 8.833333,
+      "width": 1280,
+      "height": 800,
+      "error": null
+    },
+    {
+      "file": "after-stream-play.mp4",
+      "duration": 9.166667,
+      "width": 1280,
+      "height": 800,
+      "error": null
+    }
+  ],
+  "paired": true,
+  "layout": {
+    "width": 390,
+    "scroll": 390,
+    "sections": 9,
+    "images": 19
+  },
+  "requests": [
+    "http://127.0.0.1:8099/migration-before-after.html"
+  ],
+  "verified_at": "2026-10-29T03:39:40.966192+00:00",
+  "browser": "Chrome through Playwright CLI",
+  "html_sha256": "15f55d355368e4bd30612c51e95d78c3d6ad276b872793881f5903a2dc5ca203",
+  "image_decode": "all19captureimages",
+  "video_decode": "all8videoelementsdecodedframes",
+  "zoom_dialog_escape": true,
+  "body_horizontal_overflow": false,
+  "external_resource_requests": 0,
+  "served_over": "loopback HTTP; file navigation blocked by browser tool policy"
+}

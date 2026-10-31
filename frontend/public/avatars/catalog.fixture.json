@@ -1,0 +1,1813 @@
+{
+  "schemaVersion": 2,
+  "presets": [
+    {
+      "id": "casual",
+      "label": "Casual",
+      "kind": "humanoid",
+      "assetUrl": "/avatars/common-humanoid.glb",
+      "thumbnail": "/avatars/humanoid-thumbnail.svg",
+      "rigVersion": "humanoid-v1",
+      "coreBones": [
+        "hips",
+        "spine",
+        "chest",
+        "upperChest",
+        "neck",
+        "head",
+        "leftShoulder",
+        "leftUpperArm",
+        "leftLowerArm",
+        "leftHand",
+        "rightShoulder",
+        "rightUpperArm",
+        "rightLowerArm",
+        "rightHand",
+        "leftUpperLeg",
+        "leftLowerLeg",
+        "leftFoot",
+        "leftToes",
+        "rightUpperLeg",
+        "rightLowerLeg",
+        "rightFoot",
+        "rightToes"
+      ],
+      "rigMap": {
+        "hips": "hips",
+        "spine": "spine",
+        "chest": "chest",
+        "upperChest": "upperChest",
+        "neck": "neck",
+        "head": "head",
+        "leftShoulder": "leftShoulder",
+        "leftUpperArm": "leftUpperArm",
+        "leftLowerArm": "leftLowerArm",
+        "leftHand": "leftHand",
+        "rightShoulder": "rightShoulder",
+        "rightUpperArm": "rightUpperArm",
+        "rightLowerArm": "rightLowerArm",
+        "rightHand": "rightHand",
+        "leftUpperLeg": "leftUpperLeg",
+        "leftLowerLeg": "leftLowerLeg",
+        "leftFoot": "leftFoot",
+        "leftToes": "leftToes",
+        "rightUpperLeg": "rightUpperLeg",
+        "rightLowerLeg": "rightLowerLeg",
+        "rightFoot": "rightFoot",
+        "rightToes": "rightToes"
+      },
+      "restPose": {
+        "hips": {
+          "parent": null,
+          "position": [
+            0,
+            0.92,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "spine": {
+          "parent": "hips",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "chest": {
+          "parent": "spine",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "upperChest": {
+          "parent": "chest",
+          "position": [
+            0,
+            0.12,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "neck": {
+          "parent": "upperChest",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "head": {
+          "parent": "neck",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftShoulder": {
+          "parent": "upperChest",
+          "position": [
+            -0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperArm": {
+          "parent": "leftShoulder",
+          "position": [
+            -0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerArm": {
+          "parent": "leftUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftHand": {
+          "parent": "leftLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightShoulder": {
+          "parent": "upperChest",
+          "position": [
+            0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperArm": {
+          "parent": "rightShoulder",
+          "position": [
+            0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerArm": {
+          "parent": "rightUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightHand": {
+          "parent": "rightLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperLeg": {
+          "parent": "hips",
+          "position": [
+            -0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerLeg": {
+          "parent": "leftUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftFoot": {
+          "parent": "leftLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftToes": {
+          "parent": "leftFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperLeg": {
+          "parent": "hips",
+          "position": [
+            0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerLeg": {
+          "parent": "rightUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightFoot": {
+          "parent": "rightLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightToes": {
+          "parent": "rightFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "materialSlots": {
+        "skin": "Body",
+        "top": "Body",
+        "bottom": "Body",
+        "hair": "Attachments",
+        "eyes": "Body"
+      },
+      "headAnchor": "HeadAnchor",
+      "capabilities": {
+        "colors": true,
+        "face": true,
+        "hair": true,
+        "accessories": true,
+        "fullBody": true
+      },
+      "budgets": {
+        "triangles": 20000,
+        "bones": 70,
+        "bodyMaterials": 2,
+        "accessoryMaterials": 2,
+        "textureSize": 1024
+      },
+      "options": {
+        "faceId": [
+          "friendly",
+          "calm"
+        ],
+        "hairId": [
+          "none",
+          "short"
+        ],
+        "hatId": [
+          "none",
+          "cap"
+        ],
+        "glassesId": [
+          "none",
+          "round"
+        ]
+      },
+      "compatibility": {
+        "cap": {
+          "hides": [
+            "short"
+          ]
+        }
+      },
+      "defaultAppearance": {
+        "schemaVersion": 2,
+        "presetId": "casual",
+        "colors": {
+          "skin": "#DDA477",
+          "top": "#4587C4",
+          "bottom": "#26364D",
+          "hair": "#402D24",
+          "eyes": "#292B34"
+        },
+        "faceId": "friendly",
+        "hairId": "short",
+        "hatId": "none",
+        "glassesId": "none"
+      }
+    },
+    {
+      "id": "sporty",
+      "label": "Sporty",
+      "kind": "humanoid",
+      "assetUrl": "/avatars/common-humanoid.glb",
+      "thumbnail": "/avatars/humanoid-thumbnail.svg",
+      "rigVersion": "humanoid-v1",
+      "coreBones": [
+        "hips",
+        "spine",
+        "chest",
+        "upperChest",
+        "neck",
+        "head",
+        "leftShoulder",
+        "leftUpperArm",
+        "leftLowerArm",
+        "leftHand",
+        "rightShoulder",
+        "rightUpperArm",
+        "rightLowerArm",
+        "rightHand",
+        "leftUpperLeg",
+        "leftLowerLeg",
+        "leftFoot",
+        "leftToes",
+        "rightUpperLeg",
+        "rightLowerLeg",
+        "rightFoot",
+        "rightToes"
+      ],
+      "rigMap": {
+        "hips": "hips",
+        "spine": "spine",
+        "chest": "chest",
+        "upperChest": "upperChest",
+        "neck": "neck",
+        "head": "head",
+        "leftShoulder": "leftShoulder",
+        "leftUpperArm": "leftUpperArm",
+        "leftLowerArm": "leftLowerArm",
+        "leftHand": "leftHand",
+        "rightShoulder": "rightShoulder",
+        "rightUpperArm": "rightUpperArm",
+        "rightLowerArm": "rightLowerArm",
+        "rightHand": "rightHand",
+        "leftUpperLeg": "leftUpperLeg",
+        "leftLowerLeg": "leftLowerLeg",
+        "leftFoot": "leftFoot",
+        "leftToes": "leftToes",
+        "rightUpperLeg": "rightUpperLeg",
+        "rightLowerLeg": "rightLowerLeg",
+        "rightFoot": "rightFoot",
+        "rightToes": "rightToes"
+      },
+      "restPose": {
+        "hips": {
+          "parent": null,
+          "position": [
+            0,
+            0.92,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "spine": {
+          "parent": "hips",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "chest": {
+          "parent": "spine",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "upperChest": {
+          "parent": "chest",
+          "position": [
+            0,
+            0.12,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "neck": {
+          "parent": "upperChest",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "head": {
+          "parent": "neck",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftShoulder": {
+          "parent": "upperChest",
+          "position": [
+            -0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperArm": {
+          "parent": "leftShoulder",
+          "position": [
+            -0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerArm": {
+          "parent": "leftUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftHand": {
+          "parent": "leftLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightShoulder": {
+          "parent": "upperChest",
+          "position": [
+            0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperArm": {
+          "parent": "rightShoulder",
+          "position": [
+            0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerArm": {
+          "parent": "rightUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightHand": {
+          "parent": "rightLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperLeg": {
+          "parent": "hips",
+          "position": [
+            -0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerLeg": {
+          "parent": "leftUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftFoot": {
+          "parent": "leftLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftToes": {
+          "parent": "leftFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperLeg": {
+          "parent": "hips",
+          "position": [
+            0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerLeg": {
+          "parent": "rightUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightFoot": {
+          "parent": "rightLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightToes": {
+          "parent": "rightFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "materialSlots": {
+        "skin": "Body",
+        "top": "Body",
+        "bottom": "Body",
+        "hair": "Attachments",
+        "eyes": "Body"
+      },
+      "headAnchor": "HeadAnchor",
+      "capabilities": {
+        "colors": true,
+        "face": true,
+        "hair": true,
+        "accessories": true,
+        "fullBody": true
+      },
+      "budgets": {
+        "triangles": 20000,
+        "bones": 70,
+        "bodyMaterials": 2,
+        "accessoryMaterials": 2,
+        "textureSize": 1024
+      },
+      "options": {
+        "faceId": [
+          "friendly",
+          "calm"
+        ],
+        "hairId": [
+          "none",
+          "short"
+        ],
+        "hatId": [
+          "none",
+          "cap"
+        ],
+        "glassesId": [
+          "none",
+          "round"
+        ]
+      },
+      "compatibility": {
+        "cap": {
+          "hides": [
+            "short"
+          ]
+        }
+      },
+      "defaultAppearance": {
+        "schemaVersion": 2,
+        "presetId": "sporty",
+        "colors": {
+          "skin": "#B87B55",
+          "top": "#E86B50",
+          "bottom": "#202D36",
+          "hair": "#222222",
+          "eyes": "#252B32"
+        },
+        "faceId": "friendly",
+        "hairId": "short",
+        "hatId": "cap",
+        "glassesId": "none"
+      }
+    },
+    {
+      "id": "explorer",
+      "label": "Explorer",
+      "kind": "humanoid",
+      "assetUrl": "/avatars/common-humanoid.glb",
+      "thumbnail": "/avatars/humanoid-thumbnail.svg",
+      "rigVersion": "humanoid-v1",
+      "coreBones": [
+        "hips",
+        "spine",
+        "chest",
+        "upperChest",
+        "neck",
+        "head",
+        "leftShoulder",
+        "leftUpperArm",
+        "leftLowerArm",
+        "leftHand",
+        "rightShoulder",
+        "rightUpperArm",
+        "rightLowerArm",
+        "rightHand",
+        "leftUpperLeg",
+        "leftLowerLeg",
+        "leftFoot",
+        "leftToes",
+        "rightUpperLeg",
+        "rightLowerLeg",
+        "rightFoot",
+        "rightToes"
+      ],
+      "rigMap": {
+        "hips": "hips",
+        "spine": "spine",
+        "chest": "chest",
+        "upperChest": "upperChest",
+        "neck": "neck",
+        "head": "head",
+        "leftShoulder": "leftShoulder",
+        "leftUpperArm": "leftUpperArm",
+        "leftLowerArm": "leftLowerArm",
+        "leftHand": "leftHand",
+        "rightShoulder": "rightShoulder",
+        "rightUpperArm": "rightUpperArm",
+        "rightLowerArm": "rightLowerArm",
+        "rightHand": "rightHand",
+        "leftUpperLeg": "leftUpperLeg",
+        "leftLowerLeg": "leftLowerLeg",
+        "leftFoot": "leftFoot",
+        "leftToes": "leftToes",
+        "rightUpperLeg": "rightUpperLeg",
+        "rightLowerLeg": "rightLowerLeg",
+        "rightFoot": "rightFoot",
+        "rightToes": "rightToes"
+      },
+      "restPose": {
+        "hips": {
+          "parent": null,
+          "position": [
+            0,
+            0.92,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "spine": {
+          "parent": "hips",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "chest": {
+          "parent": "spine",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "upperChest": {
+          "parent": "chest",
+          "position": [
+            0,
+            0.12,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "neck": {
+          "parent": "upperChest",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "head": {
+          "parent": "neck",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftShoulder": {
+          "parent": "upperChest",
+          "position": [
+            -0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperArm": {
+          "parent": "leftShoulder",
+          "position": [
+            -0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerArm": {
+          "parent": "leftUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftHand": {
+          "parent": "leftLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightShoulder": {
+          "parent": "upperChest",
+          "position": [
+            0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperArm": {
+          "parent": "rightShoulder",
+          "position": [
+            0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerArm": {
+          "parent": "rightUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightHand": {
+          "parent": "rightLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperLeg": {
+          "parent": "hips",
+          "position": [
+            -0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerLeg": {
+          "parent": "leftUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftFoot": {
+          "parent": "leftLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftToes": {
+          "parent": "leftFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperLeg": {
+          "parent": "hips",
+          "position": [
+            0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerLeg": {
+          "parent": "rightUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightFoot": {
+          "parent": "rightLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightToes": {
+          "parent": "rightFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "materialSlots": {
+        "skin": "Body",
+        "top": "Body",
+        "bottom": "Body",
+        "hair": "Attachments",
+        "eyes": "Body"
+      },
+      "headAnchor": "HeadAnchor",
+      "capabilities": {
+        "colors": true,
+        "face": true,
+        "hair": true,
+        "accessories": true,
+        "fullBody": true
+      },
+      "budgets": {
+        "triangles": 20000,
+        "bones": 70,
+        "bodyMaterials": 2,
+        "accessoryMaterials": 2,
+        "textureSize": 1024
+      },
+      "options": {
+        "faceId": [
+          "friendly",
+          "calm"
+        ],
+        "hairId": [
+          "none",
+          "short"
+        ],
+        "hatId": [
+          "none",
+          "cap"
+        ],
+        "glassesId": [
+          "none",
+          "round"
+        ]
+      },
+      "compatibility": {
+        "cap": {
+          "hides": [
+            "short"
+          ]
+        }
+      },
+      "defaultAppearance": {
+        "schemaVersion": 2,
+        "presetId": "explorer",
+        "colors": {
+          "skin": "#EDBD94",
+          "top": "#8B9B5B",
+          "bottom": "#6A5843",
+          "hair": "#643D26",
+          "eyes": "#374532"
+        },
+        "faceId": "friendly",
+        "hairId": "short",
+        "hatId": "cap",
+        "glassesId": "round"
+      }
+    },
+    {
+      "id": "humanoid-robot",
+      "label": "Humanoid Robot",
+      "kind": "humanoid",
+      "assetUrl": "/avatars/common-humanoid.glb",
+      "thumbnail": "/avatars/humanoid-thumbnail.svg",
+      "rigVersion": "humanoid-v1",
+      "coreBones": [
+        "hips",
+        "spine",
+        "chest",
+        "upperChest",
+        "neck",
+        "head",
+        "leftShoulder",
+        "leftUpperArm",
+        "leftLowerArm",
+        "leftHand",
+        "rightShoulder",
+        "rightUpperArm",
+        "rightLowerArm",
+        "rightHand",
+        "leftUpperLeg",
+        "leftLowerLeg",
+        "leftFoot",
+        "leftToes",
+        "rightUpperLeg",
+        "rightLowerLeg",
+        "rightFoot",
+        "rightToes"
+      ],
+      "rigMap": {
+        "hips": "hips",
+        "spine": "spine",
+        "chest": "chest",
+        "upperChest": "upperChest",
+        "neck": "neck",
+        "head": "head",
+        "leftShoulder": "leftShoulder",
+        "leftUpperArm": "leftUpperArm",
+        "leftLowerArm": "leftLowerArm",
+        "leftHand": "leftHand",
+        "rightShoulder": "rightShoulder",
+        "rightUpperArm": "rightUpperArm",
+        "rightLowerArm": "rightLowerArm",
+        "rightHand": "rightHand",
+        "leftUpperLeg": "leftUpperLeg",
+        "leftLowerLeg": "leftLowerLeg",
+        "leftFoot": "leftFoot",
+        "leftToes": "leftToes",
+        "rightUpperLeg": "rightUpperLeg",
+        "rightLowerLeg": "rightLowerLeg",
+        "rightFoot": "rightFoot",
+        "rightToes": "rightToes"
+      },
+      "restPose": {
+        "hips": {
+          "parent": null,
+          "position": [
+            0,
+            0.92,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "spine": {
+          "parent": "hips",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "chest": {
+          "parent": "spine",
+          "position": [
+            0,
+            0.16,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "upperChest": {
+          "parent": "chest",
+          "position": [
+            0,
+            0.12,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "neck": {
+          "parent": "upperChest",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "head": {
+          "parent": "neck",
+          "position": [
+            0,
+            0.1,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftShoulder": {
+          "parent": "upperChest",
+          "position": [
+            -0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperArm": {
+          "parent": "leftShoulder",
+          "position": [
+            -0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerArm": {
+          "parent": "leftUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftHand": {
+          "parent": "leftLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightShoulder": {
+          "parent": "upperChest",
+          "position": [
+            0.16,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperArm": {
+          "parent": "rightShoulder",
+          "position": [
+            0.08,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerArm": {
+          "parent": "rightUpperArm",
+          "position": [
+            0,
+            -0.28,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightHand": {
+          "parent": "rightLowerArm",
+          "position": [
+            0,
+            -0.25,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftUpperLeg": {
+          "parent": "hips",
+          "position": [
+            -0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftLowerLeg": {
+          "parent": "leftUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftFoot": {
+          "parent": "leftLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "leftToes": {
+          "parent": "leftFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightUpperLeg": {
+          "parent": "hips",
+          "position": [
+            0.1,
+            -0.02,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightLowerLeg": {
+          "parent": "rightUpperLeg",
+          "position": [
+            0,
+            -0.42,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightFoot": {
+          "parent": "rightLowerLeg",
+          "position": [
+            0,
+            -0.4,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "rightToes": {
+          "parent": "rightFoot",
+          "position": [
+            0,
+            -0.03,
+            -0.14
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "materialSlots": {
+        "skin": "Body",
+        "top": "Body",
+        "bottom": "Body",
+        "hair": "Attachments",
+        "eyes": "Body"
+      },
+      "headAnchor": "HeadAnchor",
+      "capabilities": {
+        "colors": true,
+        "face": true,
+        "hair": true,
+        "accessories": true,
+        "fullBody": true
+      },
+      "budgets": {
+        "triangles": 20000,
+        "bones": 70,
+        "bodyMaterials": 2,
+        "accessoryMaterials": 2,
+        "textureSize": 1024
+      },
+      "options": {
+        "faceId": [
+          "friendly",
+          "calm"
+        ],
+        "hairId": [
+          "none",
+          "short"
+        ],
+        "hatId": [
+          "none",
+          "cap"
+        ],
+        "glassesId": [
+          "none",
+          "round"
+        ]
+      },
+      "compatibility": {
+        "cap": {
+          "hides": [
+            "short"
+          ]
+        }
+      },
+      "defaultAppearance": {
+        "schemaVersion": 2,
+        "presetId": "humanoid-robot",
+        "colors": {
+          "skin": "#B6CFD5",
+          "top": "#758C9E",
+          "bottom": "#394C60",
+          "hair": "#334656",
+          "eyes": "#4ED4DA"
+        },
+        "faceId": "friendly",
+        "hairId": "none",
+        "hatId": "none",
+        "glassesId": "none"
+      }
+    },
+    {
+      "id": "shiba",
+      "label": "Shiba",
+      "kind": "gltf",
+      "assetUrl": "/static/gltf/shiba/scene.gltf",
+      "thumbnail": null,
+      "rigVersion": null,
+      "coreBones": [],
+      "rigMap": {},
+      "restPose": {},
+      "materialSlots": {},
+      "headAnchor": null,
+      "capabilities": {
+        "colors": false,
+        "face": false,
+        "hair": false,
+        "accessories": false,
+        "fullBody": false
+      },
+      "budgets": null,
+      "options": {},
+      "compatibility": {},
+      "defaultAppearance": null
+    },
+    {
+      "id": "robot",
+      "label": "Robot",
+      "kind": "primitive",
+      "assetUrl": null,
+      "thumbnail": null,
+      "rigVersion": null,
+      "coreBones": [],
+      "rigMap": {},
+      "restPose": {},
+      "materialSlots": {},
+      "headAnchor": null,
+      "capabilities": {
+        "colors": true,
+        "face": false,
+        "hair": false,
+        "accessories": false,
+        "fullBody": false
+      },
+      "budgets": null,
+      "options": {},
+      "compatibility": {},
+      "defaultAppearance": null
+    },
+    {
+      "id": "rigged-simple",
+      "label": "Rigged Simple",
+      "kind": "gltf",
+      "assetUrl": "/static/gltf/rigged-simple/RiggedSimple.glb",
+      "thumbnail": null,
+      "rigVersion": null,
+      "coreBones": [],
+      "rigMap": {},
+      "restPose": {},
+      "materialSlots": {},
+      "headAnchor": null,
+      "capabilities": {
+        "colors": false,
+        "face": false,
+        "hair": false,
+        "accessories": false,
+        "fullBody": false
+      },
+      "budgets": null,
+      "options": {},
+      "compatibility": {},
+      "defaultAppearance": null
+    },
+    {
+      "id": "none",
+      "label": "None",
+      "kind": "none",
+      "assetUrl": null,
+      "thumbnail": null,
+      "rigVersion": null,
+      "coreBones": [],
+      "rigMap": {},
+      "restPose": {},
+      "materialSlots": {},
+      "headAnchor": null,
+      "capabilities": {
+        "colors": false,
+        "face": false,
+        "hair": false,
+        "accessories": false,
+        "fullBody": false
+      },
+      "budgets": null,
+      "options": {},
+      "compatibility": {},
+      "defaultAppearance": null
+    }
+  ]
+}

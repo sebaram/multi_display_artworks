@@ -1,0 +1,14 @@
+import type {SourceState,ElementTransform,WallElement} from '../types';
+export const objectTypes:ReadonlyArray<readonly [string,string]>;
+export function presetEdits(state:SourceState):{edits:Record<string,ElementTransform>;objects:import('../types').SourceObject[]};
+export function patchElement(state:SourceState,id:string,patch:ElementTransform):SourceState;
+export function addElement(state:SourceState,type:string,transform?:ElementTransform,source?:string|null):SourceState;
+export function removeElement(state:SourceState,id:string):SourceState;
+export function randomizeElement(state:SourceState,id:string):SourceState;
+export function resetElement(state:SourceState,id:string):SourceState;
+export function resetTextElement(state:SourceState,id:string):SourceState;
+export function copyElement(state:SourceState,element:WallElement):unknown;
+export function pasteElement(state:SourceState,clipboard:unknown):SourceState;
+export function authoringHistory():{observe(state:SourceState):void;accept(state:SourceState):void;begin():void;end():void;record(before:SourceState,after:SourceState):void;undo(state:SourceState):SourceState;redo(state:SourceState):SourceState;readonly canUndo:boolean;readonly canRedo:boolean};
+export function elementEditTarget(state:SourceState,elements:WallElement[]|Map<string,WallElement>,id:string|null):string|null;
+export function isElementDeleted(state:SourceState,id:string):boolean;

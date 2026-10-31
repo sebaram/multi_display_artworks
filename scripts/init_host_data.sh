@@ -22,7 +22,7 @@ if [[ ! -d $OLD ]]; then
 fi
 
 echo "==> creating data root at $DATA"
-mkdir -p "$DATA"/{static_image,static_splat,static_gltf,streams}
+mkdir -p "$DATA"/{static_image,static_splat,static_gltf,streams,wall_media}
 
 # --- media referenced from MongoDB, not from code --------------------------
 #   GaussianSplat 'hail_splat' -> static/splat/hail.splat
@@ -56,7 +56,8 @@ MONGODB_PORT=27017
 MONGODB_DB=metamuseum
 SECRET_KEY=change-me
 SECURITY_PASSWORD_SALT=change-me
-FLASK_ADMIN_SWATCH=cerulean
+ENVIRONMENT=production
+ALLOWED_ORIGINS=["https://meta.juyounglee.net"]
 MAIL_SERVER=smtp.gmail.com
 MAIL_PORT=465
 MAIL_USE_SSL=True
@@ -74,7 +75,7 @@ echo "==> setting ownership to uid/gid 1000 (container 'appuser')"
 chown -R 1000:1000 "$DATA" 2>/dev/null || \
     echo "   (skipped chown — re-run with sudo if the app cannot read its data)"
 chmod -R u=rwX,g=rX,o= "$DATA/static_image" "$DATA/static_splat" "$DATA/static_gltf"
-chmod -R u=rwX,g=rwX,o= "$DATA/streams"
+chmod -R u=rwX,g=rwX,o= "$DATA/streams" "$DATA/wall_media"
 chmod 640 "$DATA/metamuseum.env"
 
 echo

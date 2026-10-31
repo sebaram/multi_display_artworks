@@ -1,0 +1,41 @@
+{
+  "name": "metamuseum-web",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run && npm run test:legacy && npm run test:wall",
+    "test:e2e": "playwright test",
+    "api:types": "openapi-typescript http://127.0.0.1:8000/openapi.json -o src/api/openapi.d.ts",
+    "test:wall": "node --test tests/unit/wall-engine/*.test.mjs tests/unit/wall-engine/source/*.test.mjs",
+    "test:legacy": "node --test tests/unit/legacy/*.test.mjs"
+  },
+  "dependencies": {
+    "hls.js": "1.6.13",
+    "nipplejs": "1.0.4",
+    "qrcode-generator": "1.4.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-router-dom": "^7.18.5",
+    "socket.io-client": "4.8.1",
+    "socket.io-parser": "4.2.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.0",
+    "@types/node": "^24.10.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.0.4",
+    "jsdom": "26.1.0",
+    "openapi-typescript": "7.10.1",
+    "prettier": "^3.6.2",
+    "typescript": "5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^4.1.12"
+  }
+}

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MetaMuseum API",
-    "version": "1.0.0"
+    "version": "2.0.0-rc.1"
   },
   "paths": {
     "/api/v1/auth/csrf": {
@@ -1469,6 +1469,101 @@
         }
       }
     },
+    "/api/v1/avatars/catalog": {
+      "get": {
+        "tags": [
+          "avatars"
+        ],
+        "summary": "Catalog",
+        "operationId": "catalog_api_v1_avatars_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarCatalog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/avatar": {
+      "get": {
+        "tags": [
+          "avatars"
+        ],
+        "summary": "Read Avatar",
+        "operationId": "read_avatar_api_v1_me_avatar_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "avatars"
+        ],
+        "summary": "Save Avatar",
+        "operationId": "save_avatar_api_v1_me_avatar_put",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvatarProfileWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/schema": {
       "get": {
         "tags": [
@@ -2017,6 +2112,114 @@
           "created_at"
         ],
         "title": "AssetRead"
+      },
+      "AvatarAppearanceV2": {
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 2,
+            "title": "Schemaversion",
+            "default": 2
+          },
+          "presetId": {
+            "type": "string",
+            "title": "Presetid"
+          },
+          "colors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Colors"
+          },
+          "faceId": {
+            "type": "string",
+            "title": "Faceid"
+          },
+          "hairId": {
+            "type": "string",
+            "title": "Hairid"
+          },
+          "hatId": {
+            "type": "string",
+            "title": "Hatid"
+          },
+          "glassesId": {
+            "type": "string",
+            "title": "Glassesid"
+          },
+          "gaze": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gaze"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "presetId",
+          "colors",
+          "faceId",
+          "hairId",
+          "hatId",
+          "glassesId"
+        ],
+        "title": "AvatarAppearanceV2"
+      },
+      "AvatarCatalog": {
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 2,
+            "title": "Schemaversion",
+            "default": 2
+          },
+          "presets": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Presets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "presets"
+        ],
+        "title": "AvatarCatalog"
+      },
+      "AvatarProfileWrite": {
+        "properties": {
+          "appearance": {
+            "$ref": "#/components/schemas/AvatarAppearanceV2"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expectedrevision"
+          },
+          "ownerScopeToken": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Ownerscopetoken"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "appearance",
+          "expectedRevision",
+          "ownerScopeToken"
+        ],
+        "title": "AvatarProfileWrite"
       },
       "Body_push_stream_push__stream_id__post": {
         "properties": {

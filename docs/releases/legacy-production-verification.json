@@ -1,0 +1,18 @@
+{
+  "verified_date": "2026-10-31",
+  "source_sha": "974bbfd74ecd9a1330a03d7dd2a19994209ec8f5",
+  "preservation_branch": "legacy-flask",
+  "preservation_tag": "production-pre-v2-20261031",
+  "running_image_id": "sha256:f884938f6025afb50013e4a724f256ccfc5e854782747ecee06f2042665581af",
+  "inventory_run": "https://github.com/sebaram/multi_display_artworks/actions/runs/41201847707",
+  "verification": {
+    "method": "SHA-256 comparison of every tracked .py/.js/.html under flask_server/app at source_sha with the running container's /app code manifest",
+    "expected_files": 81,
+    "running_files": 81,
+    "matching_files": 81,
+    "mismatched_files": [],
+    "missing_files": [],
+    "extra_files": []
+  },
+  "scope": "Code/source identity only. Immutable image/configuration archive and paired database/media restore are separate release gates. No environment values or database records are included."
+}

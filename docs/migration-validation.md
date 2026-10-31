@@ -1,12 +1,14 @@
 # Migration validation and release notes
 
-Branch: `codex/fastapi-react-interactive-walls`. Historical baseline: `974bbfd74ecd9a1330a03d7dd2a19994209ec8f5`.
+This document preserves the original migration-stage evidence. Its suite counts and deployment observations are historical, not a measurement of the latest branch head. For current release scope and remaining production gates, see the [2.0 release review](releases/v2.0-readiness.md). Candidate `71f9a3b` passed [CI 41192279779](https://github.com/sebaram/multi_display_artworks/actions/runs/41192279779).
+
+Original migration branch: `codex/fastapi-react-interactive-walls`. Historical baseline: `974bbfd74ecd9a1330a03d7dd2a19994209ec8f5`.
 
 ## Data compatibility
 
 The13 original MongoEngine document schemas, collection names, ObjectIds, inheritance tags, references, ordering, bcrypt hashes and signed confirmation/visitor formats are preserved. A local Whisper endpoint may now omit its API key; nonlocal providers still validate a key. Existing documents round-trip unchanged in the synthetic18-document compatibility fixture.
 
-New raw collections are `wall_design_presets`, `wall_design_bindings` and `wall_design_assets`. Applied snapshots remain independent of later preset edits/deletion. Binding removals retain monotonic revision tombstones. Uploaded media is persistent filesystem content with Mongo metadata and reference checks; do not back up one side alone.
+New collections include `wall_design_presets`, `wall_design_bindings`, `wall_design_assets` and the later owner-scoped `avatar_profiles` collection. Applied snapshots remain independent of later preset edits/deletion. Binding removals retain monotonic revision tombstones. Uploaded media is persistent filesystem content with Mongo metadata and reference checks; do not back up one side alone.
 
 ## Before production migration
 

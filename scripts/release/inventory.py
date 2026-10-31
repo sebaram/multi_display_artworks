@@ -88,12 +88,25 @@ def inventory(include_code=False):
                   "networks": sorted(mongo["NetworkSettings"].get("Networks", {}))},
         "tools": {name: bool(shutil.which(name)) for name in ("docker", "python3", "tar", "sha256sum", "flock")},
         "disk_free_bytes": shutil.disk_usage(DATA if DATA.is_dir() else "/var/www").free,
+        "host_uid": os.geteuid(),
+        "host_gid": os.getegid(),
         "warnings": ["Do not upload backups, environment files, or raw Docker/Compose inspection to CI artifacts.",
                      "UID permission/ACL write probes, source provenance, proxy restriction, and restore rehearsal are prepare/deploy gates."],
     }
+    report["noninteractive_sudo"] = bool(shutil.which("sudo")) and subprocess.run(
+        ["sudo", "-n", "true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        timeout=10, check=False).returncode == 0
+    report["media_sizes"] = {}
+    for name in MEDIA:
+        path = DATA / name
+        files = [path] if path.is_file() else (
+            (Path(base) / file for base, _, names in os.walk(path, followlinks=False) for file in names)
+            if path.is_dir() else ())
+        sizes = [file.stat().st_size for file in files if file.is_file() and not file.is_symlink()]
+        report["media_sizes"][name] = {"files": len(sizes), "bytes": sum(sizes)}
     if ENV_FILE.is_file():
         report["env_file"]["sha256"] = hashlib.sha256(ENV_FILE.read_bytes()).hexdigest()
-    for tool in ("mongodump", "mongorestore", "mongosh"):
+    for tool in ("mongodump", "mongorestore", "mongosh", "mongod"):
         try:
             report["mongo"][tool] = command(["docker", "exec", MONGO, tool, "--version"]).decode().splitlines()[0]
         except ReleaseError:

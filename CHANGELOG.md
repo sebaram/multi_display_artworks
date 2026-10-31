@@ -1,8 +1,8 @@
 # Changelog
 
-## 2.0.0 — 2026-10-31
+## 2.0.0 — 2026-11-01
 
-The FastAPI/React release source uses version 2.0.0. Actual deployment, image/source identities and recovery evidence are tracked in the [release execution record](docs/releases/v2.0-execution.md).
+The FastAPI/React release uses version 2.0.0 and is deployed from `2778ee4`. Actual image/source identities and recovery evidence are tracked in the [release execution record](docs/releases/v2.0-execution.md).
 
 ### Changes
 
@@ -32,4 +32,4 @@ The FastAPI/React release source uses version 2.0.0. Actual deployment, image/so
 - Voice CI uses real WebRTC with a synthetic microphone. Physical microphones/cameras, external networks, TURN and external providers need operational checks. Autoplay, buffering and network delivery still affect local playback timing.
 - Review [third-party notices](THIRD_PARTY_NOTICES.md) and document upstream wall-source, marks and research-media release rights before public distribution.
 
-The RC source at `5f7152d` passed [CI 41204409109](https://github.com/sebaram/multi_display_artworks/actions/runs/41204409109), including all 49 browser cases, backend/frontend checks and a clean runtime against real MongoDB. The final merged source requires its own push CI before deployment. Historical reports retain their original capture dates and scope.
+The final merged source at `2778ee4` passed [CI 41214657998](https://github.com/sebaram/multi_display_artworks/actions/runs/41214657998), including all 49 browser cases, backend/frontend checks and a clean runtime against real MongoDB. Production-copy and private acceptance passed before promotion; public HTTPS/WSS, the original TV GLTF and all three room artworks were then checked. Historical reports retain their original capture dates and scope.

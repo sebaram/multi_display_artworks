@@ -1,5 +1,9 @@
 # 비교·성능 보고서
 
+[2026-10-31 TV·모바일 후속 수정 검증](display-fix-verification.json): 아래 재비교의 R1–R5를 수정했습니다. 월 전용 화면은 가로·세로 모두98% 폭으로 맞추고, 방 방문자 없이 월 상태만 구독합니다. 이미지 contain 표시·모바일 저장 버튼·Windows 잠금 파일 재삭제를 복구했습니다. 집중 검사65개(프론트엔드44·백엔드21)와 빌드, 실제 Chrome 흐름을 확인했습니다. [수정 후 TV](../validation/display-tv-after-desktop.png)·[모바일](../validation/display-tv-after-mobile.png). 전체 CI 및 실기기는 재실행하지 않았습니다.
+
+[2026-10-31 모바일·데스크톱·TV 재비교](mobile-desktop-tv-comparison.html)는 메인 `974bbfd`와 현재 `a0a762c`를 32개 기능 묶음, 실제 화면 14장으로 다시 확인했습니다. 고유 월 URL과 refresh는 동작하지만 TV 월 표시가 가로99.4%에서28.2%로 작아지고, 기본 이미지 주소의 contain 표시가 사라졌습니다. 방 방문자와 월 표시 연결, 모바일 저장 버튼 가림, Windows 미디어 삭제까지 확정 수정 항목5건을 기록했습니다. 로컬 프론트엔드432검사는 통과했지만 최신 CI는 브라우저44통과·3실패입니다. 실제 모바일·TV·XR 기기 결과와 에뮬레이션을 구분했습니다. [원자료](mobile-desktop-tv-comparison-results.json).
+
 [2026-10-31 후속 수정 검증](parity-fix-verification.json): 비교 보고서의 F1–F7을 수정하고 아바타 팝업을 컴팩트하게 바꿨습니다. [데스크톱](../validation/avatar-compact-desktop.png)·[모바일](../validation/avatar-compact-mobile.png)에서 기본 설정과 버튼이 한 화면에 들어옵니다. 구현 이력을 전달하지 않은 독립 검토자가 별도 브라우저와 집중 검사로 다시 확인했으며, 확인 범위 내 추가 조치 사항은 없었습니다. 전체 CI·실기기 재검증은 별도입니다.
 
 [2026-10-31 운영 배포판·작업 브랜치 비교](deployment-comparison.html)는 마지막 성공 배포 `master · 974bbfd`와 `codex/gaussian-avatar-gaze · f81d22d`를 독립 검토자 3명과 실제 Chrome으로 비교했습니다. 27개 기능 항목, 확정 결함 7건, 이번에 촬영한 화면 11장을 담은 단일 HTML입니다. 실제 브라우저·API·mock 재현·코드 확인을 구분하며, 운영 데이터와 실기기는 이번에 변경하거나 검증하지 않았습니다. [구조화 결과](deployment-comparison-results.json)에 재현 조건·소스 위치·CI 조회 시점과 미확인 범위를 기록했습니다. 최신 CI는 브라우저9건 실패·37건 통과로 종료돼 image/runtime 검사는 건너뛰었습니다. 이 실패 목록과 원인을 재현한 확정 결함7건은 구분했습니다.

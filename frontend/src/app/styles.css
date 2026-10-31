@@ -625,7 +625,7 @@ small {
   bottom: 100px !important;
   right: 22px !important;
 }
-.has-inspector #minimap-canvas {
+body:has(.room-inspector) #minimap-canvas {
   right: 360px !important;
 }
 .room-hud .notice {
@@ -1061,8 +1061,9 @@ small {
     right: 12px !important;
     bottom: 105px !important;
   }
-  .has-inspector #minimap-container {
-    display: none;
+  /* Scene widgets are mounted on body, outside the inspector's room view. */
+  body:has(.room-inspector) :is(#voice-ui, #voice-toast, #minimap-canvas, #minimap-container) {
+    display: none !important;
   }
   .tool-grid {
     grid-template-columns: 1fr;

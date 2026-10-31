@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-31",
+  "timezone": "Asia/Seoul",
+  "baseline": "a0a762c",
+  "scope": "R1–R5의 집중 수정과 짧은 브라우저 검증; 작업 트리 변경, 미커밋",
+  "fixes": [
+    {
+      "id": "R1",
+      "status": "fixed",
+      "evidence": "10×3 월의 실제 mesh 가로 점유율: 데스크톱1920×1080 0.9800000003, 모바일390×844 0.9800000001. 이동·방문자·음성 버튼0. 화면 회전에 맞춰 다시 fit."
+    },
+    {
+      "id": "R2",
+      "status": "fixed",
+      "evidence": "기본 이미지 URL은 scene0·contain. 이미지 요소 크기가 데스크톱1920×1080, 모바일390×844. display_type=aframe는scene1 유지. 실제 grid intrinsic 최소 크기 넘침도 수정 후 확인."
+    },
+    {
+      "id": "R3",
+      "status": "fixed",
+      "evidence": "TV 전송 이벤트는wall.clock/wall.watch만. visitor-capability·me/avatar 요청0, 양쪽 remote-avatar0. 실제 공유 MP4 seek/play/pause2.614초·포인터·네트워크재접속·reload 복원. 별도 YouTube 진입은 유지하되 TV는 공유 명령 권한 없음."
+    },
+    {
+      "id": "R4",
+      "status": "fixed",
+      "evidence": "실제 모바일 저장 버튼 중앙 hit test=true, 이름 수정 후 저장 성공. 정보 패널을 닫으면 Voice Off 다시 표시. CSS isolated browser check도 body 장착 위젯의 가림 전후·데스크톱 복원 확인."
+    },
+    {
+      "id": "R5",
+      "status": "fixed",
+      "evidence": "실제 Windows FileShare.Read 잠금 중 DELETE409 asset_content_in_use, 자산 메타데이터 유지true. 잠금 해제 후 재DELETE204. 참고 자산 보호 유지."
+    }
+  ],
+  "checks": {
+    "frontend": {
+      "passed": 44,
+      "files": 6,
+      "description": "TV fit·읽기 전용 client·standalone·room review·element route·image behavior. 마지막 키보드 guard 수정 후 관련23개 재통과."
+    },
+    "backend": {
+      "passed": 21,
+      "groups": [
+        {
+          "name": "display Socket.IO in-memory manager",
+          "passed": 4
+        },
+        {
+          "name": "isolated media-delete routes",
+          "passed": 8
+        },
+        {
+          "name": "existing wall permission/snapshot/playback controlled cases",
+          "passed": 9
+        }
+      ],
+      "sharedDatabaseFixtures": false
+    },
+    "build": "tsc --noEmit + vite build 통과. 기존 chunk 크기/dynamic-import 경고는 유지.",
+    "browser": {
+      "engine": "Chrome",
+      "emulation": true,
+      "physicalDevice": false,
+      "pageErrors": [],
+      "desktopViewport": [
+        1920,
+        1080
+      ],
+      "mobileViewport": [
+        390,
+        844
+      ],
+      "sharedPausedSeconds": 2.614,
+      "visitorRequests": 0,
+      "displayCommands": [
+        "wall.clock",
+        "wall.watch"
+      ],
+      "saveButtonHit": true,
+      "voiceRestored": true
+    },
+    "review": {
+      "context": "구현 이력을 주지 않은 수정 범위 전용 독립 소스 검토",
+      "result": "YouTube 진입 누락을 발견해 복구하고 회귀 검사 통과. 그 외 조치할 결함 없음.",
+      "limit": "검토자의 Python 실행은 환경 제약으로 중단; 통과 주장 없음. 구현 측 격리 검사4개와 실제 브라우저가 별도 통과."
+    }
+  },
+  "cleanup": {
+    "assetRetry": 204,
+    "image": 204,
+    "wall": 204,
+    "room": 204,
+    "physicalDevices": "접근하지 않음",
+    "api": "기존127.0.0.1:8000과 Tailscale 유지, API 새 코드로 재시작",
+    "testBrowsers": "종료",
+    "uploadedVideo": "검증 후 삭제"
+  },
+  "limits": [
+    "전체 CI·전체 회귀·실기기 성능 재실행 없음.",
+    "a0a762c CI의 아바타 reload·월 동시 편집·외부 YouTube pause 실패 원인은 이5개 수정 범위 밖이며 해결했다고 주장하지 않음.",
+    "YouTube 별도 플레이어 진입과 read-only UI는 단위 검사; 외부 실제 재생은 이번 미검증.",
+    "Mongo 장애가 파일 unlink 뒤 발생하면 콘텐츠 없는 메타데이터가 재삭제할 때까지 남을 수 있음. 의도한 삭제는 다시 시도 가능하도록 테스트했다.",
+    "기본 생성 위치에서 아바타가 겹치는 시각 관측은 이번5개 확정 수정에 포함하지 않음."
+  ],
+  "screenshots": [
+    "../validation/display-tv-after-desktop.png",
+    "../validation/display-tv-after-mobile.png",
+    "../validation/display-image-after-desktop.png",
+    "../validation/display-image-after-mobile.png",
+    "../validation/display-inspector-after-mobile.png"
+  ]
+}

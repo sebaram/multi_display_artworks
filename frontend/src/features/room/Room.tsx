@@ -6,6 +6,7 @@ import { useSession } from "../../app/context";
 import { Status } from "../../app/ui";
 import { loadAFrame, mountRoom, safeMediaUrl } from "../../scene/mountRoom";
 import { startRealtime } from "../../scene/realtime";
+import { startWallDisplay } from "../../scene/wall-display";
 import { loadAvatarCatalog } from "../../avatar/catalog";
 import AIPanel from "./AIPanel";
 import { loadAR, mountAR } from "../../scene/ar";
@@ -18,11 +19,12 @@ const resources: Record<string, string> = {
   gltf: "gltfs",
   webpage: "webpages",
 };
-async function standalone(wall: WallDTO, isAdmin: boolean): Promise<RoomScene> {
+async function standalone(wall: WallDTO, isAdmin: boolean, displayOnly = false): Promise<RoomScene> {
   const room =
     typeof wall.room === "string" ? wall.room : (wall.room as any)?.id || "";
   const extent = Math.max(20, Math.max(wall.width, wall.height) * 1.5);
   return {
+    displayOnly,
     room: { id: room, name: wall.name, description: wall.description },
     roomId: room,
     boundary: {
@@ -40,11 +42,11 @@ async function standalone(wall: WallDTO, isAdmin: boolean): Promise<RoomScene> {
     presets: [],
     walls: [{ ...wall, position: "0 0 0", rotation: "0 0 0" }],
     wallList: [],
-    avatarCatalog: (await loadAvatarCatalog()).presets.map(
+    avatarCatalog: displayOnly ? [] : (await loadAvatarCatalog()).presets.map(
       (preset) => preset.id,
     ),
     visitorCapabilityUrl: "/visitor-capability",
-    isAdmin,
+    isAdmin: displayOnly ? false : isAdmin,
     syncDebugEnabled: false,
     isArMarker: false,
     isArCompanion: false,
@@ -163,7 +165,7 @@ export default function Room({
           const wall = await api<WallDTO>(`/api/v1/walls/${wallId}`, {
             signal: abort.signal,
           });
-          const value = await standalone(wall, session.is_admin);
+          const value = await standalone(wall, session.is_admin, true);
           if (!current() || hasDraft()) return;
           etag = nextEtag;
           setData(value);
@@ -213,6 +215,7 @@ export default function Room({
         value = await standalone(
           await api(`/api/v1/walls/${wallId}`, { signal: abort.signal }),
           session.is_admin,
+          true,
         );
       } else {
         if (!elementId) throw Error("작품을 선택하세요.");
@@ -283,7 +286,9 @@ export default function Room({
           bootstrap: data,
           services: {
             startRealtime: (scene, bootstrap, events, signal) =>
-              bootstrap.roomId
+              bootstrap.displayOnly
+                ? startWallDisplay(bootstrap.walls[0].id, events, signal, setNotice)
+                : bootstrap.roomId
                 ? startRealtime(scene, bootstrap, events, signal)
                 : undefined,
             onSelect: (id) => {
@@ -359,6 +364,7 @@ export default function Room({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (
+        mode === "wall" ||
         !draft ||
         !session.is_admin ||
         e.target instanceof HTMLInputElement ||
@@ -384,7 +390,33 @@ export default function Room({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [draft, selected, session.is_admin]);
+  }, [mode, draft, selected, session.is_admin]);
+  const youtubePanel = youtubeSource && (
+    <YouTubePanel
+      key={`${route}:${youtubeSource.wallId}:${youtubeSource.layerId}:${youtubeSource.videoId}`}
+      {...youtubeSource}
+      isAdmin={mode !== "wall" && session.is_admin}
+      getClock={() => instance.current?.getYouTubeClock(youtubeSource.wallId, youtubeSource.layerId)}
+      command={(action, position) => instance.current?.playbackCommand(youtubeSource.wallId, action, position) || false}
+      onClose={() => setYouTube(undefined)}
+    />
+  );
+  if (mode === "wall") return (
+    <main className="room-view wall-display" aria-label={data?.room.name || "월 표시"}>
+      <div className="scene-host" ref={host} data-testid="scene-host" />
+      <div className="room-hud">
+        <Status loading={loading || (!ready && !error)} error={error} />
+        {notice && <p role="status">{notice}</p>}
+      </div>
+      {!!youtubeLayers.length && <div className="room-bottom">
+        {youtubeLayers.map(layer => <button key={`${layer.wallId}-${layer.layerId}`}
+          onClick={() => setYouTube({ wallId: layer.wallId, layerId: layer.layerId, route })}>
+          ▶ {layer.title}
+        </button>)}
+      </div>}
+      {youtubePanel}
+    </main>
+  );
   return (
     <main className={`room-view ${draft ? "has-inspector" : ""}`}>
       <div className="scene-host" ref={host} data-testid="scene-host" />
@@ -658,27 +690,7 @@ export default function Room({
           }}
         />
       )}
-      {youtubeSource && (
-        <YouTubePanel
-          key={`${route}:${youtubeSource.wallId}:${youtubeSource.layerId}:${youtubeSource.videoId}`}
-          {...youtubeSource}
-          isAdmin={session.is_admin}
-          getClock={() =>
-            instance.current?.getYouTubeClock(
-              youtubeSource.wallId,
-              youtubeSource.layerId,
-            )
-          }
-          command={(action, position) =>
-            instance.current?.playbackCommand(
-              youtubeSource.wallId,
-              action,
-              position,
-            ) || false
-          }
-          onClose={() => setYouTube(undefined)}
-        />
-      )}
+      {youtubePanel}
       {draft && (
         <aside className="inspector room-inspector">
           <div className="section-heading">

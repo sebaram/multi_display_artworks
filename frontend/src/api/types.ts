@@ -50,6 +50,7 @@ export type RoomSummary = DocumentDTO & {
   created_time?: string;
 };
 export type RoomScene = {
+  displayOnly?: boolean;
   room: DocumentDTO;
   roomId: string;
   boundary: {

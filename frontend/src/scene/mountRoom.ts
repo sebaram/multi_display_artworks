@@ -8,6 +8,8 @@ import { mountAR } from "./ar";
 import { createViewVisibility, registerRenderScheduler, createQualityController, qualitySettings, selectResidents, imageSizeLimit } from "./render-policy";
 import { createArtworkSource, createResourceRegistry } from "./artwork-resources";
 import type { ElementDTO, RoomScene, WallDTO } from "../api/types";
+import { safeMediaUrl } from "../api/media-url";
+export { safeMediaUrl } from "../api/media-url";
 type Entity = HTMLElement & {
   object3D?: any;
   getObject3D?: (name: string) => any;
@@ -66,15 +68,6 @@ export function loadAFrame() {
     });
   return runtime;
 }
-export function safeMediaUrl(value: unknown) {
-  if (typeof value !== "string" || !value) return "";
-  try {
-    const url = new URL(value, location.origin);
-    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
-  } catch {
-    return "";
-  }
-}
 function entity(tag: string, attrs: Record<string, unknown> = {}) {
   const el = document.createElement(tag) as Entity;
   for (const [key, value] of Object.entries(attrs))
@@ -110,8 +103,8 @@ export function mountRoom({
     background: "color: #1a2028",
     "xr-mode-ui": "enabled: false",
     webxr: "referenceSpaceType: local-floor; requiredFeatures: local-floor; optionalFeatures: bounded-floor, hand-tracking",
-    cursor: "rayOrigin: mouse",
-    raycaster: "objects: .artwork-source, .artwork-pick-target, .wall-surface, .wall-occluder; interval: 50",
+    cursor: bootstrap.displayOnly ? undefined : "rayOrigin: mouse",
+    raycaster: bootstrap.displayOnly ? undefined : "objects: .artwork-source, .artwork-pick-target, .wall-surface, .wall-occluder; interval: 50",
   });
   scene.setAttribute("aria-label", bootstrap.room?.name || "3D 전시 공간");
   let refreshPicking = true;
@@ -141,10 +134,11 @@ export function mountRoom({
     id: "camera",
     position: bootstrap.spawn_preset?.position || "0 1.6 5",
     rotation: bootstrap.spawn_preset?.rotation || "0 0 0",
-    "wasd-controls": "acceleration: 18",
-    "look-controls": `pointerLockEnabled: false; touchEnabled: ${!!(bootstrap.isArMarker || bootstrap.isArCompanion)}`,
+    fov: bootstrap.displayOnly ? 60 : undefined,
+    "wasd-controls": bootstrap.displayOnly ? "enabled: false" : "acceleration: 18",
+    "look-controls": bootstrap.displayOnly ? "enabled: false" : `pointerLockEnabled: false; touchEnabled: ${!!(bootstrap.isArMarker || bootstrap.isArCompanion)}`,
   });
-  if (bootstrap.boundary && !bootstrap.isArCompanion && !bootstrap.isArMarker)
+  if (bootstrap.boundary && !bootstrap.isArCompanion && !bootstrap.isArMarker && !bootstrap.displayOnly)
     camera.setAttribute(
       "boundary-clamp",
       `minX:${bootstrap.boundary.min_x};maxX:${bootstrap.boundary.max_x};minY:${bootstrap.boundary.min_y};maxY:${bootstrap.boundary.max_y};minZ:${bootstrap.boundary.min_z};maxZ:${bootstrap.boundary.max_z}`,
@@ -422,10 +416,10 @@ export function mountRoom({
             class: "artwork-source",
           }),
         );
-      const select = () => { pinnedSelection = element.id; lastResidency = -Infinity; services.onSelect?.(element.id); };
+      const select = () => { if (bootstrap.displayOnly) return; pinnedSelection = element.id; lastResidency = -Infinity; services.onSelect?.(element.id); };
       root.addEventListener("click", select);
       const down = (event: any) => {
-        if (!bootstrap.isAdmin || !event.detail?.intersection) return;
+        if (bootstrap.displayOnly || !bootstrap.isAdmin || !event.detail?.intersection) return;
         services.onSelect?.(element.id);
         pinnedSelection = element.id; lastResidency = -Infinity;
         dragging = element.id;
@@ -454,6 +448,7 @@ export function mountRoom({
   }, 33);
   life.add(() => clearInterval(moveTimer));
   function mouseMove(event: PointerEvent) {
+    if (bootstrap.displayOnly) return;
     if (!raycaster || (scene as any).camera === undefined) return;
     const rect = (scene as any).canvas?.getBoundingClientRect();
     if (!rect) return;
@@ -524,7 +519,7 @@ export function mountRoom({
   }
   function mouseUp() {
     dragging = undefined;
-    if (!bootstrap.isArMarker && !bootstrap.isArCompanion)
+    if (!bootstrap.isArMarker && !bootstrap.isArCompanion && !bootstrap.displayOnly)
       camera.setAttribute("look-controls", "enabled: true");
   }
   // A-Frame's touch handler uses touches[0], which can belong to the joystick.
@@ -579,6 +574,29 @@ export function mountRoom({
     window.removeEventListener("blur", mouseUp);
   });
   container.append(scene);
+  const fitDisplay = () => {
+    const wall = bootstrap.walls[0];
+    if (!bootstrap.displayOnly || !wall) return;
+    const rect = container.getBoundingClientRect();
+    const aspect = (rect.width || window.innerWidth) / (rect.height || window.innerHeight);
+    const distance = Math.max(wall.height / 2, wall.width / (2 * aspect)) / Math.tan(Math.PI / 6) / .98 + wall.depth / 2;
+    camera.setAttribute("position", `0 0 ${distance}`);
+    camera.object3D?.position.set(0, 0, distance);
+    const lens = (scene as any).camera;
+    if (lens) { lens.fov = 60; lens.aspect = aspect; lens.updateProjectionMatrix(); }
+  };
+  if (bootstrap.displayOnly) {
+    fitDisplay();
+    scene.addEventListener("loaded", fitDisplay);
+    window.addEventListener("resize", fitDisplay);
+    const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(fitDisplay);
+    observer?.observe(container);
+    life.add(() => {
+      observer?.disconnect();
+      scene.removeEventListener("loaded", fitDisplay);
+      window.removeEventListener("resize", fitDisplay);
+    });
+  }
   let started = false;
   let sampledClock = false;
   const syncClock = (client: any = realtime?.client) => {

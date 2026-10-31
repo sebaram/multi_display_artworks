@@ -17,6 +17,7 @@ import Gallery from "../features/gallery/Gallery";
 const Admin = lazy(() => import("../features/admin/Admin"));
 const SignIn = lazy(() => import("../features/admin/SignIn"));
 const Room = lazy(() => import("../features/room/Room"));
+const ElementEntry = lazy(() => import("../features/element/ElementEntry"));
 const Tools = lazy(() => import("../features/room/Tools"));
 const ARCompanion = lazy(() => import("../features/room/ARCompanion"));
 const GestureTool = lazy(() => import("../features/room/GestureTool"));
@@ -85,7 +86,7 @@ function Layout() {
             <Route path="/" element={<Gallery />} />
             <Route path="/room" element={<Room />} />
             <Route path="/wall" element={<Room mode="wall" />} />
-            <Route path="/element" element={<Room mode="element" />} />
+            <Route path="/element" element={<ElementEntry />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/kwanri/*" element={<Admin />} />

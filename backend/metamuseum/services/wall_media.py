@@ -1,5 +1,6 @@
 """Persistent uploaded media; only generated object IDs become filesystem paths."""
 import asyncio
+import errno
 import re
 from functools import partial
 from anyio.to_thread import run_sync
@@ -112,8 +113,14 @@ def delete(identifier, settings):
     reference = re.compile('^' + identifier + '$', re.IGNORECASE)
     if collection('presets').find_one({'$or': [{'asset_ids': reference}, {'thumbnail_asset_id': reference}]}) or collection('bindings').find_one({'asset_ids': reference}):
         raise HTTPException(409, 'asset_is_referenced')
+    try:
+        path(settings, identifier).unlink(missing_ok=True)
+    except OSError as error:
+        if isinstance(error, PermissionError) or error.errno == errno.EBUSY or getattr(error, 'winerror', None) in (32, 33):
+            raise HTTPException(409, 'asset_content_in_use') from None
+        raise
+    # shortcut: Mongo failure leaves metadata for retry; stage content if rollback becomes required.
     collection('assets').delete_one({'_id': doc['_id']})
-    path(settings, identifier).unlink(missing_ok=True)
 
 
 def cleanup(settings):

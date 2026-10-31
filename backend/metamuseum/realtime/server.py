@@ -271,6 +271,8 @@ class Realtime:
         self.gesture = Gesture(self, http_app)
         from .wall_interactions import WallInteractions
         self.wall_interactions = WallInteractions(self)
+        from .wall_displays import WallDisplays
+        self.wall_displays = WallDisplays(self)
         self._register()
 
     def get_room_visitor(self, sid: str, room_id: str) -> VisitorIdentity | None:
@@ -339,6 +341,7 @@ class Realtime:
         """Drain handlers before Mongo closes; cancel overdue async work boundedly."""
         self.stopping = True
         self.pending_joins.clear()
+        self.wall_displays.clear()
         await self.sio.stop_avatar_relays()
         await self.wall_interactions.stop()
         tasks = (self.handler_tasks | self.database_tasks) - {asyncio.current_task()}
@@ -367,6 +370,9 @@ class Realtime:
             if not self.wall_interactions.design_changed(event, data, physical_move=physical_wall_move):
                 return
         await self.sio.emit(event, data, room=presence_room(room_id), skip_sid=skip_sid)
+        if event in ('wall.design_applied', 'wall.design_removed', 'wall.interaction_state', 'wall.playback_state'):
+            from .wall_displays import channel
+            await self.sio.emit(event, data, room=channel(data['wall_id']), skip_sid=skip_sid)
         if event in ('wall.design_applied', 'wall.design_removed'):
             await self.wall_interactions.design_announced(event, data)
 
@@ -416,6 +422,7 @@ class Realtime:
 
         @self.on('disconnect')
         async def disconnect(sid, reason=None):
+            self.wall_displays.disconnected(sid)
             await sio._stop_avatar_target(sio.manager.eio_sid_from_sid(sid, '/'))
             self.visitors.pop(sid, None)
             self.admin_sessions.pop(sid, None)

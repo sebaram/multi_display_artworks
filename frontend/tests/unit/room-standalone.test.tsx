@@ -27,6 +27,7 @@ vi.mock("../../src/scene/mountRoom", async (original) => ({
   mountRoom: mocks.mount,
 }));
 vi.mock("../../src/scene/realtime", () => ({ startRealtime: mocks.realtime }));
+vi.mock("../../src/scene/youtube", () => ({ mountYouTube: () => ({ dispose() {}, unmute() {} }) }));
 import Room from "../../src/features/room/Room";
 
 const artwork = {
@@ -111,12 +112,29 @@ async function tick(ms = 1000) {
   });
 }
 
-it.each(["wall", "element"] as const)(
+it("opens wall links as clean read-only displays instead of room visitor screens", async () => {
+  await open("wall", "wall_id=w");
+  expect(mocks.mount.mock.calls[0][0].bootstrap.displayOnly).toBe(true);
+  expect(screen.queryByRole("button", { name: "VR 입장" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /작품 목록/ })).toBeNull();
+});
+
+it("keeps the separate YouTube viewer available without granting display playback control", async () => {
+  await open("wall", "wall_id=w");
+  act(() => mocks.mount.mock.calls[0][0].services.onDesignChange("w", { config: { state: {
+    videoLayers: [{ id: "video", youtube: { id: "M7lc1UVf-VE" } }],
+  } } }));
+  fireEvent.click(screen.getByRole("button", { name: "▶ YouTube" }));
+  expect(screen.getByRole("region", { name: "공유 YouTube 플레이어" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "공유 재생" })).toBeNull();
+});
+
+it.each(["element"] as const)(
   "preserves a saved humanoid on a name-only profile edit in %s view",
   async (mode) => {
     await open(
       mode,
-      mode === "wall" ? "wall_id=w" : "wall_element_id=art&type=image",
+      "wall_element_id=art&type=image",
     );
     const panel = bootstrapRoomProfile({
       bootstrapData: mocks.mount.mock.calls[0][0].bootstrap,
@@ -179,7 +197,7 @@ it("conditionally refreshes a changed wall and leaves an unchanged scene mounted
     color: "#123456",
   });
   await tick();
-  expect(screen.getByText("Changed wall")).toBeInTheDocument();
+  expect(screen.getByRole("main", { name: "Changed wall" })).toBeInTheDocument();
   expect(mocks.mount).toHaveBeenCalledTimes(2);
 });
 
@@ -193,44 +211,18 @@ it("bounds a subsecond refresh to one second", async () => {
   expect(fetch).toHaveBeenCalledTimes(2);
 });
 
-it("retains an unsaved artwork draft while a wall refresh is pending", async () => {
+it("ignores legacy artwork selection in the read-only wall display and still refreshes", async () => {
   vi.useFakeTimers();
   vi.mocked(globalThis.fetch)
     .mockResolvedValueOnce(head('"v1"'))
     .mockResolvedValue(head('"v2"'));
   await open("wall", "wall_id=w&wall_element_id=art&refresh=1");
-  fireEvent.change(screen.getByLabelText("작품 이름"), {
-    target: { value: "Unsaved title" },
-  });
+  expect(screen.queryByLabelText("작품 이름")).toBeNull();
+  fireEvent.keyDown(window, { key: "ArrowRight" });
   await tick();
-  expect(screen.getByLabelText("작품 이름")).toHaveValue("Unsaved title");
-  expect(mocks.api).toHaveBeenCalledTimes(1);
-  expect(mocks.mount).toHaveBeenCalledTimes(1);
-});
-
-it("does not install a refreshed wall when editing begins during its data request", async () => {
-  vi.useFakeTimers();
-  vi.mocked(globalThis.fetch)
-    .mockResolvedValueOnce(head('"v1"'))
-    .mockResolvedValue(head('"v2"'));
-  await open("wall", "wall_id=w&wall_element_id=art&refresh=1");
-  let finish!: (value: typeof wall) => void;
-  mocks.api.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        finish = resolve;
-      }),
-  );
-  await tick();
-  fireEvent.change(screen.getByLabelText("작품 이름"), {
-    target: { value: "Unsaved title" },
-  });
-  await act(async () => {
-    finish({ ...wall, name: "Changed wall" });
-  });
-  expect(screen.getByLabelText("작품 이름")).toHaveValue("Unsaved title");
-  expect(screen.queryByText("Changed wall")).toBeNull();
-  expect(mocks.mount).toHaveBeenCalledTimes(1);
+  expect(screen.queryByLabelText("작품 이름")).toBeNull();
+  expect(mocks.api).toHaveBeenCalledTimes(2);
+  expect(mocks.mount).toHaveBeenCalledTimes(2);
 });
 
 it.each(["navigate", "unmount"])(
@@ -264,7 +256,7 @@ it.each(["navigate", "unmount"])(
     expect(mocks.api).toHaveBeenCalledTimes(requests);
     if (action === "navigate")
       expect(
-        screen.getByText("Next wall", { selector: "strong" }),
+        screen.getByRole("main", { name: "Next wall" }),
       ).toBeInTheDocument();
   },
 );

@@ -80,6 +80,9 @@ secrets outside Git. Remote assets are disabled unless explicitly configured.
 - The SDK's missing CommonJS entry is bypassed through its published ES module.
   Readiness requires complete splat loading, not just the SDK promise resolving;
   initialization, asynchronous errors and a bounded load timeout reach the UI.
+- Expression callbacks return fresh snapshots: the alpha SDK applies its motion
+  calibration in place (jaw scale 1.2). Reusing the same object compounds that
+  calibration across frames and can make the mouth and splats diverge.
 
 ## Licensing
 

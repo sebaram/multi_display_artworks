@@ -58,7 +58,8 @@ void GaussianSplatRenderer.getInstance(
   document.getElementById("avatar")!,
   "/api/v1/dev/lam-avatar/avatar.zip",
   {
-    getExpressionData: () => expression,
+    // The alpha SDK calibrates this object in place on every rendered frame.
+    getExpressionData: () => ({ ...expression }),
     backgroundColor: "0xdce4e8",
     alpha: 1,
     loadProgress: (progress) => {

@@ -44,3 +44,22 @@ it("reports a swallowed SDK initialization failure instead of false readiness", 
     expect.anything(),
   );
 });
+
+it("keeps SDK frame calibration from mutating the next frame's expression", async () => {
+  sdk.getInstance.mockResolvedValue({ dispose: vi.fn() });
+  document.body.innerHTML = '<div id="avatar"></div>';
+  await import("../../src/avatar/lam-frame");
+  await Promise.resolve();
+  window.dispatchEvent(
+    new MessageEvent("message", {
+      origin: location.origin,
+      source: window.parent,
+      data: { type: "lam-gaze", yaw: 0, pitch: 0, jawOpen: 0.55 },
+    }),
+  );
+  const read = sdk.getInstance.mock.calls.at(-1)![2].getExpressionData;
+  const first = read();
+  first.jawOpen *= 1.2; // The alpha SDK applies its calibration in place each frame.
+  expect(read().jawOpen).toBe(0.55);
+  expect(read()).not.toBe(first);
+});

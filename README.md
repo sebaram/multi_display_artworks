@@ -66,6 +66,8 @@ Feature-by-feature [before/after HTML report](docs/reports/migration-before-afte
 
 The [avatar evaluation](docs/reports/avatar-evaluation.html) records partial performance coverage and the limited actual-phone check. The newer [mobile/desktop/TV comparison](docs/reports/mobile-desktop-tv-comparison.html) and [display fix verification](docs/reports/display-fix-verification.json) document permanent wall URLs, passive displays and subsequent fixes. Reports preserve their capture dates, commit IDs and historical CI results; use the release-status CI link above for the candidate's current gate.
 
+The optional [local LAM avatar pipeline](docs/lam-avatar.md) generates a photo-based head offline and previews it at `/tools/lam-avatar` with procedural gaze. It requires a separately configured private package and model licenses; generated assets are not included in the application build.
+
 ## Wall designs
 
 Open a wall's design action while signed in as an administrator, or visit `/wall-editor?wall_id=<id>`. The standalone designer is at `/wall-editor`.

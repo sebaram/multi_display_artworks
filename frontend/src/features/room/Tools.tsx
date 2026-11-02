@@ -16,6 +16,12 @@ export default function Tools() {
       <div className="tool-grid">
         <article>
           <div className="tool-symbol">◉</div>
+          <h2>{t('LAM 아바타', 'LAM avatar')}</h2>
+          <p>{t('사진에서 생성한 3D 머리와 절차적 시선을 확인합니다.', 'Preview a photo-generated 3D head with procedural gaze.')}</p>
+          <Link className="button" to="/tools/lam-avatar">{t('미리보기 열기 ↗', 'Open preview ↗')}</Link>
+        </article>
+        <article>
+          <div className="tool-symbol">◉</div>
           <h2>{t("시선 실험실", "Gaze lab")}</h2>
           <p>{t("관심 대상, 응시 시간과 필터를 조절하고 절차적 시선을 비교·기록합니다.", "Adjust targets, dwell time and filters to compare and record procedural gaze.")}</p>
           <Link className="button" to="/tools/gaze-lab">{t("실험실 열기 ↗", "Open lab ↗")}</Link>

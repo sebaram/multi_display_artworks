@@ -11,3 +11,4 @@
 /frontend/public/vendor/spark-2.4.0.module.js -text
 /frontend/public/vendor/aframe-three-bridge.js -text
 /frontend/public/vendor/three-Pass.js -text
+/tools/avatars/lam/*.sh text eol=lf

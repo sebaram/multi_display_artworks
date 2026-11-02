@@ -14,6 +14,7 @@
     "test:legacy": "node --test tests/unit/legacy/*.test.mjs"
   },
   "dependencies": {
+    "gaussian-splat-renderer-for-lam": "0.0.9-alpha.1",
     "hls.js": "1.6.13",
     "nipplejs": "1.0.4",
     "qrcode-generator": "1.4.4",

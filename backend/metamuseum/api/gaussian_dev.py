@@ -16,20 +16,20 @@ SESSION_KEY = 'gaussian_avatar_preview'
 SESSION_SECONDS = 1800
 
 
-def local_access(request: Request):
+def local_access(request: Request, root_setting='gaussian_avatar_root'):
     settings = request.app.state.settings
     try:
         local_client = request.client and ip_address(request.client.host).is_loopback
     except ValueError:
         local_client = False
     return (not getattr(settings, 'gaussian_avatar_remote_enabled', False)
-            and settings.environment != 'production' and settings.gaussian_avatar_root and local_client
+            and settings.environment != 'production' and getattr(settings, root_setting, None) and local_client
             and request.url.hostname in settings.gaussian_avatar_hosts)
 
 
-def remote_access(request: Request):
+def remote_access(request: Request, root_setting='gaussian_avatar_root'):
     settings = request.app.state.settings
-    return (getattr(settings, 'gaussian_avatar_remote_enabled', False) and settings.gaussian_avatar_root
+    return (getattr(settings, 'gaussian_avatar_remote_enabled', False) and getattr(settings, root_setting, None)
             and settings.gaussian_avatar_access_pin and request.url.hostname in settings.gaussian_avatar_hosts)
 
 
@@ -44,25 +44,29 @@ def authorized(request: Request):
             and hmac.compare_digest(grant['revision'], password_revision(request.app.state.settings)))
 
 
-def research_root(request: Request):
-    if not local_access(request):
-        if not remote_access(request):
+def research_root(request: Request, root_setting='gaussian_avatar_root'):
+    if not local_access(request, root_setting):
+        if not remote_access(request, root_setting):
             raise HTTPException(404, 'not_found')
         if not authorized(request):
             raise HTTPException(401, 'avatar_preview_locked')
-    return Path(request.app.state.settings.gaussian_avatar_root).resolve()
+    return Path(getattr(request.app.state.settings, root_setting)).resolve()
 
 
 @router.get('/status')
 def status(request: Request):
-    if not local_access(request) and not remote_access(request):
+    return preview_status(request, 'gaussian_avatar_root', FILES)
+
+
+def preview_status(request: Request, root_setting, files):
+    if not local_access(request, root_setting) and not remote_access(request, root_setting):
         return {'ready': False, 'scope': 'unavailable', 'reason': 'disabled'}
-    root = Path(request.app.state.settings.gaussian_avatar_root).resolve()
-    if not all((root / name).is_file() for name in FILES):
+    root = Path(getattr(request.app.state.settings, root_setting)).resolve()
+    if not all((root / name).is_file() for name in files):
         return {'ready': False, 'scope': 'unavailable', 'reason': 'missing_package'}
-    if not local_access(request) and not authorized(request):
+    if not local_access(request, root_setting) and not authorized(request):
         return {'ready': False, 'scope': 'password_required'}
-    return {'ready': True, 'scope': 'local_research_only' if local_access(request) else 'password_protected'}
+    return {'ready': True, 'scope': 'local_research_only' if local_access(request, root_setting) else 'password_protected'}
 
 
 class Unlock(BaseModel):
@@ -72,7 +76,11 @@ class Unlock(BaseModel):
 
 @router.post('/unlock', dependencies=[Depends(require_csrf)])
 def unlock(body: Unlock, request: Request):
-    if not remote_access(request):
+    return unlock_preview(body, request, 'gaussian_avatar_root')
+
+
+def unlock_preview(body: Unlock, request: Request, root_setting):
+    if not remote_access(request, root_setting):
         raise HTTPException(404, 'not_found')
     limiter = request.app.state.gaussian_avatar_limiter
     # Single-worker deployment: global budget also limits guesses from rotating addresses.

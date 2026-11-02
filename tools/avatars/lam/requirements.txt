@@ -1,0 +1,26 @@
+# Blackwell adaptation of the pinned LAM inference/tracking environment.
+# Install torch 2.7.1 + torchvision 0.22.1 from the cu128 index first.
+numpy==1.26.4
+omegaconf==2.3.0
+transformers==4.41.2
+diffusers==0.30.3
+accelerate==1.2.1
+einops==0.8.0
+trimesh==4.4.9
+opencv-python-headless==4.11.0.86
+scipy==1.13.1
+plyfile==1.1.3
+jaxtyping==0.2.36
+typeguard==2.13.3
+loguru==0.7.3
+Cython==0.29.37
+matplotlib==3.9.2
+tensorboard==2.18.0
+tyro==0.8.14
+PyYAML==6.0.2
+imageio[ffmpeg]==2.36.0
+moviepy==1.0.3
+scikit-image==0.24.0
+pandas==2.2.3
+iopath==0.1.10
+fvcore==0.1.5.post20221221

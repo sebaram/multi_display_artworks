@@ -1,8 +1,17 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { resolve } from "node:path";
 const backend = process.env.BACKEND_URL || "http://127.0.0.1:8000";
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve("index.html"),
+        lamPreview: resolve("lam-preview.html"),
+      },
+    },
+  },
   server: {
     port: 5173,
     strictPort: true,

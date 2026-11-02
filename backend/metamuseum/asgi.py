@@ -46,7 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                session_cookie=settings.session_cookie, max_age=settings.session_max_age,
                                same_site="lax", https_only=settings.session_secure)
     application.include_router(router)
-    from .api import admin, gallery, legacy, wall_designs, wall_media, integrations, avatars, gaussian_dev
+    from .api import admin, gallery, legacy, wall_designs, wall_media, integrations, avatars, gaussian_dev, lam_dev
     application.middleware('http')(integrations.bounded_integration_body)
     application.include_router(integrations.router)
     application.include_router(wall_designs.router)
@@ -54,6 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(gallery.router)
     application.include_router(avatars.router)
     application.include_router(gaussian_dev.router)
+    application.include_router(lam_dev.router)
     application.include_router(admin.router)
     application.include_router(legacy.router)
     # Existing media URLs keep their /static prefix, independently of the React build.
@@ -88,7 +89,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 and path != 'api' and not path.startswith(('api/', 'static/'))):
             target = (root / path).resolve()
             if target.is_relative_to(root.resolve()) and target.is_file():
-                return FileResponse(target)
+                return FileResponse(target, headers={'Cache-Control': 'no-cache'} if target.suffix == '.html' else None)
         return await http_exception_handler(request, error)
 
     return application

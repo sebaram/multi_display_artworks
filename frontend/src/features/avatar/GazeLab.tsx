@@ -23,7 +23,9 @@ import {
 import { GazeControls } from "./GazeControls";
 import "./gaze-lab.css";
 import type { NativeDisplayState } from "./NativeGaussianPreview";
+import type { LamDisplayState } from "./LamPreview";
 const NativeGaussianPreview = lazy(() => import("./NativeGaussianPreview"));
+const LamPreview = lazy(() => import("./LamPreview"));
 
 const MAX_RECORDS = 1200;
 const MAX_CONFIG_BYTES = 64 * 1024;
@@ -88,7 +90,7 @@ type RecordedSample = {
   frame: GazeFrame;
   gaze: GazeSnapshot;
   configIndex: number;
-  nativeDisplay: NativeDisplayState | null;
+  nativeDisplay: NativeDisplayState | LamDisplayState | null;
 };
 type Recording = {
   samples: RecordedSample[];
@@ -387,7 +389,13 @@ function downloadJson(name: string, value: unknown) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export default function GazeLab({ native = false }: { native?: boolean }) {
+export default function GazeLab({
+  native = false,
+  lam = false,
+}: {
+  native?: boolean;
+  lam?: boolean;
+}) {
   const { t } = useI18n();
   const [config, setConfig] = useState(() =>
     normalizeGazeConfig(DEFAULT_GAZE_CONFIG),
@@ -401,6 +409,7 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const nativeGaze = useRef<GazeSnapshot | null>(null);
   const nativeDisplay = useRef<NativeDisplayState | null>(null);
+  const lamDisplay = useRef<LamDisplayState | null>(null);
   const [showNative, setShowNative] = useState(native);
   const controller = useRef<GazeController | null>(null);
   if (!controller.current) controller.current = createGazeController(config);
@@ -450,8 +459,8 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
           frame,
           gaze,
           configIndex: log.configChanges.length - 1,
-          nativeDisplay: nativeDisplay.current
-            ? { ...nativeDisplay.current }
+          nativeDisplay: (lam ? lamDisplay.current : nativeDisplay.current)
+            ? { ...(lam ? lamDisplay.current! : nativeDisplay.current!) }
             : null,
         });
         if (log.samples.length >= MAX_RECORDS) {
@@ -472,7 +481,7 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
     };
     raf = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [lam]);
 
   const changeConfig = (value: GazeConfig) => {
     const next = normalizeGazeConfig(value, true);
@@ -610,8 +619,12 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
       <div className="gaze-disclosure">
         <strong>{t("절차적 시선 도식", "Procedural gaze diagram")}</strong>
         {t(
-          "· GaussianAvatars 샘플이나 눈 추적 데이터가 아닙니다. 아래에서 로컬 네이티브 GaussianAvatars도 같은 시선으로 확인할 수 있습니다. 자연스러움과 관찰자의 인지 여부는 검증 전 가설입니다.",
-          "· This is not a GaussianAvatars sample or eye tracking data. Below, you can also view a local native GaussianAvatars model with the same gaze. Naturalness and observer awareness remain untested hypotheses.",
+          lam
+            ? "· 아래 LAM 머리에 같은 절차적 시선을 적용합니다. 실제 눈 추적 데이터가 아니며, 자연스러움과 관찰자의 인지 여부는 검증 전 가설입니다."
+            : "· GaussianAvatars 샘플이나 눈 추적 데이터가 아닙니다. 아래에서 로컬 네이티브 GaussianAvatars도 같은 시선으로 확인할 수 있습니다. 자연스러움과 관찰자의 인지 여부는 검증 전 가설입니다.",
+          lam
+            ? "· The LAM head below receives the same procedural gaze. This is not eye tracking data; naturalness and observer awareness remain untested hypotheses."
+            : "· This is not a GaussianAvatars sample or eye tracking data. Below, you can also view a local native GaussianAvatars model with the same gaze. Naturalness and observer awareness remain untested hypotheses.",
         )}
       </div>
       <div className="gaze-workspace">
@@ -727,14 +740,36 @@ export default function GazeLab({ native = false }: { native?: boolean }) {
           <GazeControls config={config} onChange={changeConfig} />
         </aside>
       </div>
-      <div className="gaze-actions gaze-scene">
-        <button type="button" onClick={() => setShowNative(!showNative)}>
-          {showNative
-            ? t("GaussianAvatars 닫기", "Close GaussianAvatars")
-            : t("로컬 GaussianAvatars 열기", "Open local GaussianAvatars")}
-        </button>
-      </div>
-      {showNative && (
+      {lam && (
+        <Suspense
+          fallback={
+            <p role="status">
+              {t("LAM 렌더러 로딩 중…", "Loading LAM renderer…")}
+            </p>
+          }
+        >
+          <LamPreview
+            gaze={nativeGaze}
+            appliedState={lamDisplay}
+            summary={summary}
+            targetLabel={
+              selectedTarget
+                ? targetLabel(selectedTarget)
+                : t("정면", "Forward")
+            }
+          />
+        </Suspense>
+      )}
+      {!lam && (
+        <div className="gaze-actions gaze-scene">
+          <button type="button" onClick={() => setShowNative(!showNative)}>
+            {showNative
+              ? t("GaussianAvatars 닫기", "Close GaussianAvatars")
+              : t("로컬 GaussianAvatars 열기", "Open local GaussianAvatars")}
+          </button>
+        </div>
+      )}
+      {!lam && showNative && (
         <Suspense
           fallback={
             <p role="status">

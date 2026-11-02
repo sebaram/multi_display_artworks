@@ -108,6 +108,7 @@ function Layout() {
             <Route path="/tools/streams" element={<Streams />} />
             <Route path="/tools/gaze-lab" element={<GazeLab />} />
             <Route path="/tools/gaussian-avatar" element={<GazeLab native />} />
+            <Route path="/tools/lam-avatar" element={<GazeLab lam />} />
             <Route path="/ar-companion" element={<ARCompanion />} />
             <Route path="/gesture-mark/*" element={<GestureTool />} />
             <Route path="/wall-editor" element={<WallEditorEntry />} />

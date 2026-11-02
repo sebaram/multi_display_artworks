@@ -23,7 +23,7 @@
 
 선택한 구현은 [GaussianAvatars](https://github.com/ShenhanQian/GaussianAvatars), 확인한 소스 리비전은 `29b0021308d45c6dce0b522044a4893e189c7a23`이다. 실제 FLAME과 삼각형에 바인딩된 Gaussian 렌더링을 구현했다. 2D 시선 도식과 기존 CC0 사람 프리셋은 이 네이티브 렌더러와 별개다.
 
-사용자가 제공한 `FLAME/FLAME2023.zip`과 `FLAME/FLAME_masks.zip`으로 `FLAME/derived/web`에 로컬 패키지를 만들었다. Open ZIP도 있지만 이번 패키지는 원본 2023을 사용한다. 전체 FLAME 폴더와 파생 데이터는 Git에서 제외했고 프런트엔드 빌드에도 복사하지 않는다.
+처음에는 사용자가 제공한 `FLAME/FLAME2023.zip`과 `FLAME/FLAME_masks.zip`으로 `FLAME/derived/web`에 원본 2023 패키지를 만들었다. 2026-11-02부터 기본 export는 `FLAME/FLAME2023Open.zip`의 Open 모델을 사용해 별도 `FLAME/derived/web-open`을 만든다. 원본 패키지는 덮어쓰지 않는다. 전체 FLAME 폴더와 파생 데이터는 Git에서 제외했고 프런트엔드 빌드에도 복사하지 않는다.
 
 실제로 연결한 경로:
 
@@ -38,10 +38,13 @@
 새 환경에서의 준비 순서는 다음과 같다. NumPy가 있는 Python을 사용하며 별도 Torch/Scipy 설치는 필요 없다.
 
 ```powershell
+python -m pip install -r tools/avatars/requirements.txt
 python tools/avatars/download_gaussian_demo.py
 python tools/avatars/export_gaussian_avatar.py
-$env:GAUSSIAN_AVATAR_ROOT = (Resolve-Path FLAME/derived/web).Path
+$env:GAUSSIAN_AVATAR_ROOT = (Resolve-Path FLAME/derived/web-open).Path
 ```
+
+`--model-variant 2023` preserves the original local research export. Open export requires both model ZIPs: the original is used offline to project the sample's expression coefficients into the Open basis. The target rig uses Open arrays throughout; the original expression basis and conversion matrix are not exported. The exporter solves the same least-squares objective as the [converter linked by the FLAME website](https://github.com/Suraj-Bhor/flame_to_flame_open_converter/tree/5dd788ed74b7fa705637c17ede71285bbb5534aa). The manifest records the target model hash, variant, attribution, conversion method and first-frame pre-skinning residual. The preview and experiment recording identify the model variant; the recording also includes its model hash. Sample rights remain separate; see [the evidence and remaining limit](validation/2026-11-02-flame-open.md).
 
 기본 설정에서는 명시적으로 설정한 개발·테스트 서버의 loopback 접속에서만 manifest/rig/PLY 세 파일을 제공한다. 프로덕션과 외부 호스트에서는 자산 경로가 차단되고 네이티브 프리셋도 노출하지 않는다. 별도로 허가된 자산을 위한 임시 인증 미리보기는 아래 설정을 사용한다. 코드 이용 조건은 [라이선스 사본](licenses/GaussianAvatars-LICENSE.md)에 보존했다.
 

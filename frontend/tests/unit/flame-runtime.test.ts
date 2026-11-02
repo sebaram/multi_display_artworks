@@ -96,9 +96,9 @@ test('malformed rig buffers and parameters cannot enter the evaluator', () => {
 
 // The licensed model is intentionally absent from Git/CI. Run the exporter to
 // enable this bounded full-mesh check on the user's private local assets.
-const localPath = resolve(process.cwd(), '../FLAME/derived/web');
+const localPath = resolve(process.cwd(), process.env.FLAME_RIG_TEST_ROOT || '../FLAME/derived/web-open');
 const hasPrivateRig = existsSync(`${localPath}/manifest.json`) && existsSync(`${localPath}/references.json`);
-describe.skipIf(!hasPrivateRig)('private original FLAME 2023 / actual subject 306', () => {
+describe.skipIf(!hasPrivateRig)('local FLAME package / actual subject 306', () => {
   test('all vertices match independent Python references for neutral, eyes, jaw, expression and frame 0', () => {
     const manifest = JSON.parse(readFileSync(`${localPath}/manifest.json`, 'utf8')) as FlameManifest;
     const files = Object.fromEntries([...new Set(Object.values(manifest.arrays).map(a => a.file))]

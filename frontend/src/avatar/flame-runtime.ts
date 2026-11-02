@@ -32,6 +32,9 @@ export interface FlameManifest {
   byteOrder: 'little-endian';
   sourceRevision: string;
   licenseStatus: 'private-local-only';
+  modelVariant?: 'FLAME-2023' | 'FLAME-2023-Open';
+  expressionSpace?: 'FLAME-2023' | 'FLAME-2023-Open';
+  sources?: Record<string, string>;
   vertexCount: number;
   faceCount: number;
   jointCount: number;

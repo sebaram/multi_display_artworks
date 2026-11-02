@@ -1,0 +1,2 @@
+# Offline export only; not part of the backend runtime.
+numpy==2.3.4

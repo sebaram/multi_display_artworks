@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Make FLAME 2023 Open the offline avatar-export default, project sample expression coefficients into its basis and identify the model variant/hash in experiment records. Keep the original package intact and sample redistribution review separate from the Open model license.
+
 - Restore desktop WASD after toolbar/map focus without taking keys from form fields or open dialogs.
 - Report unavailable GaussianAvatars packages without indefinite loading or a failed status request, and fix native vendor imports in the development server.
 - Add an opt-in, session-authenticated temporary avatar preview for separately authorized assets, with CSRF validation, expiring grants and attempt limits. Model delivery stays disabled by default; licensed assets and passwords are not bundled.

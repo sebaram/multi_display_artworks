@@ -11,6 +11,8 @@ const BASE = "/api/v1/dev/gaussian-avatar/";
 export type NativeDisplayState = {
   subject: "306";
   sourceRevision: string;
+  modelVariant: string;
+  modelSha256?: string;
   pose: "canonical";
   yaw: number;
   pitch: number;
@@ -45,6 +47,7 @@ export default function NativeGaussianPreview({
   const [modelInfo, setModelInfo] = useState<{
     gaussians: number;
     vertices: number;
+    modelVariant: string;
   } | null>(null);
   const [access, setAccess] = useState<'loading' | 'locked' | 'unavailable' | 'ready' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0), [pin, setPin] = useState(''), [unlocking, setUnlocking] = useState(false);
@@ -132,6 +135,7 @@ export default function NativeGaussianPreview({
       setModelInfo({
         gaussians: avatar.count,
         vertices: model.manifest.vertexCount,
+        modelVariant: model.manifest.modelVariant ?? 'FLAME-2023',
       });
       let applied = -Infinity,
         lastKey = "",
@@ -168,6 +172,8 @@ export default function NativeGaussianPreview({
             appliedState.current = {
               subject: "306",
               sourceRevision: model.manifest.sourceRevision,
+              modelVariant: model.manifest.modelVariant ?? 'FLAME-2023',
+              modelSha256: model.manifest.sources?.modelSha256,
               pose: "canonical",
               yaw,
               pitch,
@@ -336,11 +342,12 @@ export default function NativeGaussianPreview({
       <p role="status">
         {modelInfo
           ? t(
-              "GaussianAvatars 306 · Gaussian {gaussians}개 · FLAME 정점 {vertices}개",
-              "GaussianAvatars 306 · {gaussians} Gaussians · FLAME {vertices} vertices",
+              "GaussianAvatars 306 · Gaussian {gaussians}개 · FLAME 정점 {vertices}개 · {modelVariant}",
+              "GaussianAvatars 306 · {gaussians} Gaussians · FLAME {vertices} vertices · {modelVariant}",
               {
                 gaussians: modelInfo.gaussians.toLocaleString(),
                 vertices: modelInfo.vertices.toLocaleString(),
+                modelVariant: modelInfo.modelVariant,
               },
             )
           : access === 'locked' ? t('임시 비밀번호를 입력하면 모델을 불러옵니다.', 'Enter the temporary password to load the model.')
@@ -351,6 +358,11 @@ export default function NativeGaussianPreview({
               "Loading local GaussianAvatars model…",
             )}
       </p>
+      {modelInfo?.modelVariant === 'FLAME-2023-Open' && <p className="gaze-help">
+        FLAME: Li, Bolkart, Black, Li &amp; Romero (2017).{' '}
+        <a href="https://flame.is.tue.mpg.de/modellicense.html" target="_blank" rel="noopener">FLAME 2023 Open · CC-BY-4.0</a>
+        {' · '}{t('개별 체형·오프셋·치아 추가', 'Adapted with subject identity, offsets and teeth')}.
+      </p>}
       {access === 'locked' && <form className="gaze-fields" onSubmit={event => {
         event.preventDefault();
         if (unlocking) return;

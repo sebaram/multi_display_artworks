@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the locally licensed original FLAME 2023 / GaussianAvatars subject 306.
+"""Export FLAME 2023 Open / GaussianAvatars subject 306 for local evaluation.
 
 Run offline; this is deliberately not an upload handler. Model data stays under
 the ignored FLAME/derived directory. Only NumPy is needed, including for the old
@@ -10,7 +10,7 @@ revision 29b0021308d45c6dce0b522044a4893e189c7a23 (CC-BY-NC-SA-4.0,
 https://github.com/ShenhanQian/GaussianAvatars/blob/main/LICENSE.md).
 Its FLAME/LBS sources retain separate MPG/SMPL-X license requirements; see
 https://github.com/vchoutas/smplx/blob/main/LICENSE and the user's model license.
-No rights to distribute FLAME or the subject are granted by this exporter.
+The Open model's CC-BY-4.0 terms do not establish subject redistribution rights.
 """
 
 from __future__ import annotations
@@ -29,12 +29,15 @@ import zipfile
 import numpy as np
 try:
     from numpy._core.multiarray import _reconstruct
+    from numpy._core.numeric import _frombuffer
 except ImportError:  # NumPy 1.x uses the older pickle module path.
     from numpy.core.multiarray import _reconstruct
+    from numpy.core.numeric import _frombuffer
 
 
 REVISION = "29b0021308d45c6dce0b522044a4893e189c7a23"
 FLAME_SOURCE_SHA256 = "09f4052a3df4251539b20af907475dd58ab9a2048d1761703c3d55480de278b5"
+CONVERTER_REVISION = "5dd788ed74b7fa705637c17ede71285bbb5534aa"
 MODEL_KEYS = {"v_template", "shapedirs", "posedirs", "J_regressor", "weights", "kintree_table", "f"}
 
 
@@ -64,6 +67,8 @@ class ModelUnpickler(pickle.Unpickler):
         allowed = {
             ("numpy.core.multiarray", "_reconstruct"): _reconstruct,
             ("numpy._core.multiarray", "_reconstruct"): _reconstruct,
+            ("numpy.core.numeric", "_frombuffer"): _frombuffer,
+            ("numpy._core.numeric", "_frombuffer"): _frombuffer,
             ("numpy", "ndarray"): np.ndarray,
             ("numpy", "dtype"): np.dtype,
             ("__builtin__", "set"): builtins.set,
@@ -96,6 +101,20 @@ def numeric(value, shape, name):
     if result.shape != shape or not np.isfinite(result).all():
         raise ValueError(f"Invalid {name}: expected finite {shape}, got {result.shape}")
     return result
+
+
+def convert_expressions(original_basis, open_basis, coefficients):
+    """Least-squares change of basis; never export the original basis or this map."""
+    original = np.asarray(original_basis, dtype=np.float64)
+    target = np.asarray(open_basis, dtype=np.float64)
+    values = np.asarray(coefficients, dtype=np.float64)
+    if (original.ndim != 3 or original.shape[1:] != (3, 100) or original.shape != target.shape
+            or values.ndim not in (1, 2) or values.shape[-1] != 100
+            or not all(np.isfinite(a).all() for a in (original, target, values))):
+        raise ValueError('Expected finite matching expression bases and 100-component coefficients')
+    # Same least-squares objective as the converter linked by the FLAME website.
+    mapping = np.linalg.lstsq(target.reshape(-1, 100), original.reshape(-1, 100), rcond=1e-8)[0]
+    return values @ mapping.T
 
 
 def source_constants(source_path: Path):
@@ -234,7 +253,8 @@ def references(defaults):
 
 def export(args):
     private_root = args.private_root.resolve()
-    output = args.output.resolve()
+    is_open = args.model_variant == '2023-open'
+    output = (args.output or private_root / 'derived' / ('web-open' if is_open else 'web')).resolve()
     if not output.is_relative_to(private_root / "derived"):
         raise ValueError("Restricted assets may only be written under FLAME/derived")
     source_path = args.source_root / "flame_model/flame.py"
@@ -250,10 +270,18 @@ def export(args):
             raise ValueError("Unsupported or missing native PLY header")
     if not {b"format binary_little_endian 1.0\n", b"element vertex 89021\n", b"property float binding_0\n"}.issubset(header):
         raise ValueError("Expected the original bound subject 306 PLY")
-    model_data = asset_bytes(args.model, "flame2023.pkl")
+    model_path = args.model or private_root / ('FLAME2023Open.zip' if is_open else 'FLAME2023.zip')
+    model_data = asset_bytes(model_path, "flame2023_Open.pkl" if is_open else "flame2023.pkl")
     model = ModelUnpickler(io.BytesIO(model_data), encoding="latin1").load()
     if not isinstance(model, dict) or not MODEL_KEYS.issubset(model):
-        raise ValueError("Expected the original FLAME 2023 model with jaw rotation")
+        raise ValueError("Expected a FLAME 2023 model with jaw rotation")
+    original_model = None
+    if is_open:
+        original_model = ModelUnpickler(io.BytesIO(asset_bytes(args.original_model, 'flame2023.pkl')), encoding='latin1').load()
+        original_directions = numeric(original_model['shapedirs'], (5023, 3, 400), 'original directions')
+        open_directions = numeric(model['shapedirs'], (5023, 3, 400), 'Open directions')
+        if not np.array_equal(original_directions[:, :, :300], open_directions[:, :, :300]):
+            raise ValueError('Identity bases differ; subject refitting is required')
     mask_data = asset_bytes(args.masks, "FLAME_masks.pkl")
     masks = ModelUnpickler(io.BytesIO(mask_data), encoding="latin1").load()
     if not isinstance(masks, dict) or not {"left_eyeball", "right_eyeball", "lips"}.issubset(masks):
@@ -280,6 +308,19 @@ def export(args):
                                   ("neck", "neck_pose", 3), ("jaw", "jaw_pose", 3),
                                   ("eyes", "eyes_pose", 6), ("translation", "translation", 3)):
             defaults[name] = numeric(motion[key][0], (length,), key).tolist()
+        conversion = None
+        if is_open:
+            original_expression = np.asarray(defaults['expression'], dtype=np.float64)
+            converted = convert_expressions(original_directions[:, :, 300:400], open_directions[:, :, 300:400], original_expression)
+            defaults['expression'] = converted.tolist()
+            residual = (np.einsum('vce,e->vc', open_directions[:, :, 300:400], converted)
+                        - np.einsum('vce,e->vc', original_directions[:, :, 300:400], original_expression))
+            error_mm = np.linalg.norm(residual, axis=1) * 1000
+            conversion = {'method': 'least-squares-expression-basis-projection',
+                          'reference': f'https://github.com/Suraj-Bhor/flame_to_flame_open_converter/tree/{CONVERTER_REVISION}',
+                          'frame0PreSkinningMeanErrorMm': float(error_mm.mean()),
+                          'frame0PreSkinningMaxErrorMm': float(error_mm.max()),
+                          'originalBasisAndMappingExported': False}
         # Upstream accepts but ignores dynamic_offset; record its presence rather than applying it.
         ignored_dynamic = "dynamic_offset" in motion.files
     rig["restJoints"] = (rig["jointRegressor"] @ rig["template"]).astype(np.float32)
@@ -305,7 +346,12 @@ def export(args):
     manifest = {
         "format": "gaussian-avatars-native-v1", "byteOrder": "little-endian", "subject": "306",
         "sourceRevision": REVISION, "licenseStatus": "private-local-only",
-        "rights": {"model": "Original FLAME 2023; user-provided licensed local asset",
+        "modelVariant": "FLAME-2023-Open" if is_open else "FLAME-2023",
+        "expressionSpace": "FLAME-2023-Open" if is_open else "FLAME-2023",
+        "conversion": conversion,
+        "rights": {"model": "FLAME 2023 Open; CC-BY-4.0" if is_open else "Original FLAME 2023; user-provided licensed local asset",
+                   "modelLicenseUrl": "https://flame.is.tue.mpg.de/modellicense.html",
+                   "attribution": "FLAME: Li, Bolkart, Black, Li and Romero, SIGGRAPH Asia 2017; model adapted with baked subject identity, offsets and added teeth",
                    "code": "GaussianAvatars CC-BY-NC-SA-4.0; inherited FLAME/LBS MPG terms also apply",
                    "subject": "Upstream demo 306; redistribution permission not established",
                    "publicDistribution": False},
@@ -327,18 +373,21 @@ def export(args):
     print(json.dumps({"output": str(output), "vertices": 5143, "faces": 10144,
                       "gaussians": 89021, "referencePoses": len(cases),
                       "rigBytes": (output / "rig.bin").stat().st_size,
+                      "modelVariant": manifest['modelVariant'], "conversion": conversion,
                       "licenseStatus": manifest["licenseStatus"]}))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--private-root", type=Path, default=Path("FLAME"))
-    parser.add_argument("--model", type=Path, default=Path("FLAME/FLAME2023.zip"))
+    parser.add_argument("--model-variant", choices=['2023-open', '2023'], default='2023-open')
+    parser.add_argument("--model", type=Path, help='Model ZIP/pickle; defaults to the selected variant under FLAME')
+    parser.add_argument("--original-model", type=Path, default=Path("FLAME/FLAME2023.zip"), help='Offline expression conversion reference, never exported')
     parser.add_argument("--masks", type=Path, default=Path("FLAME/FLAME_masks.zip"))
     parser.add_argument("--source-root", type=Path, default=Path("FLAME/upstream"))
     parser.add_argument("--parameters", type=Path, default=Path("FLAME/upstream/media/306/flame_param.npz"))
     parser.add_argument("--ply", type=Path, default=Path("FLAME/upstream/media/306/point_cloud.ply"))
-    parser.add_argument("--output", type=Path, default=Path("FLAME/derived/web"))
+    parser.add_argument("--output", type=Path, help='Defaults to FLAME/derived/web-open, or web for the original variant')
     export(parser.parse_args())
 
 

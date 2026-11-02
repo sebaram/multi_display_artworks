@@ -1,5 +1,6 @@
 import { useI18n } from "../../app/i18n";
 import { displayError } from "../../app/error-message";
+import { api, ApiError } from "../../api/client";
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { loadAFrame } from "../../scene/mountRoom";
 import { evaluateFlame, loadFlameModel } from "../../avatar/flame-runtime";
@@ -45,6 +46,9 @@ export default function NativeGaussianPreview({
     gaussians: number;
     vertices: number;
   } | null>(null);
+  const [access, setAccess] = useState<'loading' | 'locked' | 'unavailable' | 'ready' | 'error'>('loading');
+  const [attempt, setAttempt] = useState(0), [pin, setPin] = useState(''), [unlocking, setUnlocking] = useState(false);
+  const [protectedPreview, setProtectedPreview] = useState(false);
   const [error, setError] = useState<[string, string] | null>(null),
     [jaw, setJaw] = useState(0),
     [expression, setExpression] = useState(0);
@@ -58,23 +62,24 @@ export default function NativeGaussianPreview({
       avatar: any,
       frame = 0;
     const element = host.current!;
+    setAccess('loading'); setError(null); setModelInfo(null);
     const fail = (reason: unknown) => {
       if (!abort.signal.aborted) {
         const message =
           reason instanceof Error ? reason.message : String(reason);
         setError([message, message]);
+        setAccess('error');
       }
     };
     void (async () => {
       const ready = await fetch(`${BASE}status`, { signal: abort.signal });
-      if (!ready.ok || !(await ready.json()).ready) {
-        if (!abort.signal.aborted)
-          setError([
-            "로컬 모델 패키지가 없습니다. FLAME export와 개발 서버의 GAUSSIAN_AVATAR_ROOT 설정을 확인하세요.",
-            "Local model package is missing. Check the FLAME export and the development server’s GAUSSIAN_AVATAR_ROOT setting.",
-          ]);
+      const status = ready.ok ? await ready.json() : null;
+      if (abort.signal.aborted) return;
+      if (!status?.ready) {
+        setAccess(status?.scope === 'password_required' ? 'locked' : 'unavailable');
         return;
       }
+      setProtectedPreview(status.scope === 'password_protected');
       await loadAFrame();
       if (abort.signal.aborted) return;
       const THREE = (window as any).AFRAME.THREE;
@@ -89,7 +94,7 @@ export default function NativeGaussianPreview({
       const model = await loadFlameModel(`${BASE}manifest.json`, {
         signal: abort.signal,
       });
-      const moduleUrl = "/vendor/gaussian-avatar-native.js";
+      const moduleUrl = new URL("/vendor/gaussian-avatar-native.js", location.origin).href;
       const { createNativeGaussianAvatar } = await import(
         /* @vite-ignore */ moduleUrl
       );
@@ -122,7 +127,7 @@ export default function NativeGaussianPreview({
         (Math.max(size.x, size.y, size.z) /
           (2 * Math.tan((camera.fov * Math.PI) / 360))) *
         1.1;
-      element.dataset.nativeAvatarState = "ready";
+      setAccess('ready');
       element.dataset.gaussians = String(avatar.count);
       setModelInfo({
         gaussians: avatar.count,
@@ -209,7 +214,7 @@ export default function NativeGaussianPreview({
       renderer?.forceContextLoss();
       renderer?.domElement.remove();
     };
-  }, [gaze, appliedState]);
+  }, [gaze, appliedState, attempt]);
   return (
     <section
       className="gaze-panel gaze-scene"
@@ -325,7 +330,7 @@ export default function NativeGaussianPreview({
         <div
           ref={host}
           className="gaze-native-canvas"
-          data-native-avatar-state="loading"
+          data-native-avatar-state={access}
         />
       </div>
       <p role="status">
@@ -338,11 +343,35 @@ export default function NativeGaussianPreview({
                 vertices: modelInfo.vertices.toLocaleString(),
               },
             )
+          : access === 'locked' ? t('임시 비밀번호를 입력하면 모델을 불러옵니다.', 'Enter the temporary password to load the model.')
+          : access === 'unavailable' ? t('이 서버에서는 모델을 사용할 수 없습니다. 시선 도식과 실험 설정은 계속 사용할 수 있습니다.', 'The model is not available on this server. The gaze diagram and experiment controls remain available.')
+          : access === 'error' ? t('모델을 불러오지 못했습니다. 다시 시도해 주세요.', 'The model could not load. Please retry.')
           : t(
               "로컬 GaussianAvatars 모델을 불러오는 중…",
               "Loading local GaussianAvatars model…",
             )}
       </p>
+      {access === 'locked' && <form className="gaze-fields" onSubmit={event => {
+        event.preventDefault();
+        if (unlocking) return;
+        setUnlocking(true); setError(null);
+        void api(`${BASE}unlock`, { method: 'POST', body: JSON.stringify({ pin }) }).then(() => {
+          setAttempt(value => value + 1);
+        }).catch(reason => {
+          setError(reason instanceof ApiError && reason.status === 429
+            ? ['입력 시도가 많습니다. 5분 뒤 다시 시도하세요.', 'Too many attempts. Try again in five minutes.']
+            : ['인증하지 못했습니다. 비밀번호와 연결을 확인하세요.', 'Unable to unlock. Check the password and connection.']);
+        }).finally(() => { setPin(''); setUnlocking(false); });
+      }}>
+        <label>{t('임시 비밀번호', 'Temporary password')}<input type="password" autoComplete="current-password"
+          minLength={4} maxLength={128} required value={pin} onChange={event => setPin(event.target.value)} disabled={unlocking} /></label>
+        <button disabled={unlocking} type="submit">{t('미리보기 열기', 'Unlock preview')}</button>
+      </form>}
+      {access === 'error' && <button onClick={() => setAttempt(value => value + 1)}>{t('다시 시도', 'Retry')}</button>}
+      {protectedPreview && access === 'ready' && <button onClick={() => {
+        void api(`${BASE}unlock`, { method: 'DELETE' }).then(() => setAttempt(value => value + 1))
+          .catch(() => setError(['잠그지 못했습니다. 연결을 확인하세요.', 'Unable to lock. Check the connection.']));
+      }}>{t('미리보기 잠그기', 'Lock preview')}</button>}
       {error && <p role="alert">{displayError(t(...error))}</p>}
       <div className="gaze-fields">
         <label>
@@ -351,6 +380,7 @@ export default function NativeGaussianPreview({
           })}
           <input
             aria-label={t("네이티브 카메라 회전", "Native camera orbit")}
+            disabled={!modelInfo}
             type="range"
             min="-70"
             max="70"
@@ -362,6 +392,7 @@ export default function NativeGaussianPreview({
           {t("확대 · {zoom}", "Zoom · {zoom}", { zoom: zoom.toFixed(1) })}
           <input
             aria-label={t("네이티브 카메라 확대", "Native camera zoom")}
+            disabled={!modelInfo}
             type="range"
             min=".6"
             max="1.6"
@@ -376,6 +407,7 @@ export default function NativeGaussianPreview({
           })}
           <input
             aria-label={t("네이티브 턱", "Native jaw")}
+            disabled={!modelInfo}
             type="range"
             min="0"
             max="20"
@@ -391,6 +423,7 @@ export default function NativeGaussianPreview({
           )}
           <input
             aria-label={t("네이티브 표현", "Native expression")}
+            disabled={!modelInfo}
             type="range"
             min="-2"
             max="2"

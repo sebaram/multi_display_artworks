@@ -43,7 +43,17 @@ python tools/avatars/export_gaussian_avatar.py
 $env:GAUSSIAN_AVATAR_ROOT = (Resolve-Path FLAME/derived/web).Path
 ```
 
-명시적으로 설정한 개발·테스트 서버의 loopback 접속에서만 manifest/rig/PLY 세 파일을 제공한다. 프로덕션과 외부 호스트에서는 자산 경로가 차단되고 네이티브 프리셋도 노출하지 않는다. 코드 이용 조건은 [라이선스 사본](licenses/GaussianAvatars-LICENSE.md)에 보존했다.
+기본 설정에서는 명시적으로 설정한 개발·테스트 서버의 loopback 접속에서만 manifest/rig/PLY 세 파일을 제공한다. 프로덕션과 외부 호스트에서는 자산 경로가 차단되고 네이티브 프리셋도 노출하지 않는다. 별도로 허가된 자산을 위한 임시 인증 미리보기는 아래 설정을 사용한다. 코드 이용 조건은 [라이선스 사본](licenses/GaussianAvatars-LICENSE.md)에 보존했다.
+
+### Optional authenticated preview (2026-11-02)
+
+Remote preview is disabled by default. Only enable it for a package you are authorized to provide to its recipients. A PIN does not change the model or subject license. The current `FLAME/derived/web` package uses original FLAME 2023, whose license restricts third-party provision; do not upload it to production merely because authentication exists. FLAME 2023 Open has different terms, but converting the rig does not by itself resolve the sample subject's terms.
+
+For an authorized package, set `GAUSSIAN_AVATAR_ROOT` to a private mounted directory outside the frontend build, `GAUSSIAN_AVATAR_REMOTE_ENABLED=true`, `GAUSSIAN_AVATAR_ACCESS_PIN` in the server environment, and `GAUSSIAN_AVATAR_HOSTS` to an explicit JSON hostname allowlist. Add the exact HTTPS origin to `ALLOWED_ORIGINS`. Never commit the password or expose the model via a static directory. Leave the room catalog's native preset local-only; this option enables the lab preview.
+
+The status API returns unavailable, locked, or ready without treating disabled assets as a failed request. Unlock uses same-origin CSRF validation and the existing signed HttpOnly session. Each grant lasts 30 minutes; password rotation and Lock preview revoke subsequent file access. All three model files, including HEAD requests, check authorization and use `Cache-Control: no-store`. Limits are five attempts per client and twenty across clients per five minutes, using the existing single-worker in-memory limiter. Restart clears attempt history; a four-digit PIN is temporary access control, not strong account authentication. Locking cannot recall data already downloaded by an authenticated browser.
+
+The dev-server loader uses an absolute same-origin URL so Vite serves the public vendor module unchanged. Relative imports from the public directory otherwise acquire `?import` and fail with HTTP 500 in development.
 
 Tailscale에서 볼 때는 앱을 loopback에 유지하고 `tailscale serve --bg --tcp=8000 tcp://127.0.0.1:8000`으로 사설망에 전달한다. `GAUSSIAN_AVATAR_HOSTS`에 해당 장치의 짧은 이름/FQDN/IP를 JSON 배열로 명시하고, `ALLOWED_ORIGINS`에도 해당 HTTP 주소를 추가해야 모델·설정 저장·WebSocket이 동작한다. 기본 허용 호스트는 localhost뿐이며, 추가 호스트도 로컬 전달 연결에서만 모델을 받을 수 있다. 전달 해제는 `tailscale serve --tcp=8000 off`를 사용한다. 인터넷 공개 Funnel은 사용하지 않는다.
 

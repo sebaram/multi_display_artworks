@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     # Explicit local research opt-in; licensed model data never ships in the web build.
     gaussian_avatar_root: Path | None = None
     gaussian_avatar_hosts: list[str] = ['127.0.0.1', 'localhost', '::1']
+    gaussian_avatar_remote_enabled: bool = False
+    gaussian_avatar_access_pin: str = Field(default='', repr=False, max_length=128)
     media_root: Path | None = None
     wall_media_root: Path = Path('wall_media')
     wall_media_max_file_bytes: int = Field(default=2 * 1024**3, gt=0)
@@ -42,6 +44,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def secure_production_cookie(self):
+        if self.gaussian_avatar_remote_enabled and len(self.gaussian_avatar_access_pin) < 4:
+            raise ValueError('Remote avatar access requires a server-side password of at least four characters')
         if self.environment == "production":
             self.session_secure = True
         return self

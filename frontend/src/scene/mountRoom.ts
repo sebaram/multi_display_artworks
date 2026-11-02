@@ -571,6 +571,17 @@ export function mountRoom({
   };
   scene.addEventListener('pointerup', movementFocus);
   life.add(() => scene.removeEventListener('pointerup', movementFocus));
+  const resumeKeyboardMovement = (event: KeyboardEvent) => {
+    if (!bootstrap.roomControlsEnabled || event.defaultPrevented || event.isComposing ||
+        event.ctrlKey || event.altKey || event.metaKey || !/^Key[WASD]$/.test(event.code) ||
+        document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]')) return;
+    const active = document.activeElement;
+    // A-Frame only accepts body focus. Resume after controls without taking focus from editors.
+    if (active instanceof HTMLElement && !active.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') &&
+        (active.matches('button, a, summary, canvas, [role="button"]') || active.contains(scene))) active.blur();
+  };
+  window.addEventListener('keydown', resumeKeyboardMovement, true);
+  life.add(() => window.removeEventListener('keydown', resumeKeyboardMovement, true));
   window.addEventListener("pointerup", mouseUp);
   window.addEventListener("blur", mouseUp);
   life.add(() => {

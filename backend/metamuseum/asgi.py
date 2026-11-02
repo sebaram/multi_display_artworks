@@ -41,6 +41,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.streams = StreamManager(settings.stream_root, settings.ffmpeg_path)
     application.state.integration_limiter = RateLimiter()
     application.state.legacy_camera_limiter = RateLimiter()
+    application.state.gaussian_avatar_limiter = RateLimiter()
     application.add_middleware(SessionMiddleware, secret_key=settings.secret_key,
                                session_cookie=settings.session_cookie, max_age=settings.session_max_age,
                                same_site="lax", https_only=settings.session_secure)

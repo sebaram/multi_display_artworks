@@ -1,5 +1,24 @@
 import { it, expect, vi } from "vitest";
 import { mountRoom } from "../../src/scene/mountRoom";
+it('resumes WASD after toolbar or restored map focus, while keeping forms and dialogs safe', () => {
+  const host = document.createElement('div'); document.body.append(host);
+  const instance = mountRoom({ container: host, bootstrap: { walls: [], roomControlsEnabled: true } as any });
+  const button = document.createElement('button'); document.body.append(button);
+  const press = (extra = {}) => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w', ...extra }));
+  button.focus(); press(); expect(document.activeElement).toBe(document.body);
+  button.focus(); press({ ctrlKey: true }); expect(document.activeElement).toBe(button);
+  const map = document.createElement('canvas'); map.tabIndex = 0; document.body.append(map);
+  map.focus(); press(); expect(document.activeElement).toBe(document.body);
+  for (const tag of ['input', 'textarea', 'select']) {
+    const field = document.createElement(tag); host.append(field); field.focus(); press();
+    expect(document.activeElement).toBe(field);
+  }
+  const dialog = document.createElement('dialog'); dialog.open = true; dialog.append(button); document.body.append(dialog);
+  button.focus(); press(); expect(document.activeElement).toBe(button);
+  dialog.remove(); instance.dispose();
+  document.body.append(button); button.focus(); press(); expect(document.activeElement).toBe(button);
+  button.remove(); map.remove(); host.remove();
+});
 it('canvas pointer release returns a focused room ancestor to body without stealing form focus', () => {
   const host=document.createElement('div');host.tabIndex=-1;document.body.append(host);
   const container=document.createElement('div');host.append(container);

@@ -85,7 +85,7 @@ Preset metadata, configuration, bindings and playback clocks live in MongoDB. Up
 
 Procedural gaze is an optional, default-off research algorithm with configurable attention weights and filters. It estimates gaze direction; perceptual naturalness and human attention have not been validated.
 
-The native GaussianAvatars subject-306 preset is a **local research head/bust**, not a production full-body avatar. Licensed FLAME/model/subject assets are not bundled. The asset API and preset are disabled in production, so deploying this branch will not publish the local model. Dynamic Gaussian LOD is not implemented; large-room native-avatar performance remains unmeasured. See [setup, scope and asset terms](docs/gaussian-avatar-gaze.md).
+The native GaussianAvatars subject-306 preset is a **research head/bust**, not a production full-body avatar. Licensed FLAME/model/subject assets are not bundled. Model delivery and the preset are disabled in production by default. The lab supports an optional server-authenticated temporary preview for separately authorized assets; a password does not grant redistribution rights. Deploying the code alone does not publish the local model. Dynamic Gaussian LOD is not implemented; large-room native-avatar performance remains unmeasured. See [setup, scope and asset terms](docs/gaussian-avatar-gaze.md).
 
 ## Tests
 

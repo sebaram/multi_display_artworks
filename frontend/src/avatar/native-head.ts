@@ -59,7 +59,7 @@ export async function attachNativeGaussianHead({ scene, renderer, aframeScene, a
   signal?.addEventListener('abort', dispose, { once: true });
   if (signal?.aborted) { dispose(); throw new DOMException('Native avatar disposed', 'AbortError'); }
   try {
-    const moduleUrl = '/vendor/gaussian-avatar-native.js';
+    const moduleUrl = new URL('/vendor/gaussian-avatar-native.js', location.origin).href;
     const [rig, { createNativeGaussianAvatar }] = await untilAborted(Promise.all([
       model(), import(/* @vite-ignore */ moduleUrl),
     ]), controller.signal);

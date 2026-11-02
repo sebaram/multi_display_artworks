@@ -1,5 +1,7 @@
 # 비교·성능 보고서
 
+[LAM 개인 사진 입력 비교](../validation/2026-11-02-lam-photo-study.md): 동일 LAM-20K의 입력 조건 6개를 비교했습니다. 원본 사진·이미지·영상이 포함된 공유 보고서는 비밀번호로 보호하며, 개인 미디어와 비밀번호는 이 공개 저장소에 보관하지 않습니다.
+
 현재 출시 후보는 `codex/gaussian-avatar-gaze`의 `71f9a3b`이며, [CI 41192279779](https://github.com/sebaram/multi_display_artworks/actions/runs/41192279779)의 테스트·이미지 빌드·런타임 검사가 성공했습니다. 아래 보고서의 실패 수치와 검증 범위는 각 촬영 시점의 기록입니다. YouTube CI의 성공은 실제 재생 또는 명시적 봇 차단 시 오류 안내·원본 링크 검증을 뜻하며 실제 재생 성공과 구분합니다. 운영 데이터 복원·배포와 실기기 확인 범위는 [2.0 출시 검토안](../releases/v2.0-readiness.md)에 정리했습니다.
 
 [2026-10-31 TV·모바일 후속 수정 검증](display-fix-verification.json): 아래 재비교의 R1–R5를 수정했습니다. 월 전용 화면은 가로·세로 모두98% 폭으로 맞추고, 방 방문자 없이 월 상태만 구독합니다. 이미지 contain 표시·모바일 저장 버튼·Windows 잠금 파일 재삭제를 복구했습니다. 집중 검사65개(프론트엔드44·백엔드21)와 빌드, 실제 Chrome 흐름을 확인했습니다. [수정 후 TV](../validation/display-tv-after-desktop.png)·[모바일](../validation/display-tv-after-mobile.png). 전체 CI 및 실기기는 재실행하지 않았습니다.
